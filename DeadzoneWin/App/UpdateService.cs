@@ -34,7 +34,21 @@ namespace CrossfireWin
 
     public static string ServerUrl => UpdateSettings.ServerUrl;
 
-    public static async Task<UpdateInfo?> CheckAsync()
+            // Registra uma nova versão num servidor HTTP (broadcast para todos os clientes).
+        public static async Task<bool> PublishAsync(string serverUrl, string version, string packageUrl, string[] files, string notes = "")
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(new { Version = version, PackageUrl = packageUrl, Files = files, Notes = notes });
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                await client.PostAsync(serverUrl, content);
+                return true;
+            }
+            catch { return false; }
+        }
+
+public static async Task<UpdateInfo?> CheckAsync()
         {
             try
             {
@@ -211,6 +225,7 @@ namespace CrossfireWin
         }
     }
 }
+
 
 
 

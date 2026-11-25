@@ -1,4 +1,4 @@
-// SplashForm.cs — Splash inicial: nome do jogo, ícone e barra de carregamento.
+﻿// SplashForm.cs — Splash inicial: nome do jogo, ícone e barra de carregamento.
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -36,7 +36,7 @@ namespace CrossfireWin
             _anim = new System.Windows.Forms.Timer { Interval = 24 };
             _anim.Tick += (s, e) =>
             {
-                _t += .045f;
+                _t += .045f / 3.5f;
                 if (_t >= 1f) { _anim.Stop(); Close(); }
                 Invalidate();
             };
@@ -98,3 +98,4 @@ namespace CrossfireWin
         private static Color A(Color c, int a) => Color.FromArgb(Math.Clamp(a, 0, 255), c);
     }
 }
+

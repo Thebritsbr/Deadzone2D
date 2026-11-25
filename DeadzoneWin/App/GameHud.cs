@@ -401,6 +401,32 @@ namespace CrossfireWin
             g.FillRectangle(w, cx - r * .18f, cy - r * .48f, r * .36f, r * .96f);
             g.FillRectangle(w, cx - r * .48f, cy - r * .18f, r * .96f, r * .36f);
         }
+
+        // TAB — detalhes da partida
+        private void DrawLeaderboard(Graphics g, int w, int h)
+        {
+            if (_g == null) return;
+            var rank = _g.Fighters.OrderByDescending(f => f.Kills).ThenByDescending(f => f.DamageDealt).ThenBy(f => f.Deaths).ToList();
+            int rw = 560, rh = 64 + rank.Count * 28;
+            var r = new Rectangle((w - rw) / 2, (h - rh) / 2, rw, rh);
+            FillRoundedRect(g, r, A(BgDeep, 240), 10);
+            using (var p = RoundRect(r, 10)) g.DrawPath(Pn(Line, 1f), p);
+            Spaced(g, "MATCH DETAILS — TAB", FTitle, Red, r.X + 24, r.Y + 22, 4f);
+            Spaced(g, "PLAYER", FTiny, Dim, r.X + 24, r.Y + 52, 2f);
+            Spaced(g, "KILLS", FTiny, Dim, r.X + 360, r.Y + 52, 2f);
+            Spaced(g, "DAMAGE", FTiny, Dim, r.X + 430, r.Y + 52, 2f);
+            Spaced(g, "DEATHS", FTiny, Dim, r.X + 510, r.Y + 52, 2f);
+            int y = r.Y + 70;
+            foreach (var f in rank)
+            {
+                var col = f.IsPlayer ? Red : f.Team == 0 ? Blue : HpRed;
+                Txt(g, f.Name, FSmallB, f.Alive ? col : A(Dim, 160), new RectangleF(r.X + 24, y, 300, 22));
+                Txt(g, f.Kills.ToString(), FSmallB, Ink, new RectangleF(r.X + 360, y, 50, 22), StringAlignment.Center);
+                Txt(g, f.DamageDealt.ToString(), FSmallB, Amber, new RectangleF(r.X + 430, y, 60, 22), StringAlignment.Center);
+                Txt(g, f.Deaths.ToString(), FSmallB, Dim, new RectangleF(r.X + 510, y, 40, 22), StringAlignment.Center);
+                y += 28;
+            }
+        }
     }
 }
 

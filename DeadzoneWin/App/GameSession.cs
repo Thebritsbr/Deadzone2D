@@ -406,6 +406,7 @@ namespace CrossfireWin
                 DamageAngle = angle;
                 CameraShake = Math.Min(10f, CameraShake + 3.5f);
             }
+            attacker.DamageDealt += Math.Max(1, (int)Math.Round(dmg));
             DamageNumbers.Add(new DamageNumber
             {
                 X = victim.X + (float)(_rng.NextDouble() * 16 - 8),

@@ -73,6 +73,7 @@ namespace CrossfireWin
             DrawWorld(g, w, h);
             DrawGameVignette(g, w, h);
             DrawHud(g, w, h);
+            if (_keys.Contains(Keys.Tab)) DrawLeaderboard(g, w, h);
             if (_invAnim > .01f) DrawInventoryPanel(g, w, h);
             if (_storeOpen) DrawStore(g, w, h);
             if (_pauseAnim > .01f) DrawPause(g, w, h);
@@ -388,6 +389,7 @@ namespace CrossfireWin
                          : item.Kind == "medkit" ? Color.FromArgb(90, 240, 170)
                          : item.Kind == "vest" ? Color.FromArgb(120, 180, 255)
                          : Color.FromArgb(255, 160, 90);
+                if (item.Kind == "shop") using (var b = NB(A(Color.FromArgb(255, 180, 60), 60))) g.FillEllipse(b, item.X - 26, y - 26, 52, 52);
                 using (var b = NB(A(glow, 30))) g.FillEllipse(b, item.X - 26, y - 26, 52, 52);
                 using (var b = NB(A(glow, 70))) g.FillEllipse(b, item.X - 12, y - 12, 24, 24);
                 switch (item.Kind)
@@ -672,4 +674,5 @@ namespace CrossfireWin
         }
     }
 }
+
 

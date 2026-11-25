@@ -1,4 +1,4 @@
-// MapBuilder.cs — Layout dos 3 mapas iniciais.
+﻿// MapBuilder.cs — Layout dos 3 mapas iniciais.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -273,6 +273,14 @@ namespace CrossfireWin
             AddHouse(new RectangleF(4340, 3760, 220, 180), 2, rng, true, 1);
             AddHouse(new RectangleF(5320, 3660, 210, 180), 3, rng, true, 2);
 
+            // ---- 10 lojas espalhadas em casas (bem distantes) ----
+            var shopSpots = new (float x, float y)[]
+            {
+                (820,760),(1100,1050),(5100,760),(4780,1050),(2720,1830),
+                (3450,2000),(820,3600),(1120,3940),(5060,3600),(4720,3970),
+            };
+            foreach (var s in shopSpots) Loot.Add(new LootItem { Kind = "shop", Label = "Gun Shop", X = s.x, Y = s.y, Seed = (float)rng.NextDouble() });
+
             // ---- posto sul ----
             AddHouse(new RectangleF(2860, 4120, 300, 210), 0, rng, true, 2);
             AddHouse(new RectangleF(2500, 4200, 240, 190), 1, rng, true, 2);
@@ -339,3 +347,4 @@ namespace CrossfireWin
         }
     }
 }
+

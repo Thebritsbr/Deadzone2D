@@ -51,6 +51,7 @@ namespace CrossfireWin
         public float Armor;
         public bool Alive = true;
         public int Kills, Deaths, Coins = 120, Medkits, Vests, Capacete, Backpacks;
+        public int DamageDealt;
         public int BackpackBonus => Math.Max(0, Backpacks - 1) * 30;
         public string WeaponId = "Glock";
         public int Mag = 12, Reserve = 48;

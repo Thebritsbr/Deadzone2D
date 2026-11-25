@@ -478,6 +478,8 @@ namespace CrossfireWin
 
         private void BackToLobby()
         {
+            ShowPage("Loading");
+            Task.Run(async () => { await Task.Delay(3500); if (!IsDisposed) Invoke((Action)(() => ShowPage("Lobby"))); });
             _inGame = false;
             _g = null;
             _paused = false;
@@ -526,6 +528,8 @@ namespace CrossfireWin
                 case "max": ToggleMax(); break;
                 case "close": Close(); break;
                 case "guest":
+                case "createAcc":
+                case "google":
                     SaveLastUser(_players[0]);
                     ShowPage("Lobby");
                     break;
@@ -538,7 +542,8 @@ namespace CrossfireWin
                     _players[0] = user;
                     _royaleSquad = 1;
                     _teamSize = 1;
-                    ShowPage("Lobby");
+                    ShowPage("Loading");
+                    Task.Run(async () => { await Task.Delay(3500); if (!IsDisposed) Invoke((Action)(() => ShowPage("Lobby"))); });
                     break;
                 }
                 case "updateInstall":
@@ -710,7 +715,7 @@ namespace CrossfireWin
             else if (e.KeyCode == Keys.E)
             {
                 var item = _g.TryPickup(_g.Player);
-                if (item != null) ShowToast("Pegou: " + item.Label);
+                if (item != null) { if (item.Kind == "shop") { _storeOpen = true; _storeTimer = 180f; } else ShowToast("Pegou: " + item.Label); }
                 e.Handled = true;
             }
             else if (e.KeyCode == Keys.H)
@@ -1230,8 +1235,10 @@ namespace CrossfireWin
             Reg(login, "login"); float lhv = Hv("login");
             Button(g, login, "login", "FAZER LOGIN", true, FBtn, 4f);
 
-            var guest = new Rectangle(card.X + 40, login.Bottom + 12, card.Width - 80, 40);
-            Button(g, guest, "guest", "Continuar como convidado", false, FMid, 2.5f);
+            var guest = new Rectangle(card.X + 40, login.Bottom + 12, (card.Width - 92) / 2, 40);
+            Button(g, guest, "createAcc", "Create Account", false, FMid, 2.5f);
+            Button(g, new Rectangle(card.X + 52 + (card.Width - 92) / 2, login.Bottom + 12, (card.Width - 92) / 2, 40), "google", "Google (Recommended)", false, FMid, 2.5f);
+            Txt(g, "Local account saves data on this PC.", FTiny, A(Dim, 170), new RectangleF(0, BarH + 366, w, 14), StringAlignment.Center);
             Txt(g, "Tab para avançar, Enter para fazer login", FTiny, A(Dim, 160),
                 new RectangleF(0, BarH + 344, w, 14), StringAlignment.Center);
         }
@@ -1665,4 +1672,10 @@ namespace CrossfireWin
     }
     public class Skin { public string SkinId { get; set; } = ""; public string Name { get; set; } = ""; }
 }
+
+
+
+
+
+
 
