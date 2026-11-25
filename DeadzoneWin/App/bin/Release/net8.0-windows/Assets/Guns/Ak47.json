@@ -1,0 +1,30 @@
+{
+	"GunId": "ak47",
+	"Category": "Fuzil",
+	"Skins": [
+		{
+			"SkinId": "default",
+			"Name": "Default",
+			"Texture": "Assets/Textures/Skins/Default.png",
+			"Mesh": "Assets/Guns/Models/Ak47.uasset"
+		},
+		{
+			"SkinId": "amber_royal",
+			"Name": "Amber Royal",
+			"Texture": "Assets/Textures/Skins/AmberRoyal.png",
+			"Mesh": "Assets/Guns/Models/Ak47_AmberRoyal.uasset"
+		},
+		{
+			"SkinId": "rusty_tactical",
+			"Name": "Rusty Tactical",
+			"Texture": "Assets/Textures/Skins/RustyTactical.png",
+			"Mesh": "Assets/Guns/Models/Ak47_RustyTactical.uasset"
+		},
+		{
+			"SkinId": "neon_fury",
+			"Name": "Neon Fury",
+			"Texture": "Assets/Textures/Skins/NeonFury.png",
+			"Mesh": "Assets/Guns/Models/Ak47_NeonFury.uasset"
+		}
+	]
+}

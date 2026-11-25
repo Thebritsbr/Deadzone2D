@@ -1,0 +1,55 @@
+{
+  "Maps": [
+    {
+      "Id": "deal_duo",
+      "Name": "Deal Duo",
+      "Mode": "DealDuo",
+      "Type": "1v1 ou 2v2 (Dead Battle)",
+      "SizeX": 2048,
+      "SizeY": 1280,
+      "SpawnVehicles": [
+        { "Type": "car", "Count": 4, "Usable": false },
+        { "Type": "truck", "Count": 2, "Usable": true }
+      ],
+      "BarrierType": "carros e caminhões queimados (visual/colisão inicial)",
+      "MaxWins": 3,
+      "WinText": "You Win!",
+      "WinColor": "Amarelo Dourado",
+      "LossText": "Defeat",
+      "LossColor": "Cinza Escuro",
+      "TeamSize": 2
+    },
+    {
+      "Id": "squad_battle",
+      "Name": "Squad Battle",
+      "Mode": "SquadBattle",
+      "Type": "Squad",
+      "SizeX": 4096,
+      "SizeY": 3072,
+      "SpawnVehicles": [
+        { "Type": "car", "Count": 8, "Usable": false },
+        { "Type": "truck", "Count": 4, "Usable": false }
+      ],
+      "BarrierType": "veículos abandonados (inimigos não podem usá-los)",
+      "MaxWins": 3,
+      "WinText": "You Win!",
+      "WinColor": "Amarelo Dourado",
+      "LossText": "Defeat",
+      "LossColor": "Cinza Escuro",
+      "TeamSize": 4
+    },
+    {
+      "Id": "dead_royale",
+      "Mode": "DeadRoyale",
+      "Name": "Dead Royale",
+      "Type": "Solo/Dupla/Trio/Squad",
+      "SizeX": 6144,
+      "SizeY": 4608,
+      "MinPlayers": 29,
+      "MaxPlayers": 30,
+      "CountdownSeconds": 180,
+      "SpawnItems": true,
+      "SpawnItemsInsideHouses": true
+    }
+  ]
+}

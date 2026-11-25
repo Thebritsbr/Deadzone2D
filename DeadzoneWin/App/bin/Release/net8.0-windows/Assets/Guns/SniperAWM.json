@@ -1,0 +1,30 @@
+{
+	"GunId": "sniper_awm",
+	"Category": "Fuzil de Precisão",
+	"Skins": [
+		{
+			"SkinId": "default",
+			"Name": "Default",
+			"Texture": "Assets/Textures/Skins/Default.png",
+			"Mesh": "Assets/Guns/Models/SniperAWM.uasset"
+		},
+		{
+			"SkinId": "amber_royal",
+			"Name": "Amber Royal",
+			"Texture": "Assets/Textures/Skins/AmberRoyal.png",
+			"Mesh": "Assets/Guns/Models/SniperAWM_AmberRoyal.uasset"
+		},
+		{
+			"SkinId": "rusty_tactical",
+			"Name": "Rusty Tactical",
+			"Texture": "Assets/Textures/Skins/RustyTactical.png",
+			"Mesh": "Assets/Guns/Models/SniperAWM_RustyTactical.uasset"
+		},
+		{
+			"SkinId": "neon_fury",
+			"Name": "Neon Fury",
+			"Texture": "Assets/Textures/Skins/NeonFury.png",
+			"Mesh": "Assets/Guns/Models/SniperAWM_NeonFury.uasset"
+		}
+	]
+}

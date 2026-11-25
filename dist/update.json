@@ -1,0 +1,6 @@
+{
+  "Version": "1.7",
+  "PackageUrl": "https://example.com/deadzone/dist/DeadzoneSetup_v1.6.exe",
+  "Notes": "Deadzone v1.7 — corrected UI, shops, coins and group system.",
+  "Files": ["CrossfireApp.exe", "CrossfireApp.dll", "CrossfireApp.deps.json", "CrossfireApp.runtimeconfig.json"]
+}

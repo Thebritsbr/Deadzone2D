@@ -1,0 +1,9 @@
+{
+  "Window": {
+    "Title": "Deadzone",
+    "TitleBarColor": "#000000"
+  },
+  "Lobby": {
+    "MaxVisiblePlayers": 16
+  }
+}

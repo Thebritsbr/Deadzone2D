@@ -1,0 +1,24 @@
+{
+  "DealDuo": {
+    "MaxWins": 3,
+    "WinText": "You Win!",
+    "WinBackground": "#F2C846",
+    "LossText": "Defeat",
+    "LossBackground": "#555555",
+    "CounterFormat": "{0} X {1}"
+  },
+  "SquadBattle": {
+    "MaxWins": 3,
+    "WinText": "You Win!",
+    "WinBackground": "#F2C846",
+    "LossText": "Defeat",
+    "LossBackground": "#555555"
+  },
+  "DeadRoyale": {
+    "MinPlayers": 29,
+    "MaxPlayers": 30,
+    "CountdownSeconds": 180,
+    "SpawnItems": true,
+    "SpawnKeys": false
+  }
+}

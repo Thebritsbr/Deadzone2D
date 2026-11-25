@@ -1,0 +1,6 @@
+{
+  "Enabled": true,
+  "ServerUrl": "https://example.com/deadzone/update.json",
+  "Notes": "Próxima atualização do Deadzone",
+  "Files": ["CrossfireApp.exe", "CrossfireApp.dll", "CrossfireApp.runtimeconfig.json", "CrossfireApp.deps.json"]
+}
