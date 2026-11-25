@@ -1,7 +1,7 @@
 ﻿[Setup]
 AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
 AppName=Deadzone
-AppVersion=1.7
+AppVersion=1.8
 AppPublisher=Lume Studio
 AppComments=Deadzone — shooter top-down, estilo Valorant
 AppCopyright=Lume Studio INC
@@ -13,7 +13,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 LicenseFile=LICENSE.md
 OutputDir=..\dist
-OutputBaseFilename=DeadzoneSetup_v1.7
+OutputBaseFilename=DeadzoneSetup_v1.8
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -24,6 +24,9 @@ WizardImageFile=assets\side_164x314.bmp,assets\side_192x386.bmp,assets\side_246x
 [Messages]
 WizardPreparing=Preparando a instalação do Deadzone...
 
+[Tasks]
+Name: "update"; Description: "Updates — check for a newer version and install it"; GroupDescription: "Game utilities:"
+
 [Languages]
 Name: english; MessagesFile: compiler:Default.isl
 
@@ -31,11 +34,15 @@ Name: english; MessagesFile: compiler:Default.isl
 Source: "assets\header.bmp"; Flags: dontcopy
 Source: "..\dist\Deadzone\*"; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
 
+[Files]
+Source: "CheckUpdate.ps1"; DestDir: "{app}"; Flags: ignoreversion
+
 [Icons]
 Name: "{group}\Deadzone"; Filename: "{app}\CrossfireApp.exe"; WorkingDir: "{app}"
 Name: "{commondesktop}\Deadzone"; Filename: "{app}\CrossfireApp.exe"; IconFilename: "{app}\CrossfireApp.exe"
 
 [Run]
+Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\CheckUpdate.ps1"""; Flags: runhidden unchecked; Tasks: update
 Filename: "{app}\CrossfireApp.exe"; Description: "Launch Deadzone"; Flags: postinstall nowait skipifsilent
 
 [Code]
@@ -161,5 +168,8 @@ begin
   except
   end;
 end;
+
+
+
 
 
