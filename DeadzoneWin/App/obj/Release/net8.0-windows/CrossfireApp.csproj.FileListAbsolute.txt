@@ -34,3 +34,4 @@ C:\Users\pc\OneDrive\Desktop\Deadzone\DeadzoneWin\App\bin\Release\net8.0-windows
 C:\Users\pc\OneDrive\Desktop\Deadzone\DeadzoneWin\App\bin\Release\net8.0-windows\Assets\Splash.png
 C:\Users\pc\OneDrive\Desktop\Deadzone\DeadzoneWin\App\bin\Release\net8.0-windows\Config\Update.json
 C:\Users\pc\OneDrive\Desktop\Deadzone\DeadzoneWin\App\bin\Release\net8.0-windows\Config\AppInfo.json
+C:\Users\pc\OneDrive\Desktop\Deadzone\DeadzoneWin\App\obj\Release\net8.0-windows\CrossfireApp.sourcelink.json

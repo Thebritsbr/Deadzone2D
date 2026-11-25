@@ -14,7 +14,7 @@ namespace CrossfireWin
     {
         public sealed record UpdateInfo(string Version, string PackageUrl, string? Notes, string[] Files = null);
 
-        public static string LocalVersion = "1.6";
+        public static string LocalVersion = "1.7";
         public static string IgnoreVersion = "";
         public static UpdateInfo? Available;
         public static float DownloadProgress;
@@ -211,4 +211,6 @@ namespace CrossfireWin
         }
     }
 }
+
+
 
