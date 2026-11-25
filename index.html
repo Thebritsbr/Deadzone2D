@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deadzone — Download & Updates</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">D</span> DEADZONE</div>
+  <nav>
+    <button class="tablink active" data-tab="download">DOWNLOAD</button>
+    <button class="tablink" data-tab="updates">UPDATES</button>
+    <button class="tablink" data-tab="features">FEATURES</button>
+    <button class="tablink" data-tab="install">HOW TO INSTALL</button>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="glow"></div>
+  <h1>DEADZONE</h1>
+  <p class="tagline">A fast-paced top-down shooter. No engine. Pure action.</p>
+  <a class="cta" href="DeadzoneSetup_v1.6.exe">DOWNLOAD v1.6</a>
+  <p class="small">Windows · .NET 8 · Offline single-player</p>
+</section>
+
+<main>
+  <div id="download" class="tab active">
+    <h2>Download Deadzone</h2>
+    <p class="lead">Get the latest installer and jump into the action.</p>
+    <div class="card">
+      <div class="row"><span class="key">Current version</span><span class="value" id="version">1.6</span></div>
+      <div class="row"><span class="key">File</span><span class="value">DeadzoneSetup_v1.6.exe</span></div>
+      <div class="row"><span class="key">Platform</span><span class="value">Windows 10 / 11 (x64)</span></div>
+      <div class="row"><span class="key">Requirements</span><span class="value">.NET 8 Desktop Runtime</span></div>
+      <a class="cta wide" href="DeadzoneSetup_v1.6.exe">DOWNLOAD INSTALLER</a>
+      <p class="hint">If SmartScreen warns, click "More info" → "Run anyway".</p>
+    </div>
+  </div>
+
+  <div id="updates" class="tab">
+    <h2>Updates</h2>
+    <p class="lead">Deadzone checks for new versions automatically when you start the game.</p>
+    <div class="card" id="updateCard">
+      <div class="row"><span class="key">Latest version</span><span class="value" id="latest">—</span></div>
+      <div class="row"><span class="key">Release notes</span><span class="value" id="notes">Loading...</span></div>
+    </div>
+  </div>
+
+  <div id="features" class="tab">
+    <h2>Game modes</h2>
+    <div class="grid">
+      <div class="feature"><b>DEAL DUO</b><p>1v1 / 2v2 in an abandoned village. Burned cars as cover. First to 3 wins.</p></div>
+      <div class="feature"><b>SQUAD BATTLE</b><p>4v4 in a medium abandoned city with wrecked vehicles and strategic lanes.</p></div>
+      <div class="feature"><b>DEAD ROYALE</b><p>30 players, 3-minute countdown, houses with weapons, coins and medkits.</p></div>
+      <div class="feature"><b>GUN SHOP</b><p>Spend DeadZone Coins before the round. Buy guns, armor, helmet and backpacks.</p></div>
+    </div>
+  </div>
+
+  <div id="install" class="tab">
+    <h2>How to install</h2>
+    <ol class="steps">
+      <li>Download <b>DeadzoneSetup_v1.6.exe</b> above.</li>
+      <li>Run the installer and choose the install folder.</li>
+      <li>Launch Deadzone from the Start Menu or desktop shortcut.</li>
+      <li>Create your local account or continue as guest.</li>
+      <li>Pick a mode, choose your squad size, and play.</li>
+    </ol>
+    <p class="hint">Updates install automatically on game start — no manual reinstall needed.</p>
+  </div>
+</main>
+
+<footer>Deadzone · Built with C# WinForms · <a href="update.json">update.json</a></footer>
+<script src="script.js"></script>
+</body>
+</html>
