@@ -19,6 +19,7 @@ namespace CrossfireWin
         public static UpdateInfo? Available;
         public static float DownloadProgress;
         public static bool SoftUpdateReady;
+        public static bool DownloadStarted;
         private static Task? _download;
         private static string? _installerPath;
         private static bool _installerStarted;
@@ -106,6 +107,7 @@ public static async Task<UpdateInfo?> CheckAsync()
         {
             if (Available == null || _download != null || _installerStarted) return;
             _installerStarted = true;
+            DownloadStarted = true;
             _download = Task.Run(async () =>
             {
                 try
