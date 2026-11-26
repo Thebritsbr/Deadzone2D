@@ -9,7 +9,7 @@ namespace CrossfireWin
     {
         public static string Nome = "Deadzone";
         public static string EmpresaFundadora = "";
-        public static string Versao = "2.0";
+        public static string Versao = "2.1";
         public static string Tema = "Valorant";
 
         public static void Load(string dir)

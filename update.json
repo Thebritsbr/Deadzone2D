@@ -1,6 +1,6 @@
 ﻿{
-  "Version": "2.1",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.0.exe",
-  "Notes": "Deadzone 2.0 - Update screen with progress, UI fixes.",
+  "Version": "2.2",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.1.exe",
+  "Notes": "Deadzone 2.1 - Latest build with update progress screen.",
   "Files": ["CrossfireApp.exe", "CrossfireApp.dll", "CrossfireApp.deps.json", "CrossfireApp.runtimeconfig.json"]
 }
