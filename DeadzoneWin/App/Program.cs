@@ -1,5 +1,14 @@
 // Program.cs — Entry point do Crossfire Win (sem Engine)
+using System;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using CrossfireWin;
+
+[DllImport("user32.dll")]
+static extern IntPtr SetForegroundWindow(IntPtr hwnd);
+[DllImport("user32.dll")]
+static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 
 ApplicationConfiguration.Initialize();
 Application.EnableVisualStyles();
@@ -9,5 +18,19 @@ var form = new MainForm();
 if (args.Length > 0 && args[0].Equals("--play", StringComparison.OrdinalIgnoreCase))
     form.QuickPlay(args.Skip(1).ToArray());
 UpdateService.ApplyPending();
+
+// Se já existir uma instância do jogo, focar a janela existente e sair.
+foreach (var p in System.Diagnostics.Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetEntryAssembly()!.Location)))
+{
+    if (p.Id != System.Diagnostics.Process.GetCurrentProcess().Id && p.MainWindowHandle != IntPtr.Zero)
+    {
+        SetForegroundWindow(p.MainWindowHandle);
+        const uint WM_SHOWWINDOW = 0x0018;
+        PostMessage(p.MainWindowHandle, WM_SHOWWINDOW, (IntPtr)1, IntPtr.Zero);
+        form.Dispose();
+        return;
+    }
+}
+
 Application.Run(new SplashForm());
 Application.Run(form);
