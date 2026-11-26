@@ -22,6 +22,7 @@ main { max-width:980px; margin:0 auto; padding:48px 24px 80px; min-height:460px;
 .tab.active { display:block; animation:fade .25s ease; }
 @keyframes fade { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 h2 { letter-spacing:3px; font-size:28px; margin-top:0; }
+h3{ letter-spacing:3px; font-size:50px; margin-top:0; }
 .lead { color:var(--dim); margin-top:-12px; }
 .card { background:var(--panel); border:1px solid var(--line); padding:24px; }
 .row { display:flex; justify-content:space-between; gap:16px; padding:12px 0; border-bottom:1px solid var(--line); }
