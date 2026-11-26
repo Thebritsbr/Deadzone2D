@@ -17,7 +17,7 @@ namespace Deadzone2D
     {
         public sealed record UpdateInfo(string Version, string PackageUrl, string? Notes, string[]? Files = null, string? FilesUrl = null);
 
-        public static string LocalVersion = "2.5";
+        public static string LocalVersion = "2.6";
         public static string IgnoreVersion = "";
         public static DateTime IgnoreUntilUtc;
         public static UpdateInfo? Available;

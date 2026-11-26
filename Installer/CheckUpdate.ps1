@@ -1,7 +1,7 @@
 # CheckUpdate.ps1 — Verifica atualizações no GitHub Pages e instala a versão mais recente.
 $ErrorActionPreference = 'SilentlyContinue'
 $url = 'https://thebritsbr.github.io/Deadzone2D/update.json'
-$local = '2.5'
+$local = '2.6'
 try {
   $info = Get-Content (Join-Path $PSScriptRoot 'Config\AppInfo.json') -Raw | ConvertFrom-Json
   if ($info.Versao) { $local = [string]$info.Versao }
