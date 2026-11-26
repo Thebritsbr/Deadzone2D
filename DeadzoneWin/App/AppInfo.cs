@@ -8,9 +8,9 @@ namespace CrossfireWin
     public static class AppInfo
     {
         public static string Nome = "Deadzone";
-        public static string EmpresaFundadora = "";
+        public static string EmpresaFundadora = "Lume Studio INC";
         public static string Versao = "2.1";
-        public static string Tema = "Valorant";
+        public static string Tema = "DeadTheme";
 
         public static void Load(string dir)
         {

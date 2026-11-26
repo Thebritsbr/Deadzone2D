@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Deadzone")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+72ec5f6dbdc4832aca08eed35dea31a267194ff0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+250acc036fc76f7f7d424e80a2c4df2f8ec5bfb8")]
 [assembly: System.Reflection.AssemblyProductAttribute("Deadzone")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Deadzone")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

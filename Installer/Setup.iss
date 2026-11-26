@@ -1,8 +1,9 @@
 [Setup]
 AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
 AppName=Deadzone
+AppPublisher=Thebritsbr
+
 AppVersion=2.1
-AppPublisher=Lume Studio
 AppComments=Deadzone — shooter top-down, estilo Valorant
 AppCopyright=Lume Studio INC
 DefaultDirName={commonpf}\Deadzone
