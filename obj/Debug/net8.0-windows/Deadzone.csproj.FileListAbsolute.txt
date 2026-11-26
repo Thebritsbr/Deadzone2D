@@ -1,5 +1,0 @@
-C:\Users\pc\OneDrive\Desktop\Deadzone\obj\Debug\net8.0-windows\Deadzone.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\pc\OneDrive\Desktop\Deadzone\obj\Debug\net8.0-windows\Deadzone.AssemblyInfoInputs.cache
-C:\Users\pc\OneDrive\Desktop\Deadzone\obj\Debug\net8.0-windows\Deadzone.AssemblyInfo.cs
-C:\Users\pc\OneDrive\Desktop\Deadzone\obj\Debug\net8.0-windows\Deadzone.csproj.CoreCompileInputs.cache
-C:\Users\pc\OneDrive\Desktop\Deadzone\obj\Debug\net8.0-windows\Deadzone.sourcelink.json
