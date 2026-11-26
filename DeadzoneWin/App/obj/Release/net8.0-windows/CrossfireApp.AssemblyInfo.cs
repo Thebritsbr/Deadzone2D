@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Deadzone2DApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a8a2f9e3e5ac0da59185e85ddac234850118a23")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+deae516b2e7b710e245c02e112376e8928207401")]
 [assembly: System.Reflection.AssemblyProductAttribute("Deadzone2DApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Deadzone2DApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

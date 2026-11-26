@@ -14,7 +14,7 @@ namespace Deadzone2D
     {
         public sealed record UpdateInfo(string Version, string PackageUrl, string? Notes, string[] Files = null);
 
-        public static string LocalVersion = "2.2";
+        public static string LocalVersion = "2.4";
         public static string IgnoreVersion = "";
         public static UpdateInfo? Available;
         public static float DownloadProgress;
@@ -173,19 +173,24 @@ public static async Task<UpdateInfo?> CheckAsync()
             return true;
         }
 
-        public static void InstallNow()
-        {
-            if (string.IsNullOrEmpty(_installerPath) || !File.Exists(_installerPath)) return;
-            StartDownload(); // certo se ainda nÃ£o baixou
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = _installerPath,
-                UseShellExecute = true,
-                Arguments = "/VERYSILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
-            });
-        }
-
-        /// Aplicada no inÃ­cio do programa: copia os arquivos baixados a partir de uma
+        public static async Task InstallNow()
+{
+    if (Available == null) return;
+    try
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "deadzone-updates");
+        Directory.CreateDirectory(dir);
+        var name = Path.GetFileName(new Uri(Available.PackageUrl).LocalPath);
+        if (string.IsNullOrEmpty(name)) name = "DeadzoneSetup.exe";
+        _installerPath = Path.Combine(dir, name);
+        using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        var data = await client.GetByteArrayAsync(Available.PackageUrl);
+        await File.WriteAllBytesAsync(_installerPath, data);
+        Process.Start(new ProcessStartInfo { FileName = _installerPath, UseShellExecute = true, Arguments = "/VERYSILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS" });
+    }
+    catch { }
+}
+        /// Aplicada no início: copia os arquivos baixados a partir de uma
         /// atualizaÃ§Ã£o sem reinstalar.
         public static void ApplyPending()
         {
