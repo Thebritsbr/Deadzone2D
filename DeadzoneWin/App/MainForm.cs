@@ -1045,8 +1045,7 @@ namespace Deadzone2D
             EnsureBg(w, h);
             g.DrawImageUnscaled(_bgCache!, 0, 0);
 
-            if (_page == 5 && UpdateService.DownloadStarted && UpdateService.DownloadProgress < 1f) { DrawUpdateLoading(g, w, h); return; }
-            DrawTopBarIfNeeded(g, w);
+                        DrawTopBarIfNeeded(g, w);
             switch (_page)
             {
                 case 0: DrawLoading(g, w, h); break;
