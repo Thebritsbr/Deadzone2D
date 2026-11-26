@@ -139,6 +139,7 @@ namespace CrossfireWin
         private float _camX, _camY, _zoom = 1f;
         private int _spectate = -1;
         private bool _storeOpen;
+        private bool _pendingUpdate;
         private float _storeTimer;
         private float _deathFade;
         private float _scorePop;
@@ -198,7 +199,7 @@ namespace CrossfireWin
                 try
                 {
                     var info = await UpdateService.CheckAsync();
-                    if (info != null) Invoke((Action)(() => { if (!IsDisposed) ShowPage("Update"); }));
+                    if (info != null) { _pendingUpdate = true; try { if (IsHandleCreated) Invoke((Action)(() => { if (!IsDisposed) { _pendingUpdate = false; ShowPage("Update"); } })); } catch { } }
                 }
                 catch { }
             });
@@ -1182,6 +1183,7 @@ namespace CrossfireWin
         {
             base.OnShown(e);
             LoadLoginControls();
+            if (_pendingUpdate) { _pendingUpdate = false; ShowPage("Update"); }
         }
 
         private void SaveLastUser(string name)
@@ -1674,6 +1676,10 @@ private void DrawLobby(Graphics g, int w, int h)
     }
     public class Skin { public string SkinId { get; set; } = ""; public string Name { get; set; } = ""; }
 }
+
+
+
+
 
 
 
