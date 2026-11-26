@@ -429,4 +429,3 @@ namespace Deadzone2D
         }
     }
 }
-

@@ -604,18 +604,7 @@ namespace Deadzone2D
                 Spaced(g, "MOEDAS DA FURJA — colete as moedas no chão", FBody, Dim, w / 2f, h - 64, 3f, StringAlignment.Center);
         }
 
-                private void DrawSaveConfirm(Graphics g, int w, int h)
-        {
-            var r = new Rectangle((w - 320) / 2, h / 2 - 40, 320, 118);
-            FillRoundedRect(g, r, A(BgDeep, 245), 10);
-            using (var p = RoundRect(r, 10)) g.DrawPath(Pn(Line, 1f), p);
-            Spaced(g, "CONFIRM SAVE?", FMid, Ink, r.X + 20, r.Y + 20, 2f);
-            Txt(g, "Saving in " + Math.Ceiling(_saveConfirm) + "s", FTiny, Dim, new RectangleF(r.X + 20, r.Y + 42, 200, 16));
-            Button(g, new Rectangle(r.X + 20, r.Bottom - 40, 88, 30), "cfgSaveConfirm", "Save", false, FMid, 1f);
-            Button(g, new Rectangle(r.X + 116, r.Bottom - 40, 88, 30), "cfgSaveRevert", "Revert", false, FMid, 1f);
-            Button(g, new Rectangle(r.X + 212, r.Bottom - 40, 88, 30), "cfgSaveCancel", "Cancel", false, FMid, 1f);
-        }
-private void DrawGameVignette(Graphics g, int w, int h)
+                private void DrawGameVignette(Graphics g, int w, int h)
         {
             if (_g == null) return;
             using (var top = new LinearGradientBrush(new Rectangle(0, 0, w, 130), Color.FromArgb(190, 5, 8, 12), Color.FromArgb(0, 5, 8, 12), 90f))

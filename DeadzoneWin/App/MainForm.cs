@@ -1,5 +1,6 @@
-// MainForm.cs — Deadzone (WinForms, sem engine) — visual estilo tático
-//   Loading → Login → Lobby → Armas, com lista de amigos no canto inferior direito.
+// MainForm.cs — Deadzone (WinForms, sem engine) — visual estilo Valorant
+//   Loading → Login → Lobby → Armas → Partida, com lista de amigos no canto inferior direito.
+//   Salve todos os .cs como UTF-8 (com BOM) para os acentos aparecerem certos.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,20 +18,21 @@ namespace Deadzone2D
     {
         private const int BarH = 64;
 
-        // ---------- Paleta (estilo tático) ----------
-        private static readonly Color Bg      = Color.FromArgb(15, 25, 35);
+        // ---------- Paleta (cores da identidade do Valorant) ----------
+        private static readonly Color Bg      = Color.FromArgb(15, 25, 35);    // #0F1923
         private static readonly Color BgDeep  = Color.FromArgb(9, 15, 22);
         private static readonly Color Panel   = Color.FromArgb(24, 35, 47);
         private static readonly Color PanelHi = Color.FromArgb(33, 47, 62);
         private static readonly Color Line    = Color.FromArgb(48, 62, 78);
-        private static readonly Color Red     = Color.FromArgb(255, 70, 85);
+        private static readonly Color Red     = Color.FromArgb(255, 70, 85);   // #FF4655
         private static readonly Color RedHi   = Color.FromArgb(255, 105, 118);
-        private static readonly Color Ink     = Color.FromArgb(236, 232, 225);
+        private static readonly Color Ink     = Color.FromArgb(236, 232, 225); // #ECE8E1
         private static readonly Color Dim     = Color.FromArgb(139, 151, 159);
         private static readonly Color Green   = Color.FromArgb(61, 220, 151);
         private static readonly Color Blue    = Color.FromArgb(76, 201, 240);
         private static readonly Color Amber   = Color.FromArgb(245, 197, 66);
         private static readonly Color OffC    = Color.FromArgb(91, 103, 112);
+        private static readonly Color FieldBg = Color.FromArgb(28, 40, 53);
         private static readonly Color[] Pal =
         {
             Color.FromArgb(255, 70, 85), Color.FromArgb(76, 201, 240), Color.FromArgb(61, 220, 151),
@@ -39,6 +41,11 @@ namespace Deadzone2D
 
         // ---------- Fontes ----------
         private static readonly string Fam = PickFamily("Bahnschrift", "Segoe UI");
+        // Títulos em fonte condensada (parecida com a Tungsten do Valorant); texto corrido na Bahnschrift (parecida com a DIN).
+        // ATENÇÃO: todas as fontes "V*" ficam AQUI, depois de UiFamHead, para a ordem de inicialização estática ficar garantida.
+        private static readonly string UiFamHead = PickFamily("Bahnschrift SemiBold Condensed", "Bahnschrift Condensed", "Bahnschrift", "Segoe UI");
+        private static readonly FontStyle UiHeadStyle = UiFamHead.Contains("SemiBold") ? FontStyle.Regular : FontStyle.Bold;
+
         private static readonly Font FHuge   = F(84);
         private static readonly Font FWater  = F(120);
         private static readonly Font FTitle  = F(46);
@@ -55,6 +62,18 @@ namespace Deadzone2D
         private static readonly Font FLogo   = F(22);
         private static readonly Font FStart  = F(26);
 
+        private static readonly Font VHuge  = FH(104);
+        private static readonly Font VWater = FH(170);
+        private static readonly Font VTitle = FH(60);
+        private static readonly Font VSub   = FH(40);
+        private static readonly Font VStart = FH(34);
+        private static readonly Font VBtn   = FH(24);
+        private static readonly Font VNav   = FH(20);
+        private static readonly Font VName  = FH(26);
+        private static readonly Font VLogo  = FH(26);
+        private static readonly Font VNum   = FH(56);   // números grandes do HUD (vida, munição)
+        private static readonly Font VNumS  = FH(34);   // números médios do HUD (placar, colete)
+
         private static string PickFamily(params string[] names)
         {
             using var c = new InstalledFontCollection();
@@ -62,12 +81,14 @@ namespace Deadzone2D
             return names.FirstOrDefault(n => have.Contains(n)) ?? "Segoe UI";
         }
         private static Font F(float px, FontStyle s = FontStyle.Bold) => new Font(Fam, px, s, GraphicsUnit.Pixel);
+        private static Font FH(float px) => new Font(UiFamHead, px, UiHeadStyle, GraphicsUnit.Pixel);
 
         private static StringFormat MakeSf(StringAlignment a) => new StringFormat(StringFormatFlags.NoWrap)
         { Alignment = a, LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter };
         private static readonly StringFormat SfL = MakeSf(StringAlignment.Near);
         private static readonly StringFormat SfC = MakeSf(StringAlignment.Center);
         private static readonly StringFormat SfR = MakeSf(StringAlignment.Far);
+        private static readonly StringFormat SfWrap = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Near, Trimming = StringTrimming.EllipsisWord };
 
         // ---------- Dados ----------
         private enum FStatus { InGame, Online, Away, Offline }
@@ -78,11 +99,11 @@ namespace Deadzone2D
         private readonly List<string> _friendRequests = new();
         private bool _requestsOpen;
         private bool _cfgOpen;
-        private float _saveConfirm;
-        private bool _groupOpen;
         private int _cfgVol = 60;
-        private int _cfgLang;
+        private bool _cfgLangEn;
         private bool _cfgOpt = true;
+        private Rectangle _uiVolBar;
+        private bool _updInstallRequested;
 
         private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
 
@@ -100,7 +121,7 @@ namespace Deadzone2D
         private readonly Stopwatch _sw = Stopwatch.StartNew();
         private double _last;
         private float _clock;
-        private int _page;                 // 0=Loading 1=Login 2=Lobby 3=Armas
+        private int _page;                 // 0=Loading 1=Login 2=Lobby 3=Armas 4=Partida 5=Update
         private float _progress;
         private float _fade = 1f;
         private bool _queue;
@@ -140,8 +161,6 @@ namespace Deadzone2D
         private float _camX, _camY, _zoom = 1f;
         private int _spectate = -1;
         private bool _storeOpen;
-        private bool _pendingUpdate;
-        private bool _closingForUpdate;
         private float _storeTimer;
         private float _deathFade;
         private float _scorePop;
@@ -191,7 +210,7 @@ namespace Deadzone2D
             _map = _maps[0];
             KeyPreview = true;
 
-            // Pre-preenchimento do login com o último usuário
+            // Pré-preenchimento do login com o último usuário
             string lastUser = LoadLastUser();
             if (!string.IsNullOrEmpty(lastUser)) { _players[0] = lastUser; _tbUser.Text = lastUser; }
 
@@ -201,7 +220,7 @@ namespace Deadzone2D
                 try
                 {
                     var info = await UpdateService.CheckAsync();
-                    if (info != null) { _pendingUpdate = true; try { if (IsHandleCreated) Invoke((Action)(() => { if (!IsDisposed) { _pendingUpdate = false; ShowPage("Update"); } })); } catch { } }
+                    if (info != null) Invoke((Action)(() => { if (!IsDisposed) ShowPage("Update"); }));
                 }
                 catch { }
             });
@@ -217,7 +236,7 @@ namespace Deadzone2D
             };
             _timer.Start();
             FormClosed += (s, e) => _timer.Stop();
-            Shown += (s, e) => { if (WindowState == FormWindowState.Normal) ToggleMax(); };
+            Shown += (s, e) => { if (WindowState == FormWindowState.Normal) ToggleMax(); };   // abre em tela cheia
         }
 
         // ---------- Dados externos ----------
@@ -326,12 +345,6 @@ namespace Deadzone2D
         // ---------- Lógica ----------
         private void Step(float dt)
         {
-            if (UpdateService.InstallerStarted && !_closingForUpdate)
-            {
-                _closingForUpdate = true;
-                BeginInvoke(new Action(Close));
-                return;
-            }
             _clock += dt;
             if (_page == 0)
             {
@@ -339,6 +352,15 @@ namespace Deadzone2D
                 if (_progress >= 100f) ShowPage("Login");
             }
             if (_page == 4 && _inGame && _g != null) UpdateGame(dt);
+            if (_page == 5 && _updInstallRequested)
+            {
+                if (UpdateService.InstallerStarted) { _updInstallRequested = false; Close(); }   // instalador abriu: fecha o jogo para ele atualizar
+                else if (UpdateService.DownloadFailed)
+                {
+                    _updInstallRequested = false;
+                    ShowToast("Falha na atualização: " + (UpdateService.LastError ?? "tente de novo"));
+                }
+            }
             _fade = Math.Max(0f, _fade - dt * 3.2f);
             _fo = Math.Clamp(_fo + (_friendsOpen ? 1f : -1f) * dt * 3.6f, 0f, 1f);
             if (_toastLeft > 0) _toastLeft -= dt;
@@ -488,12 +510,11 @@ namespace Deadzone2D
 
         private void BackToLobby()
         {
-            ShowPage("Loading");
-            Task.Run(async () => { await Task.Delay(3500); if (!IsDisposed) Invoke((Action)(() => ShowPage("Lobby"))); });
             _inGame = false;
             _g = null;
             _paused = false;
             _inventoryOpen = false;
+            _storeOpen = false;
             _firing = false;
             _keys.Clear();
             _spectate = -1;
@@ -502,10 +523,11 @@ namespace Deadzone2D
 
         private void ShowToast(string msg) { _toast = msg; _toastLeft = 2.6f; }
 
+        // tela cheia de verdade (cobre a barra de tarefas); F11 alterna
         private void ToggleMax()
         {
             if (WindowState == FormWindowState.Maximized) WindowState = FormWindowState.Normal;
-            else { MaximizedBounds = Screen.FromControl(this).WorkingArea; WindowState = FormWindowState.Maximized; }
+            else { MaximizedBounds = Screen.FromControl(this).Bounds; WindowState = FormWindowState.Maximized; }
         }
 
         private void Activate(string id)
@@ -522,7 +544,17 @@ namespace Deadzone2D
                 _friendRequests.RemoveAt(frq);
                 return;
             }
-            if (id.StartsWith("nav:")) { string np = id.Substring(4); ShowPage(np == "Partida" ? "Lobby" : np); return; }
+            if (id.StartsWith("frdRemove:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var ri))
+            {
+                if (ri >= 0 && ri < _friendList.Count)
+                {
+                    var rf = _friendList[ri];
+                    _friendList.RemoveAt(ri);
+                    ShowToast("Removido: " + rf.Name);
+                }
+                return;
+            }
+            if (id.StartsWith("nav:")) { ShowPage(id.Substring(4)); return; }
             if (id.StartsWith("friend:"))
             {
                 var f = _friendList[int.Parse(id.Substring(7))];
@@ -531,14 +563,31 @@ namespace Deadzone2D
             }
             if (id.StartsWith("gun:")) { _gun = int.Parse(id.Substring(4)); return; }
             if (id.StartsWith("skin:")) { _skinSel[_guns[_gun].GunId] = int.Parse(id.Substring(5)); return; }
+            if (id.StartsWith("buy:") && _storeOpen && _g != null)
+            {
+                string buyId = id.Substring(4);
+                var gun = Arsenal.Defs[buyId];
+                int price = ShopPrices.Get(buyId);
+                var p = _g.Player;
+                if (p.Coins >= price)
+                {
+                    p.WeaponId = buyId;
+                    p.Mag = p.Weapon.MagSize;
+                    p.Reserve = p.Mag * 2;
+                    p.Coins -= price;
+                    ShowToast("Comprado: " + gun.Name);
+                }
+                else ShowToast("Sem moedas suficientes");
+                return;
+            }
 
             switch (id)
             {
                 case "min": WindowState = FormWindowState.Minimized; break;
                 case "max": ToggleMax(); break;
                 case "close": Close(); break;
+                case "notif": ShowToast("Nenhuma notificação"); break;
                 case "guest":
-                case "google":
                     SaveLastUser(_players[0]);
                     ShowPage("Lobby");
                     break;
@@ -551,18 +600,22 @@ namespace Deadzone2D
                     _players[0] = user;
                     _royaleSquad = 1;
                     _teamSize = 1;
-                    ShowPage("Loading");
-                    Task.Run(async () => { await Task.Delay(3500); if (!IsDisposed) Invoke((Action)(() => ShowPage("Lobby"))); });
+                    ShowPage("Lobby");
                     break;
                 }
                 case "updateInstall":
-                    UpdateService.InstallNow();
+                    if (!_updInstallRequested)
+                    {
+                        _updInstallRequested = true;
+                        _ = UpdateService.InstallNow();     // baixa (se preciso) e abre o instalador; o Step() fecha o jogo quando ele abrir
+                        ShowToast("Baixando atualização...");
+                    }
                     break;
                 case "updateLater":
                     ShowPage("Login");
                     break;
                 case "updateIgnore":
-                    UpdateService.IgnoreCurrent();
+                    UpdateService.IgnoreCurrent();          // ignora esta versão por 1 hora
                     ShowPage("Login");
                     break;
                 case "updateSoft":
@@ -571,10 +624,7 @@ namespace Deadzone2D
                         ShowToast("Atualização baixada; aplicada no próximo início do Deadzone.");
                         Close();
                     }
-                    else
-                    {
-                        ShowToast(UpdateService.LastError ?? "Não foi possível baixar a atualização.");
-                    }
+                    else ShowToast(UpdateService.LastError ?? "Esta atualização exige o instalador");
                     break;
                 case "start":
                     _queue = false;
@@ -597,6 +647,7 @@ namespace Deadzone2D
                     if (_g != null && _g.UseMedkit(_g.Player)) ShowToast("Vida restaurada");
                     else ShowToast("Sem kit médico ou vida cheia");
                     break;
+                case "storeClose": _storeOpen = false; break;
                 case "pause": if (_inGame) _paused = true; break;
                 case "resume": _paused = false; break;
                 case "lobbyNow":
@@ -606,60 +657,26 @@ namespace Deadzone2D
                 case "specNext": CycleSpectate(1); break;
                 case "skipCountdown": _g?.SkipCountdown(); break;
                 case "reload": if (_g != null) _g.TryReload(_g.Player); break;
-                default:
-                    if (id.StartsWith("buy:") && _storeOpen && _g != null)
-                    {
-                        string buyId = id.Substring(4);
-                        var gun = Arsenal.Defs[buyId];
-                        int price = ShopPrices.Get(buyId);
-                        var p = _g.Player;
-                        if (_g.Player.Coins >= price)
-                        {
-                            p.WeaponId = buyId;
-                            p.Mag = p.Weapon.MagSize;
-                            p.Reserve = p.Mag * 2;
-                            p.Coins -= price;
-                            ShowToast("Comprado: " + gun.Name);
-                        }
-                        else ShowToast("Sem moedas suficientes");
-                    }
-                    break;
                 case "mode": ShowToast("Use as setas para trocar de mapa"); break;
+                case "invite": _friendsOpen = true; break;
                 case "friendsOpen": _friendsOpen = true; break;
+                case "friendsClose": _friendsOpen = false; break;
                 case "frdMenu": _requestsOpen = !_requestsOpen; break;
+                case "addFriend": ShowToast("Adicionar amigo em breve"); break;
                 case "cfg": _cfgOpen = !_cfgOpen; break;
-                case "groupNew": _cfgOpen = false; _groupOpen = !_groupOpen; break;
+                case "cfgBackdrop": _cfgOpen = false; break;
                 case "cfgVolUp": _cfgVol = Math.Min(100, _cfgVol + 5); break;
                 case "cfgVolDn": _cfgVol = Math.Max(0, _cfgVol - 5); break;
-                case "cfgLang0": _cfgLang = 0; break;
-                case "cfgLang1": _cfgLang = 1; break;
-                case "cfgLang2": _cfgLang = 2; break;
-                case "cfgSave": _saveConfirm = 3f; break;
-                case "cfgSaveConfirm": SaveLastUser(_players[0]); _saveConfirm = 0f; ShowToast("Saved"); break;
-                case "cfgSaveRevert": _saveConfirm = 0f; ShowToast("Config reverted"); break;
-                case "cfgSaveCancel": _saveConfirm = 0f; break;
-                case "grpSel1": SetSquadSize(1); _groupOpen=false; break;
-                case "grpSel2": SetSquadSize(2); _groupOpen=false; break;
-                case "grpSel3": _royaleSquad=3; _teamSize=2; _groupOpen=false; break;
-                case "grpSel4": _royaleSquad=4; _teamSize=2; _groupOpen=false; break;
+                case "cfgVolBar":
+                    if (_uiVolBar.Width > 0)
+                        _cfgVol = Math.Clamp((int)Math.Round((_mouse.X - _uiVolBar.X) * 100f / _uiVolBar.Width), 0, 100);
+                    break;
+                case "cfgLang": _cfgLangEn = !_cfgLangEn; break;
                 case "cfgOpt": _cfgOpt = !_cfgOpt; break;
                 case "viewUpd":
-                    if (UpdateService.Available != null) ShowPage("Update");
+                    if (UpdateService.Available != null) { _cfgOpen = false; ShowPage("Update"); }
                     else ShowToast("Sem atualizações disponíveis");
                     break;
-                case "friendsClose": _friendsOpen = false; break;
-                case "frdRemove":
-                {
-                    int ri = int.Parse(id.Substring(8));
-                    if (ri >= 0 && ri < _friendList.Count)
-                    {
-                        var f = _friendList[ri];
-                        _friendList.RemoveAt(ri);
-                        ShowToast("Removido: " + f.Name);
-                    }
-                    break;
-                }
-                case "addFriend": ShowToast("Adicionar amigo em breve"); break;
                 case "equip":
                     {
                         var gun = _guns[_gun];
@@ -710,19 +727,22 @@ namespace Deadzone2D
             if (e.KeyCode == Keys.F11) { ToggleMax(); e.Handled = true; return; }
             if (_page == 1)
             {
-                if (e.KeyCode == Keys.Enter) { Activate("login"); return; }
+                if (e.KeyCode == Keys.Enter) { Activate("login"); e.Handled = true; e.SuppressKeyPress = true; return; }
                 if (e.KeyCode == Keys.Tab)
                 {
-                    _tbPass.Focus();
+                    if (_tbUser.Focused) _tbPass.Focus(); else _tbUser.Focus();
+                    e.Handled = true; e.SuppressKeyPress = true;
                     return;
                 }
             }
+            if (_cfgOpen && e.KeyCode == Keys.Escape) { _cfgOpen = false; e.Handled = true; return; }
             if (_page != 4 || _g == null) return;
 
             _keys.Add(e.KeyCode);
             if (e.KeyCode == Keys.Escape)
             {
-                if (_inventoryOpen) _inventoryOpen = false;
+                if (_storeOpen) _storeOpen = false;
+                else if (_inventoryOpen) _inventoryOpen = false;
                 else if (_g.Phase == SessionPhase.MatchOver) BackToLobby();
                 else { _paused = !_paused; _firing = false; }
                 e.Handled = true;
@@ -738,7 +758,7 @@ namespace Deadzone2D
             else if (e.KeyCode == Keys.E)
             {
                 var item = _g.TryPickup(_g.Player);
-                if (item != null) { if (item.Kind == "shop") { _storeOpen = true; _storeTimer = 180f; } else ShowToast("Pegou: " + item.Label); }
+                if (item != null) ShowToast("Pegou: " + item.Label);
                 e.Handled = true;
             }
             else if (e.KeyCode == Keys.H)
@@ -776,7 +796,7 @@ namespace Deadzone2D
         protected override void OnLocationChanged(EventArgs e)
         {
             base.OnLocationChanged(e);
-            MaximizedBounds = Screen.FromControl(this).WorkingArea;
+            MaximizedBounds = Screen.FromControl(this).Bounds;
         }
 
         protected override void OnMouseLeave(EventArgs e)
@@ -792,13 +812,14 @@ namespace Deadzone2D
             _mouse = e.Location;
             _down = e.Button == MouseButtons.Left ? HitAt(e.Location) : null;
             if (_page == 4 && _g != null && e.Button == MouseButtons.Left && _down == null &&
-                !_paused && !_inventoryOpen && _g.Player.Alive)
+                !_paused && !_inventoryOpen && !_storeOpen && _g.Player.Alive)
                 _firing = true;
         }
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
+            _mouse = e.Location;
             if (e.Button == MouseButtons.Left) _firing = false;
             var up = e.Button == MouseButtons.Left ? HitAt(e.Location) : null;
             if (up != null && up == _down) Activate(up);
@@ -828,9 +849,9 @@ namespace Deadzone2D
                     if (t && l) code = 13; else if (t && r) code = 14; else if (b && l) code = 16; else if (b && r) code = 17;
                     else if (l) code = 10; else if (r) code = 11; else if (t) code = 12; else if (b) code = 15;
                     if (code != 0) { m.Result = (IntPtr)code; return; }
+                    if (_page != 4 && pt.Y >= 0 && pt.Y < BarH) { m.Result = (IntPtr)2; return; }   // HTCAPTION (só em janela)
                 }
-                if (!onHit && pt.Y >= 0 && pt.Y < BarH) { m.Result = (IntPtr)2; return; }   // HTCAPTION
-                m.Result = (IntPtr)1; return;                                                 // HTCLIENT
+                m.Result = (IntPtr)1; return;                                                          // HTCLIENT
             }
             base.WndProc(ref m);
         }
@@ -931,7 +952,7 @@ namespace Deadzone2D
             return w;
         }
 
-        // Texto em caixa alta com espaçamento entre letras (cy = centro vertical)
+        // Texto com espaçamento entre letras (cy = centro vertical)
         private float Spaced(Graphics g, string s, Font f, Color c, float x, float cy, float sp, StringAlignment al = StringAlignment.Near)
         {
             float total = 0;
@@ -949,21 +970,35 @@ namespace Deadzone2D
             return total;
         }
 
+        // Botão no estilo Riot: cantos cortados na diagonal, moldura interna fina e brilho que atravessa ao passar o mouse
         private void Button(Graphics g, Rectangle r, string id, string label, bool primary, Font? f = null, float sp = 3f)
         {
             f ??= FBtn;
             Reg(r, id);
             float hv = Hv(id);
-            if (primary && hv > 0.01f)
-                for (int i = 3; i >= 1; i--)
-                {
-                    using var gp = Chamfer(Rectangle.Inflate(r, i * 4, i * 3), 12 + i * 2, true, false, true, false);
-                    g.FillPath(Br(A(Red, (int)(24 * hv))), gp);
-                }
             using var path = Chamfer(r, 12, true, false, true, false);
             if (primary)
             {
+                if (hv > 0.01f)
+                    for (int i = 3; i >= 1; i--)
+                    {
+                        using var gp = Chamfer(Rectangle.Inflate(r, i * 4, i * 3), 12 + i * 2, true, false, true, false);
+                        g.FillPath(Br(A(Red, (int)(24 * hv))), gp);
+                    }
                 g.FillPath(Br(Mix(Red, RedHi, hv)), path);
+                using (var inner = Chamfer(Rectangle.Inflate(r, -5, -5), 8, true, false, true, false))
+                    g.DrawPath(Pn(A(Color.White, 70), 1f), inner);
+                if (hv > 0.01f)
+                {
+                    g.SetClip(path);
+                    float sx = r.X - 40 + (r.Width + 80) * hv;
+                    int al = (int)(70 * Math.Sin(Math.PI * hv));
+                    g.FillPolygon(Br(A(Color.White, al)), new[]
+                    {
+                        new PointF(sx, r.Y), new PointF(sx + 34, r.Y), new PointF(sx + 4, r.Bottom), new PointF(sx - 30, r.Bottom)
+                    });
+                    g.ResetClip();
+                }
                 Spaced(g, label, f, Color.White, r.X + r.Width / 2f, r.Y + r.Height / 2f, sp, StringAlignment.Center);
             }
             else
@@ -988,11 +1023,14 @@ namespace Deadzone2D
         {
             Reg(r, id);
             float hv = Hv(id);
-            FillRoundedRect(g, r, active ? Mix(Red, RedHi, hv * .35f) : Mix(Panel, PanelHi, hv), 6);
-            if (!active)
-                using (var p = RoundRect(r, 6)) g.DrawPath(Pn(A(Line, 190), 1f), p);
-            Txt(g, label, FLabel, active ? Color.White : Mix(Dim, Ink, hv),
-                new RectangleF(r.X, r.Y, r.Width, r.Height), StringAlignment.Center);
+            using var p = Chamfer(r, 7, true, false, true, false);
+            if (active) g.FillPath(Br(Mix(Red, RedHi, hv * .35f)), p);
+            else
+            {
+                g.FillPath(Br(Mix(A(Panel, 235), A(PanelHi, 245), hv)), p);
+                g.DrawPath(Pn(A(Line, 190), 1f), p);
+            }
+            Spaced(g, label, FLabel, active ? Color.White : Mix(Dim, Ink, hv), r.X + r.Width / 2f, r.Y + r.Height / 2f, 2f, StringAlignment.Center);
         }
 
         private void Avatar(Graphics g, float cx, float cy, float d, string name, bool dim)
@@ -1019,6 +1057,39 @@ namespace Deadzone2D
             return Pal[Stable(n) % Pal.Length];
         }
 
+        // colchetes nos cantos (detalhe típico da UI do Valorant)
+        private void UiBrackets(Graphics g, Rectangle r, Color c, int len = 12, int gap = 6)
+        {
+            var pen = Pn(c, 1.5f);
+            int l = r.Left - gap, t = r.Top - gap, rr = r.Right + gap, b = r.Bottom + gap;
+            g.DrawLines(pen, new[] { new Point(l, t + len), new Point(l, t), new Point(l + len, t) });
+            g.DrawLines(pen, new[] { new Point(rr - len, t), new Point(rr, t), new Point(rr, t + len) });
+            g.DrawLines(pen, new[] { new Point(rr, b - len), new Point(rr, b), new Point(rr - len, b) });
+            g.DrawLines(pen, new[] { new Point(l + len, b), new Point(l, b), new Point(l, b - len) });
+        }
+
+        private void UiLogoMark(Graphics g, float cx, float y, float size)
+        {
+            using var lp = Chamfer(new RectangleF(cx - size / 2, y, size, size), size * .25f, true, false, true, false);
+            g.FillPath(Br(Red), lp);
+            using var ip = Chamfer(new RectangleF(cx - size / 2 + 6, y + 6, size - 12, size - 12), size * .18f, true, false, true, false);
+            g.DrawPath(Pn(A(Color.White, 90), 1.2f), ip);
+            Txt(g, _custom.WindowTitle.Substring(0, 1).ToUpperInvariant(), VStart, Color.White,
+                new RectangleF(cx - size / 2, y, size, size), StringAlignment.Center);
+        }
+
+        private void UiHex(Graphics g, float cx, float cy, float r, Color c)
+        {
+            var pts = new PointF[6];
+            for (int i = 0; i < 6; i++)
+            {
+                double a = Math.PI / 3 * i + Math.PI / 6;
+                pts[i] = new PointF(cx + (float)Math.Cos(a) * r, cy + (float)Math.Sin(a) * r);
+            }
+            g.FillPolygon(Br(A(c, 40)), pts);
+            g.DrawPolygon(Pn(c, 2f), pts);
+        }
+
         private void EnsureBg(int w, int h)
         {
             if (_bgCache != null && _bgCache.Width == w && _bgCache.Height == h) return;
@@ -1034,6 +1105,15 @@ namespace Deadzone2D
             g.FillPolygon(b2, new[] { new PointF(w * .80f, 0), new PointF(w * .88f, 0), new PointF(w * .58f, h), new PointF(w * .50f, h) });
             using var pen = new Pen(A(Ink, 6), 1);
             for (int x = -h; x < w; x += 46) g.DrawLine(pen, x, h, x + h, 0);
+            // vinheta
+            int vw = Math.Max(8, w / 4);
+            using (var lv = new LinearGradientBrush(new Rectangle(0, 0, vw, h), A(Color.Black, 140), A(Color.Black, 0), 0f))
+                g.FillRectangle(lv, 0, 0, vw, h);
+            using (var rv = new LinearGradientBrush(new Rectangle(w - vw, 0, vw, h), A(Color.Black, 0), A(Color.Black, 140), 0f))
+                g.FillRectangle(rv, w - vw, 0, vw, h);
+            int vh = Math.Max(8, h / 5);
+            using (var bv = new LinearGradientBrush(new Rectangle(0, h - vh, w, vh), A(Color.Black, 0), A(Color.Black, 120), 90f))
+                g.FillRectangle(bv, 0, h - vh, w, vh);
         }
 
         // ---------- Pintura ----------
@@ -1052,50 +1132,58 @@ namespace Deadzone2D
             _hits.Clear();
             _off = Point.Empty;
 
-            EnsureBg(w, h);
-            g.DrawImageUnscaled(_bgCache!, 0, 0);
+            if (_page != 4)
+            {
+                EnsureBg(w, h);
+                g.DrawImageUnscaled(_bgCache!, 0, 0);
+                DrawTopBar(g, w);
+                int sh = (int)(20 * _fade * _fade);     // o conteúdo sobe suavemente ao trocar de tela
+                g.TranslateTransform(0, sh);
+                _off = new Point(0, sh);
+            }
 
-                        DrawTopBarIfNeeded(g, w);
             switch (_page)
             {
                 case 0: DrawLoading(g, w, h); break;
                 case 1: DrawLogin(g, w, h); break;
-                case 2: DrawLobby(g, w, h); DrawConfigPanel(g, w, h); break;                case 3: DrawWeapons(g, w, h); break;
+                case 2: DrawLobby(g, w, h); break;
+                case 3: DrawWeapons(g, w, h); break;
                 case 4: DrawGame(g, w, h); break;
                 case 5: DrawUpdatePage(g, w, h); break;
             }
-            if (_page >= 2 && _page != 4) DrawFriends(g, w, h);
+
+            g.ResetTransform();
+            _off = Point.Empty;
+            if (_page == 2 || _page == 3) DrawFriends(g, w, h);
+            if (_page == 2 || _page == 3) DrawConfigPanel(g, w, h);
             DrawToast(g, w);
 
             if (_fade > 0.003f) g.FillRectangle(Br(A(BgDeep, (int)(255 * _fade))), 0, 0, w, h);
         }
 
-        private void DrawTopBarIfNeeded(Graphics g, int w)
-        {
-            if (_page != 4) DrawTopBar(g, w);
-        }
-
         private void DrawTopBar(Graphics g, int w)
         {
-            g.FillRectangle(Br(A(Color.FromArgb(10, 17, 25), 235)), 0, 0, w, BarH);
-            g.DrawLine(Pn(Line, 1), 0, BarH - 1, w, BarH - 1);
+            var bar = new Rectangle(0, 0, w, BarH);
+            using (var lb = new LinearGradientBrush(bar, A(Color.FromArgb(8, 13, 20), 245), A(Color.FromArgb(8, 13, 20), 150), 90f))
+                g.FillRectangle(lb, bar);
+            g.DrawLine(Pn(A(Ink, 18), 1f), 0, BarH - 1, w, BarH - 1);
 
             // logo
-            using (var lp = Chamfer(new RectangleF(28, 16, 32, 32), 8, true, false, true, false))
+            using (var lp = Chamfer(new RectangleF(32, 16, 32, 32), 8, true, false, true, false))
                 g.FillPath(Br(Red), lp);
             var title = _custom.WindowTitle.ToUpperInvariant();
-            Txt(g, title.Substring(0, 1), FName, Color.White, new RectangleF(28, 16, 32, 32), StringAlignment.Center);
-            Spaced(g, title, FLogo, Ink, 74, BarH / 2f, 5f);
+            Txt(g, title.Substring(0, 1), VNav, Color.White, new RectangleF(32, 16, 32, 32), StringAlignment.Center);
+            Spaced(g, title, VLogo, Ink, 78, BarH / 2f, 5f);
 
-            if (_page >= 2)
+            if (_page >= 2 && _page != 5)
             {
-                // navegação
+                // navegação central
                 var tabs = new[] { ("JOGAR", "Lobby", 2), ("ARMAS", "Weapons", 3) };
                 float tw = 0; var widths = new float[tabs.Length];
                 for (int i = 0; i < tabs.Length; i++)
                 {
-                    float sum = 0; foreach (var ch in tabs[i].Item1) sum += CharW(g, ch, FNav) + 3f;
-                    widths[i] = sum + 56; tw += widths[i];
+                    float sum = 0; foreach (var ch in tabs[i].Item1) sum += CharW(g, ch, VNav) + 4f;
+                    widths[i] = sum + 64; tw += widths[i];
                 }
                 float x = (w - tw) / 2f;
                 for (int i = 0; i < tabs.Length; i++)
@@ -1104,46 +1192,69 @@ namespace Deadzone2D
                     var r = new Rectangle((int)x, 0, (int)widths[i], BarH - 1);
                     string id = "nav:" + page; Reg(r, id);
                     float hv = Hv(id); bool active = _page == idx;
-                    Spaced(g, label, FNav, active ? Ink : Mix(Dim, Ink, hv), r.X + r.Width / 2f, BarH / 2f, 3f, StringAlignment.Center);
-                    if (active) g.FillRectangle(Br(Red), r.X + 28, BarH - 4, r.Width - 56, 3);
-                    else if (hv > 0.02f) g.FillRectangle(Br(A(Red, (int)(150 * hv))), r.X + 28, BarH - 4, r.Width - 56, 3);
+                    Spaced(g, label, VNav, active ? Ink : Mix(Dim, Ink, hv), r.X + r.Width / 2f, BarH / 2f, 4f, StringAlignment.Center);
+                    if (active) g.FillRectangle(Br(Red), r.X + 32, BarH - 4, r.Width - 64, 3);
+                    else if (hv > 0.02f) g.FillRectangle(Br(A(Red, (int)(150 * hv))), r.X + 32, BarH - 4, r.Width - 64, 3);
                     x += widths[i];
                 }
 
-                // perfil
-                int chipX = w - 138 - 24 - 190;
+                // perfil + notificações + configurações (antes dos botões da janela)
+                int chipX = w - 440;
                 Avatar(g, chipX + 18, BarH / 2f, 34, _players[0], false);
-                Txt(g, _players[0], FMid, Ink, new RectangleF(chipX + 44, 14, 146, 20));
-                Txt(g, "Convidado", FSmall, Dim, new RectangleF(chipX + 44, 33, 146, 18));
+                Txt(g, _players[0], FMid, Ink, new RectangleF(chipX + 44, 14, 150, 20));
+                Txt(g, "Convidado", FSmall, Dim, new RectangleF(chipX + 44, 33, 150, 18));
+                UiIconBtn(g, new Rectangle(w - 236, 12, 40, 40), "notif", 0);
+                UiIconBtn(g, new Rectangle(w - 188, 12, 40, 40), "cfg", 1);
+                g.DrawLine(Pn(A(Ink, 30), 1f), w - 138, BarH / 2 - 11, w - 138, BarH / 2 + 11);
             }
 
-            WinBtn(g, new Rectangle(w - 138, 0, 46, 36), "min", 0);
-            WinBtn(g, new Rectangle(w - 92, 0, 46, 36), "max", 1);
-            WinBtn(g, new Rectangle(w - 46, 0, 46, 36), "close", 2);
+            // botões da janela: só o ícone fino, afastados da borda (como no Valorant)
+            UiIconBtn(g, new Rectangle(w - 120, 12, 40, 40), "min", 2);
+            UiIconBtn(g, new Rectangle(w - 72, 12, 40, 40), "close", 3);
         }
 
+        // Compatibilidade com o GameRenderer.cs antigo (DrawGameWindowButtons chama WinBtn com kind 0=min, 1=max, 2=fechar).
+        // Dentro da partida só aparecem minimizar e fechar (F11 alterna a tela cheia), com o mesmo visual do menu.
         private void WinBtn(Graphics g, Rectangle r, string id, int kind)
+        {
+            if (kind == 1) return;
+            UiIconBtn(g, new Rectangle(kind == 0 ? r.X + 18 : r.X - 26, 12, 40, 40), id, kind == 0 ? 2 : 3);
+        }
+
+        // kind: 0=sino 1=engrenagem 2=minimizar 3=fechar
+        private void UiIconBtn(Graphics g, Rectangle r, string id, int kind)
         {
             Reg(r, id);
             float hv = Hv(id);
-            g.FillRectangle(Br(kind == 2 ? A(Red, (int)(255 * hv)) : A(Color.White, (int)(28 * hv))), r);
-            var pen = Pn(kind == 2 && hv > .5f ? Color.White : Mix(Dim, Ink, hv), 1.5f);
-            int cx = r.X + r.Width / 2, cy = r.Y + r.Height / 2;
+            float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f;
+            g.FillEllipse(Br(kind == 3 ? A(Red, (int)(38 * hv)) : A(Color.White, (int)(22 * hv))), cx - 18, cy - 18, 36, 36);
+            var col = kind == 3 ? Mix(A(Ink, 210), Red, hv) : Mix(A(Ink, 190), Color.White, hv);
+            var pen = Pn(col, 1.6f);
             switch (kind)
             {
-                case 0: g.DrawLine(pen, cx - 5, cy, cx + 5, cy); break;
+                case 0:
+                    g.DrawArc(pen, cx - 6, cy - 9, 12, 12, 180, 180);
+                    g.DrawLine(pen, cx - 6, cy - 3, cx - 8, cy + 4);
+                    g.DrawLine(pen, cx + 6, cy - 3, cx + 8, cy + 4);
+                    g.DrawLine(pen, cx - 8, cy + 4, cx + 8, cy + 4);
+                    g.DrawArc(pen, cx - 2.5f, cy + 5, 5, 4, 0, 180);
+                    break;
                 case 1:
-                    if (WindowState == FormWindowState.Maximized)
+                    g.DrawEllipse(pen, cx - 6, cy - 6, 12, 12);
+                    g.DrawEllipse(pen, cx - 2.5f, cy - 2.5f, 5, 5);
+                    for (int k = 0; k < 8; k++)
                     {
-                        g.DrawRectangle(pen, cx - 5, cy - 2, 7, 7);
-                        g.DrawLine(pen, cx - 2, cy - 5, cx + 5, cy - 5);
-                        g.DrawLine(pen, cx + 5, cy - 5, cx + 5, cy + 2);
+                        double a = k * Math.PI / 4;
+                        g.DrawLine(pen, cx + (float)Math.Cos(a) * 6, cy + (float)Math.Sin(a) * 6,
+                                        cx + (float)Math.Cos(a) * 9, cy + (float)Math.Sin(a) * 9);
                     }
-                    else g.DrawRectangle(pen, cx - 5, cy - 5, 10, 10);
+                    break;
+                case 2:
+                    g.DrawLine(pen, cx - 7, cy, cx + 7, cy);
                     break;
                 default:
-                    g.DrawLine(pen, cx - 5, cy - 5, cx + 5, cy + 5);
-                    g.DrawLine(pen, cx + 5, cy - 5, cx - 5, cy + 5);
+                    g.DrawLine(pen, cx - 6, cy - 6, cx + 6, cy + 6);
+                    g.DrawLine(pen, cx + 6, cy - 6, cx - 6, cy + 6);
                     break;
             }
         }
@@ -1152,7 +1263,8 @@ namespace Deadzone2D
         private void DrawLoading(Graphics g, int w, int h)
         {
             float cy = h / 2f;
-            Spaced(g, _custom.WindowTitle.ToUpperInvariant(), FHuge, Ink, w / 2f, cy - 50, 14f, StringAlignment.Center);
+            UiLogoMark(g, w / 2f, cy - 190, 64);
+            Spaced(g, _custom.WindowTitle.ToUpperInvariant(), VHuge, Ink, w / 2f, cy - 70, 16f, StringAlignment.Center);
 
             var sp = new RectangleF(w / 2f - 14, cy + 8, 28, 28);
             g.DrawEllipse(Pn(A(Ink, 25), 3f), sp);
@@ -1171,34 +1283,31 @@ namespace Deadzone2D
                           : _progress < 90 ? "Sincronizando perfil" : "Quase lá";
             Spaced(g, status.ToUpperInvariant(), FLabel, Dim, bx, by + 24, 2f);
             Txt(g, $"{(int)_progress}%", FSmallB, Ink, new RectangleF(bx, by + 14, bw, 20), StringAlignment.Far);
-            Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(28, h - 40, 120, 20));
+            Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
         }
 
-        // ---------- Login ----------
+        // ---------- Login (sem caixa, como o Riot Client) ----------
         private void LoadLoginControls()
         {
-            _tbUser.Parent = this;
-            _tbPass.Parent = this;
-            int w = Math.Max(600, ClientSize.Width);
-            int cx = (w - 540) / 2;
-            _tbUser.Size = new Size(520, 44);
-            _tbUser.Location = new Point(cx + 40, BarH + 126);
-            _tbUser.BackColor = PanelHi;
-            _tbUser.ForeColor = Ink;
-            _tbUser.TextAlign = HorizontalAlignment.Center;
-            _tbPass.Size = new Size(520, 44);
-            _tbPass.Location = new Point(cx + 40, BarH + 182);
-            _tbPass.BackColor = PanelHi;
-            _tbPass.ForeColor = Ink;
-            _tbPass.PasswordChar = '*';
-            _tbUser.Focus();
+            var tf = new Font(Fam, 17f, FontStyle.Regular, GraphicsUnit.Pixel);
+            foreach (var tb in new[] { _tbUser, _tbPass })
+            {
+                tb.Parent = this;
+                tb.BorderStyle = BorderStyle.None;
+                tb.BackColor = FieldBg;
+                tb.ForeColor = Ink;
+                tb.Font = tf;
+                tb.TextAlign = HorizontalAlignment.Left;
+                tb.Visible = _page == 1;
+            }
+            _tbPass.UseSystemPasswordChar = true;
+            if (_page == 1) _tbUser.Focus();
         }
 
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
             LoadLoginControls();
-            if (_pendingUpdate) { _pendingUpdate = false; ShowPage("Update"); }
         }
 
         private void SaveLastUser(string name)
@@ -1223,44 +1332,50 @@ namespace Deadzone2D
             catch { return ""; }
         }
 
+        // campo estilo Riot: rótulo pequeno em cima, valor embaixo, linha vermelha quando está com foco
+        private void UiField(Graphics g, Rectangle f, string label, TextBox tb)
+        {
+            g.FillRectangle(Br(FieldBg), f);
+            g.DrawRectangle(Pn(A(Line, 200), 1f), f);
+            Spaced(g, label, FTiny, Dim, f.X + 18, f.Y + 15, 3f);
+            var loc = new Point(f.X + 18, f.Y + 29);
+            if (tb.Location != loc) tb.Location = loc;
+            if (tb.Width != f.Width - 36) tb.Width = f.Width - 36;
+            g.FillRectangle(Br(tb.Focused ? Red : A(Line, 200)), f.X, f.Bottom - 2, f.Width, 2);
+        }
+
         private void DrawLogin(Graphics g, int w, int h)
         {
-            var card = new Rectangle((w - 540) / 2, BarH + 40, 540, 420);
-            for (int i = 4; i >= 1; i--)
-                g.FillRectangle(Br(A(Color.Black, 14)), Rectangle.Inflate(card, i * 4, i * 4));
-            using (var p = Chamfer(card, 18, true, false, true, false))
-            {
-                g.FillPath(Br(Panel), p);
-                g.DrawPath(Pn(Line, 1f), p);
-            }
-            g.FillRectangle(Br(Red), card.X + 18, card.Y, card.Width - 18, 3);
+            int cx = w / 2;
+            int top = Math.Max(BarH + 24, (h - 540) / 2);
 
-            Spaced(g, "FAZER LOGIN", FTitle, Ink, card.X + 30, card.Y + 26, 4f);
-            Txt(g, "Digite seu nome de usuário e senha", FBody, Dim,
-                new RectangleF(card.X + 30, card.Y + 58, card.Width - 60, 18), StringAlignment.Center);
+            UiLogoMark(g, cx, top, 60);
+            Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 110, 8f, StringAlignment.Center);
 
-            int fy = BarH + 126;
-            FillRoundedRect(g, new Rectangle(card.X + 40, fy, card.Width - 80, 46), PanelHi, 8);
-            using (var p = RoundRect(new Rectangle(card.X + 40, fy, card.Width - 80, 46), 8))
-                g.DrawPath(Pn(A(Line, 190), 1f), p);
+            var uf = new Rectangle(cx - 190, top + 168, 380, 62);
+            var pf = new Rectangle(cx - 190, top + 244, 380, 62);
+            UiField(g, uf, "NOME DE USUÁRIO", _tbUser);
+            UiField(g, pf, "SENHA", _tbPass);
 
+            // botão redondo com seta (como no Riot Client)
+            var ab = new Rectangle(cx - 32, top + 336, 64, 64);
+            Reg(ab, "login"); float hv = Hv("login");
+            if (hv > 0.01f)
+                for (int i = 3; i >= 1; i--)
+                    g.FillEllipse(Br(A(Red, (int)(26 * hv))), ab.X - i * 4, ab.Y - i * 4, ab.Width + i * 8, ab.Height + i * 8);
+            g.FillEllipse(Br(Mix(Red, RedHi, hv)), ab);
+            var ap = Pn(Color.White, 3f);
+            float ax = cx - 8 + hv * 3, ay = top + 368;
+            g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
+            g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
 
-            int py = BarH + 182;
-            FillRoundedRect(g, new Rectangle(card.X + 40, py, card.Width - 80, 46), PanelHi, 8);
-            using (var p = RoundRect(new Rectangle(card.X + 40, py, card.Width - 80, 46), 8))
-                g.DrawPath(Pn(A(Line, 190), 1f), p);
+            var gl = new Rectangle(cx - 130, top + 424, 260, 28);
+            Reg(gl, "guest"); float gh = Hv("guest");
+            Spaced(g, "CONTINUAR COMO CONVIDADO", FTiny, Mix(Dim, Ink, gh), cx, top + 438, 3f, StringAlignment.Center);
+            g.FillRectangle(Br(A(Red, (int)(255 * gh))), cx - 100, top + 450, 200, 1);
 
-
-            var login = new Rectangle(card.X + 40, BarH + 240, card.Width - 80, 52);
-            Reg(login, "login"); float lhv = Hv("login");
-            Button(g, login, "login", "FAZER LOGIN", true, FBtn, 4f);
-
-            var guest = new Rectangle(card.X + 40, login.Bottom + 12, (card.Width - 92) / 2, 40);
-            Button(g, guest, "createAcc", "Create Local Account", false, FMid, 2.5f);
-            Button(g, new Rectangle(card.X + 52 + (card.Width - 92) / 2, login.Bottom + 12, (card.Width - 92) / 2, 40), "google", "Google (Recommended)", false, FMid, 2.5f);
-            Txt(g, "Local account saves data on this PC.", FTiny, A(Dim, 170), new RectangleF(0, BarH + 366, w, 14), StringAlignment.Center);
-            Txt(g, "Tab para avançar, Enter para fazer login", FTiny, A(Dim, 160),
-                new RectangleF(0, BarH + 344, w, 14), StringAlignment.Center);
+            Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
+            Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
         }
 
         // ---------- Atualização ----------
@@ -1268,189 +1383,238 @@ namespace Deadzone2D
         {
             var info = UpdateService.Available;
             string version = info?.Version ?? "";
-            var card = new Rectangle((w - 640) / 2, BarH + 40, 640, 330);
-            FillRoundedRect(g, card, Panel, 12);
-            using (var p = RoundRect(card, 12)) g.DrawPath(Pn(Line, 1f), p);
-            g.FillRectangle(Br(Red), card.X + 22, card.Y, card.Width - 44, 3);
+            var card = new Rectangle((w - 720) / 2, Math.Max(BarH + 30, (h - 360) / 2), 720, 360);
+            for (int i = 4; i >= 1; i--) g.FillRectangle(Br(A(Color.Black, 14)), Rectangle.Inflate(card, i * 4, i * 4));
+            using (var p = Chamfer(card, 18, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 250)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), card.X + 18, card.Y, card.Width - 18, 3);
 
-            Spaced(g, "ATUALIZAÇÃO DISPONÍVEL", FTitle, Red, card.X + 30, card.Y + 22, 5f);
-            Txt(g, "Deadzone " + UpdateService.LocalVersion + " → " + version, FMid, Ink,
-                new RectangleF(card.X + 30, card.Y + 62, card.Width - 60, 24));
+            Spaced(g, "ATUALIZAÇÃO DISPONÍVEL", FLabel, Red, card.X + 40, card.Y + 36, 4f);
+            Txt(g, "NOVA VERSÃO", VSub, Ink, new RectangleF(card.X + 40, card.Y + 52, card.Width - 80, 52));
+            Txt(g, "Deadzone " + UpdateService.LocalVersion + "  →  " + version, FMid, Dim,
+                new RectangleF(card.X + 40, card.Y + 106, card.Width - 80, 24));
             if (!string.IsNullOrEmpty(info?.Notes))
-                Txt(g, info.Notes, FBody, A(Ink, 200), new RectangleF(card.X + 30, card.Y + 96, card.Width - 60, 32), StringAlignment.Center);
+                g.DrawString(info!.Notes, FBody, Br(A(Ink, 200)), new RectangleF(card.X + 40, card.Y + 140, card.Width - 80, 56), SfWrap);
 
-            var br = new Rectangle(card.X + 30, card.Y + 136, card.Width - 60, 10);
-            FillRoundedRect(g, br, A(HpGray, 180), 4);
+            // barra de progresso fina, estilo loader do Valorant
+            var bar = new Rectangle(card.X + 40, card.Y + 214, card.Width - 80, 4);
+            g.FillRectangle(Br(A(Ink, 28)), bar);
             float prog = Math.Clamp(UpdateService.DownloadProgress, 0f, 1f);
-            if (prog > 0f) FillRoundedRect(g, new Rectangle(br.X, br.Y, (int)(br.Width * prog), br.Height), Red, 4);
+            if (prog > 0f)
+            {
+                g.FillRectangle(Br(A(Red, 50)), bar.X, bar.Y - 3, (int)(bar.Width * prog), 10);
+                g.FillRectangle(Br(Red), bar.X, bar.Y, (int)(bar.Width * prog), 4);
+            }
+            if (UpdateService.DownloadFailed)
+                Spaced(g, "FALHA NO DOWNLOAD — TENTE DE NOVO", FTiny, HpRed, card.X + 40, card.Y + 236, 3f);
+            else if (UpdateService.InstallerStarted)
+                Spaced(g, "ABRINDO O INSTALADOR...", FTiny, Green, card.X + 40, card.Y + 236, 3f);
 
-            string status;
-            Color statusColor = A(Dim, 210);
-            if (!string.IsNullOrEmpty(UpdateService.LastError))
-            {
-                status = "Falha: " + UpdateService.LastError;
-                statusColor = Red;
-            }
-            else if (UpdateService.DownloadFinished)
-            {
-                status = "Download concluído — abrindo o instalador...";
-                statusColor = HpGreen;
-            }
-            else if (UpdateService.DownloadStarted)
-            {
-                status = "Baixando atualização... " + (int)(prog * 100f) + "%";
-            }
-            else status = "Pronto para baixar e instalar.";
-            Txt(g, status, FTiny, statusColor, new RectangleF(card.X + 30, card.Y + 154, card.Width - 60, 16));
+            string installLabel = UpdateService.InstallerStarted ? "ABRINDO INSTALADOR"
+                : _updInstallRequested ? $"BAIXANDO {(int)(prog * 100)}%" : "ATUALIZAR AGORA";
+            int by = card.Bottom - 92;
+            Button(g, new Rectangle(card.X + 40, by, 250, 56), "updateInstall", installLabel, true, VBtn, 3f);
+            Button(g, new Rectangle(card.X + 306, by, 200, 56), "updateSoft", "SEM REINSTALAR", false, FLabel, 2.5f);
+            Button(g, new Rectangle(card.X + 522, by, 158, 56), "updateLater", "DEPOIS", false, FLabel, 2.5f);
 
-            int by = card.Bottom - 136;
-            Button(g, new Rectangle(card.X + 30, by, 280, 52), "updateInstall", "Instalar agora", true);
-            Button(g, new Rectangle(card.X + 330, by, 280, 52), "updateSoft", "Sem reinstalar", false, FMid, 2.5f);
-            by += 62;
-            Button(g, new Rectangle(card.X + 30, by, 280, 52), "updateLater", "Atualizar depois", false, FMid, 2.5f);
-            Button(g, new Rectangle(card.X + 330, by, 280, 52), "updateIgnore", "Ignorar 1h", false, FMid, 2.5f);
+            if (UpdateService.IgnoreVersion == UpdateService.Available?.Version)
+                Spaced(g, "ESTA VERSÃO SERÁ IGNORADA", FTiny, A(Dim, 200), card.X + 40, card.Bottom - 22, 2f);
+            else
+            {
+                var ig = new Rectangle(card.X + 40, card.Bottom - 34, 140, 22);
+                Reg(ig, "updateIgnore"); float ih = Hv("updateIgnore");
+                Spaced(g, "IGNORAR 1H", FTiny, Mix(Dim, Ink, ih), card.X + 40, card.Bottom - 22, 3f);
+            }
+        }
+
+        // ---------- Configurações (janela modal) ----------
+        private void DrawConfigPanel(Graphics g, int w, int h)
+        {
+            if (!_cfgOpen) return;
+            g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "cfgBackdrop");
+
+            int pw = 560, ph = 430;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 20, (h - ph) / 2), pw, ph);
+            Reg(r, "cfgPanel");   // clicar dentro do painel não fecha
+            using (var p = Chamfer(r, 18, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 18, r.Y, r.Width - 18, 3);
+            Spaced(g, "AJUSTES", FLabel, Red, r.X + 40, r.Y + 36, 4f);
+            Txt(g, "CONFIGURAÇÕES", VSub, Ink, new RectangleF(r.X + 40, r.Y + 52, r.Width - 80, 52));
+
+            int rowH = 62, y = r.Y + 120, rx = r.X + 40, rw = r.Width - 80;
+
+            // volume
+            Spaced(g, "VOLUME", FLabel, Dim, rx, y + 14, 3f);
+            Txt(g, _cfgVol + "%", FMid, Ink, new RectangleF(rx + rw - 40, y + 4, 40, 20), StringAlignment.Far);
+            _uiVolBar = new Rectangle(rx, y + 34, rw - 100, 6);
+            Reg(Rectangle.Inflate(_uiVolBar, 0, 10), "cfgVolBar");
+            g.FillRectangle(Br(A(Ink, 30)), _uiVolBar);
+            int fill = (int)(_uiVolBar.Width * _cfgVol / 100f);
+            g.FillRectangle(Br(Red), _uiVolBar.X, _uiVolBar.Y, fill, _uiVolBar.Height);
+            g.FillEllipse(Br(Color.White), _uiVolBar.X + fill - 7, _uiVolBar.Y - 4, 14, 14);
+            Button(g, new Rectangle(rx + rw - 84, y + 24, 38, 28), "cfgVolDn", "−", false, FMid, 1f);
+            Button(g, new Rectangle(rx + rw - 42, y + 24, 38, 28), "cfgVolUp", "+", false, FMid, 1f);
+            y += rowH;
+
+            UiToggleRow(g, rx, y, rw, "IDIOMA", _cfgLangEn ? "ENGLISH" : "PORTUGUÊS", "cfgLang", _cfgLangEn);
+            y += rowH;
+            UiToggleRow(g, rx, y, rw, "MODO OTIMIZADO", _cfgOpt ? "LIGADO" : "DESLIGADO", "cfgOpt", _cfgOpt);
+            y += rowH;
+
+            Spaced(g, "VERSÃO", FLabel, Dim, rx, y + 14, 3f);
+            Txt(g, "v" + AppInfo.Versao, FMid, Ink, new RectangleF(rx, y + 26, 200, 24));
+            Button(g, new Rectangle(rx + rw - 200, y + 12, 200, 36), "viewUpd", "VER ATUALIZAÇÃO", false, FLabel, 2.5f);
+
+            Button(g, new Rectangle(r.Right - 40 - 150, r.Bottom - 70, 150, 44), "cfg", "FECHAR", true, FLabel, 3f);
+        }
+
+        private void UiToggleRow(Graphics g, int x, int y, int w, string label, string value, string id, bool on)
+        {
+            var row = new Rectangle(x, y, w, 52);
+            Reg(row, id);
+            float hv = Hv(id);
+            g.FillRectangle(Br(A(Color.White, (int)(8 * hv))), row);
+            g.DrawLine(Pn(A(Line, 150), 1f), x, y + 52, x + w, y + 52);
+            Spaced(g, label, FLabel, Dim, x, y + 14, 3f);
+            Txt(g, value, FMid, Ink, new RectangleF(x, y + 24, 260, 24));
+            // chave liga/desliga
+            var sw = new Rectangle(x + w - 56, y + 14, 48, 24);
+            using (var p = RoundRect(sw, 12)) g.FillPath(Br(on ? Red : A(Ink, 40)), p);
+            g.FillEllipse(Br(Color.White), sw.X + (on ? 26 : 4), sw.Y + 4, 16, 16);
         }
 
         // ---------- Lobby ----------
-                private void DrawConfigPanel(Graphics g, int w, int h)
+        private void DrawLobby(Graphics g, int w, int h)
         {
-            if (!_cfgOpen) return;
-            var r = new Rectangle((w - 640) / 2, BarH + 24, 640, 360);
-            FillRoundedRect(g, r, A(BgDeep, 248), 12);
-            using (var p = RoundRect(r, 12)) g.DrawPath(Pn(Line, 1f), p);
-            g.FillRectangle(Br(Red), r.X + 22, r.Y, r.Width - 44, 3);
-            Spaced(g, "SETTINGS", FTitle, Ink, r.X + 24, r.Y + 18, 4f);
-            int y = r.Y + 72;
-            // volume
-            Txt(g, "VOLUME", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
-            var vb = new Rectangle(r.X + 24, y + 20, r.Width - 48, 8);
-            g.FillRectangle(Br(A(Dim, 180)), vb);
-            g.FillRectangle(Br(Red), vb.X, vb.Y, vb.Width * _cfgVol / 100f, vb.Height);
-            Button(g, new Rectangle(r.X + 24, y + 38, 80, 28), "cfgVolDn", "-", false, FMid, 1f);
-            Button(g, new Rectangle(r.X + 116, y + 38, 80, 28), "cfgVolUp", "+", false, FMid, 1f);
-            Txt(g, _cfgVol + "%", FName, Ink, new RectangleF(r.Right - 130, y + 34, 100, 32), StringAlignment.Far);
-            y += 84;
-            // language
-            Txt(g, "LANGUAGE", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
-            string[] langs = { "PORTUGUÊS", "ENGLISH", "ESPAÑOL" };
-            for (int i = 0; i < langs.Length; i++)
-                Button(g, new Rectangle(r.X + 24 + i * 196, y + 22, 186, 36), "cfgLang" + i, langs[i], i == _cfgLang, FMid, 1f);
-            y += 76;
-            // optimized mode
-            Txt(g, "PERFORMANCE", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
-            Button(g, new Rectangle(r.X + 24, y + 22, r.Width - 48, 36), "cfgOpt", _cfgOpt ? "OPTIMIZED MODE: ON" : "OPTIMIZED MODE: OFF", false, FMid, 1f);
-            y += 66;
-            Button(g, new Rectangle(r.X + 24, y + 10, 280, 34), "viewUpd", "VIEW UPDATE", false, FMid, 1f);
-            Button(g, new Rectangle(r.X + 324, y + 10, 280, 34), "cfgSave", "SAVE", true, FMid, 1f);
-        }
-private void DrawLobby(Graphics g, int w, int h)
-        {
-            // seletor de mapa
             bool isRoyale = _map.Mode == "DeadRoyale";
             bool isDeal = _map.Mode == "DealDuo";
-            var mode = new Rectangle(w / 2 - 210, BarH + 24, 420, 68);
+            int cx = w / 2;
+
+            // seletor de mapa/modo (topo central, como a fila do Valorant)
+            var mode = new Rectangle(cx - 230, BarH + 22, 460, 64);
             Reg(mode, "mode"); float mh = Hv("mode");
-            using (var p = Chamfer(mode, 10, true, false, true, false))
+            using (var p = Chamfer(mode, 12, true, false, true, false))
             {
-                g.FillPath(Br(Mix(Panel, PanelHi, mh * .6f)), p);
+                g.FillPath(Br(Mix(A(Panel, 235), A(PanelHi, 245), mh * .6f)), p);
                 g.DrawPath(Pn(Mix(Line, Red, mh), 1f), p);
             }
-            // setas
-            var prev = new Rectangle(mode.X + 8, mode.Y + 14, 38, 40);
-            var next = new Rectangle(mode.Right - 46, mode.Y + 14, 38, 40);
+            var prev = new Rectangle(mode.X + 6, mode.Y + 12, 36, 40);
+            var next = new Rectangle(mode.Right - 42, mode.Y + 12, 36, 40);
             Reg(prev, "mapPrev"); Reg(next, "mapNext");
             Arrow(g, prev, -1, Hv("mapPrev"));
             Arrow(g, next, 1, Hv("mapNext"));
-            Spaced(g, $"MAPA {_mapIndex + 1}/{_maps.Count}", FTiny, Red, mode.X + 56, mode.Y + 13, 3f);
-            Txt(g, _map.Name.ToUpperInvariant(), FName, Ink, new RectangleF(mode.X + 56, mode.Y + 22, 270, 26));
-            Txt(g, _map.Type, FSmall, Dim, new RectangleF(mode.X + 56, mode.Y + 46, 280, 18));
-            // pips
+            UiHex(g, mode.X + 74, mode.Y + 32, 18, Red);
+            Spaced(g, $"MAPA {_mapIndex + 1}/{_maps.Count}", FTiny, Red, mode.X + 108, mode.Y + 15, 3f);
+            Txt(g, _map.Name.ToUpperInvariant(), VName, Ink, new RectangleF(mode.X + 108, mode.Y + 20, 290, 28));
+            Txt(g, _map.Type, FSmall, Dim, new RectangleF(mode.X + 108, mode.Y + 45, 290, 16));
             for (int i = 0; i < _maps.Count; i++)
-            {
-                var pip = new Rectangle(mode.Right - 24 - i * 12, mode.Y + 10, 6, 6);
-                using var pb = new SolidBrush(i == _mapIndex ? Red : A(Line, 220));
-                g.FillEllipse(pb, pip);
-            }
+                g.FillEllipse(Br(i == _mapIndex ? Red : A(Line, 220)), mode.Right - 56 - i * 12, mode.Y + 8, 6, 6);
 
-            // tamanho de equipe
-            bool showSizes = isRoyale || isDeal;
-            if (showSizes)
+            // tamanho de equipe (uma única linha)
+            int under = mode.Bottom;
+            if (isRoyale || isDeal)
             {
                 string[] labels = isRoyale ? new[] { "SOLO", "DUPLA", "TRIO", "SQUAD" } : new[] { "1V1", "2V2" };
-                int bw = 78, gap2 = 8;
+                int bw = 84, gap2 = 8;
                 int total = labels.Length * bw + (labels.Length - 1) * gap2;
-                int sx = (w - total) / 2;
-                int sy = mode.Bottom + 10;
+                int sx = (w - total) / 2, sy = mode.Bottom + 10;
                 for (int i = 0; i < labels.Length; i++)
                 {
                     bool active = isRoyale ? _royaleSquad == i + 1 : _teamSize == i + 1;
                     SizeBtn(g, new Rectangle(sx + i * (bw + gap2), sy, bw, 30), "size" + (i + 1), labels[i], active);
                 }
+                under = sy + 30;
             }
             else
             {
-                Spaced(g, "SQUAD 4V4", FLabel, Dim, w / 2f, mode.Bottom + 25, 3f, StringAlignment.Center);
+                Spaced(g, "SQUAD 4V4", FLabel, Dim, cx, mode.Bottom + 22, 3f, StringAlignment.Center);
+                under = mode.Bottom + 36;
             }
 
-            // botão iniciar
-            var btn = new Rectangle(w / 2 - 190, h - 72 - 64, 380, 72);
+            // INICIAR grande
+            var btn = new Rectangle(cx - 170, under + 16, 340, 70);
+            Button(g, btn, "start", "INICIAR", true, VStart, 8f);
 
-            // party
-            int cw = 200, gap = 20, n = _players.Length;
-            int x0 = (w - (n * cw + (n - 1) * gap)) / 2;
-            int top = mode.Bottom + (showSizes ? 58 : 26);
-            int ch = Math.Clamp(btn.Y - 56 - top, 220, 460);
-            for (int i = 0; i < n; i++)
+            // party: 5 vagas, você no meio e maior
+            int bottomY = h - 70;
+            int ch0 = Math.Clamp(bottomY - (btn.Bottom + 60), 260, 620);
+            int[] order = { 1, 2, 0, 3, -1 };
+            int sideW = 200, midW = 260, gap = 18;
+            int totalW = sideW * 4 + midW + gap * 4;
+            int x = (w - totalW) / 2;
+            for (int s = 0; s < order.Length; s++)
             {
-                string id = "slot:" + i;
-                var rect = new Rectangle(x0 + i * (cw + gap), top, cw, ch);
-                Reg(rect, id); float hv = Hv(id);
-                rect.Y -= (int)(6 * hv);
-
-                using (var path = Chamfer(rect, 16, true, false, true, false))
-                {
-                    using (var lb = new LinearGradientBrush(rect, PanelHi, Panel, 90f)) g.FillPath(lb, path);
-                    g.DrawPath(Pn(Mix(Line, Red, hv * .8f), 1f), path);
-                }
-                g.FillRectangle(Br(i == 0 ? Red : Line), rect.X + 16, rect.Y, rect.Width - 16, 3);
-
-                // silhueta
-                g.SetClip(new Rectangle(rect.X + 1, rect.Y + 4, rect.Width - 2, rect.Height - 8));
-                float hd = cw * .30f;
-                g.FillEllipse(Br(A(i == 0 ? Red : Ink, i == 0 ? 90 : 40)), rect.X + (cw - hd) / 2f, rect.Y + ch * .22f, hd, hd);
-                float sw = cw * .80f;
-                g.FillEllipse(Br(A(i == 0 ? Red : Ink, i == 0 ? 70 : 30)), rect.X + (cw - sw) / 2f, rect.Y + ch * .22f + hd + 10, sw, sw);
-                g.ResetClip();
-
-                // plaquinha de nome
-                var plate = new Rectangle(rect.X, rect.Bottom - 70, rect.Width, 70);
-                g.FillRectangle(Br(A(Color.Black, 120)), plate);
-                Txt(g, _players[i], FMid, Ink, new RectangleF(plate.X + 18, plate.Y + 12, plate.Width - 36, 24));
-                if (i == 0) Spaced(g, "LÍDER", FTiny, Red, plate.X + 18, plate.Y + 50, 3f);
-                else { g.FillEllipse(Br(Green), plate.X + 18, plate.Y + 45, 8, 8); Spaced(g, "PRONTO", FTiny, Green, plate.X + 32, plate.Y + 50, 3f); }
+                bool center = s == 2;
+                int cw = center ? midW : sideW;
+                int chh = center ? ch0 : ch0 - 60;
+                var rect = new Rectangle(x, bottomY - chh, cw, chh);
+                x += cw + gap;
+                if (order[s] < 0) DrawInviteSlot(g, rect);
+                else DrawPartyCard(g, rect, order[s], center);
             }
-
-            // fila
-            if (_queue)
-            {
-                var el = _queueSw.Elapsed;
-                float tw = Spaced(g, $"BUSCANDO PARTIDA   {(int)el.TotalMinutes}:{el.Seconds:00}", FSmallB, Ink, w / 2f + 12, btn.Y - 28, 3f, StringAlignment.Center);
-                var arc = new RectangleF(w / 2f - tw / 2f - 18, btn.Y - 38, 20, 20);
-                using var ap = new Pen(Red, 3f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-                g.DrawArc(ap, arc, (_clock * 360f) % 360f, 100f);
-            }
-            Button(g, btn, "start", _queue ? "CANCELAR" : "INICIAR", !_queue, FStart, 6f);
-            Button(g, new Rectangle((w - 200) / 2, btn.Bottom + 12, 200, 38), "cfg", "CONFIG", false);
-            Button(g, new Rectangle(22, h - 60, 44, 34), "groupNew", "+", true, FName, 1f);
-            if (_groupOpen) { Txt(g, "Create Group:", FLabel, Ink, new RectangleF(76, h - 60, 110, 16)); for (int gi=1; gi<=4; gi++) Button(g, new Rectangle(76 + (gi-1)*74, h - 42, 68, 28), "grpSel"+gi, gi==1?"SOLO":gi==2?"DUO":gi==3?"TRIO":"SQUAD", gi==(_map.Mode=="DeadRoyale"?_royaleSquad:_teamSize), FMid, 1f); }
-            string[] squadLbl = { "SOLO", "DUPLA", "TRIO", "SQUAD" };
-            int sqBase = isRoyale ? _royaleSquad - 1 : _teamSize - 1;
-            for (int i = 0; i < 4; i++)
-                Button(g, new Rectangle((w - 400) / 2 + i * 104, btn.Bottom + 48, 100, 34), "size" + (i + 1), squadLbl[i], i == sqBase, FMid, 2f);
-            Txt(g, "Solo = sem aliados", FTiny, Dim, new RectangleF(0, BarH + 300, w, 12), StringAlignment.Center);
         }
 
-        // ---------- Armas ----------
+        private void DrawPartyCard(Graphics g, Rectangle rect, int pi, bool center)
+        {
+            string id = "slot:" + pi;
+            Reg(rect, id); float hv = Hv(id);
+            rect.Y -= (int)(6 * hv);
+            bool me = pi == 0;
+
+            using (var path = Chamfer(rect, 16, true, false, true, false))
+            {
+                using (var lb = new LinearGradientBrush(rect, A(PanelHi, 235), A(Panel, 235), 90f)) g.FillPath(lb, path);
+                g.DrawPath(Pn(Mix(Line, Red, hv * .8f), 1f), path);
+            }
+            g.FillRectangle(Br(me ? Red : Line), rect.X + 16, rect.Y, rect.Width - 16, center ? 4 : 3);
+            if (center) UiBrackets(g, rect, A(Ink, 120));
+
+            // silhueta (no lugar da arte do personagem)
+            g.SetClip(new Rectangle(rect.X + 1, rect.Y + 4, rect.Width - 2, rect.Height - 8));
+            float hd = rect.Width * .30f;
+            var sc = me ? Red : Ink;
+            g.FillEllipse(Br(A(sc, me ? 90 : 40)), rect.X + (rect.Width - hd) / 2f, rect.Y + rect.Height * .22f, hd, hd);
+            float sw = rect.Width * .80f;
+            g.FillEllipse(Br(A(sc, me ? 70 : 30)), rect.X + (rect.Width - sw) / 2f, rect.Y + rect.Height * .22f + hd + 10, sw, sw);
+            g.ResetClip();
+
+            var plate = new Rectangle(rect.X, rect.Bottom - 72, rect.Width, 72);
+            g.FillRectangle(Br(A(Color.Black, 130)), plate);
+            Txt(g, _players[pi].ToUpperInvariant(), VName, Ink, new RectangleF(plate.X + 18, plate.Y + 8, plate.Width - 36, 30));
+            if (me) Spaced(g, "LÍDER", FTiny, Red, plate.X + 18, plate.Y + 52, 3f);
+            else
+            {
+                g.FillEllipse(Br(Green), plate.X + 18, plate.Y + 47, 8, 8);
+                Spaced(g, "PRONTO", FTiny, Green, plate.X + 32, plate.Y + 52, 3f);
+            }
+        }
+
+        private void DrawInviteSlot(Graphics g, Rectangle rect)
+        {
+            Reg(rect, "invite"); float hv = Hv("invite");
+            rect.Y -= (int)(6 * hv);
+            using (var path = Chamfer(rect, 16, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, (int)(120 + 60 * hv))), path);
+                using var dp = new Pen(Mix(Line, Ink, hv), 1.5f) { DashStyle = DashStyle.Dash };
+                g.DrawPath(dp, path);
+            }
+            float cx = rect.X + rect.Width / 2f, cy = rect.Y + rect.Height / 2f - 10;
+            var pen = Pn(Mix(Dim, Ink, hv), 2.5f);
+            g.DrawLine(pen, cx - 14, cy, cx + 14, cy);
+            g.DrawLine(pen, cx, cy - 14, cx, cy + 14);
+            Spaced(g, "CONVIDAR", FTiny, Mix(Dim, Ink, hv), cx, cy + 40, 3f, StringAlignment.Center);
+        }
+
+        // ---------- Armas (Coleção) ----------
         private void DrawWeapons(Graphics g, int w, int h)
         {
             int lx = 48, ly = BarH + 48;
@@ -1463,8 +1627,9 @@ private void DrawLobby(Graphics g, int w, int h)
                 float hv = Hv(id); bool sel = i == _gun;
                 g.FillRectangle(Br(sel ? A(PanelHi, 255) : A(Color.White, (int)(10 * hv))), rr);
                 if (sel) g.FillRectangle(Br(Red), rr.X, rr.Y, 4, rr.Height);
-                Txt(g, _guns[i].Name.ToUpperInvariant(), FName, sel ? Ink : Mix(Dim, Ink, hv), new RectangleF(rr.X + 22, rr.Y + 6, rr.Width - 40, 28));
-                Txt(g, $"{_guns[i].Skins.Count} SKINS", FTiny, Dim, new RectangleF(rr.X + 22, rr.Y + 33, rr.Width - 40, 16));
+                Txt(g, _guns[i].Name.ToUpperInvariant(), VName, sel ? Ink : Mix(Dim, Ink, hv), new RectangleF(rr.X + 22, rr.Y + 3, rr.Width - 80, 32));
+                Txt(g, $"{_guns[i].Skins.Count} SKINS", FTiny, Dim, new RectangleF(rr.X + 22, rr.Y + 35, rr.Width - 40, 16));
+                Spaced(g, (i + 1).ToString("00"), FTiny, A(Dim, sel ? 220 : 120), rr.Right - 16, rr.Y + 28, 2f, StringAlignment.Far);
             }
 
             var gun = _guns[_gun];
@@ -1473,30 +1638,30 @@ private void DrawLobby(Graphics g, int w, int h)
             int rx = 400, right = w - 48;
             if (right - rx < 320) return;
 
-            Txt(g, gun.Name.ToUpperInvariant(), FWater, A(Ink, 10), new RectangleF(rx - 6, BarH + 20, right - rx, 130));
-            Txt(g, gun.Name.ToUpperInvariant(), FTitle, Ink, new RectangleF(rx, BarH + 58, right - rx - 230, 56));
-            Spaced(g, "SKIN  /  " + skin.Name.ToUpperInvariant(), FLabel, Red, rx, BarH + 126, 3f);
+            Txt(g, gun.Name.ToUpperInvariant(), VWater, A(Ink, 9), new RectangleF(rx - 6, BarH + 10, right - rx, 160));
+            Txt(g, gun.Name.ToUpperInvariant(), VTitle, Ink, new RectangleF(rx, BarH + 46, right - rx - 230, 80));
+            Spaced(g, "SKIN  /  " + skin.Name.ToUpperInvariant(), FLabel, Red, rx, BarH + 138, 3f);
 
             bool equipped = _equipped.TryGetValue(gun.GunId, out var eq) && eq == skin.SkinId;
-            var eb = new Rectangle(right - 210, BarH + 60, 210, 52);
+            var eb = new Rectangle(right - 210, BarH + 64, 210, 52);
             if (equipped)
             {
                 using var p = Chamfer(eb, 12, true, false, true, false);
                 g.FillPath(Br(A(Green, 30)), p);
                 g.DrawPath(Pn(Green, 2f), p);
-                Spaced(g, "EQUIPADA", FMid, Green, eb.X + eb.Width / 2f, eb.Y + eb.Height / 2f, 3f, StringAlignment.Center);
-    
-            Button(g, new Rectangle((w - 200) / 2, h - 56, 200, 40), "nav:Lobby", "JOGAR", false, FMid, 3f);        }
-            else Button(g, eb, "equip", "EQUIPAR", true, FMid, 3f);
+                Spaced(g, "EQUIPADA", VNav, Green, eb.X + eb.Width / 2f, eb.Y + eb.Height / 2f, 3f, StringAlignment.Center);
+            }
+            else Button(g, eb, "equip", "EQUIPAR", true, VNav, 3f);
 
             // prévia
-            int py = BarH + 156, skinH = 112, skinY = h - 100 - skinH;
-            var prev = new Rectangle(rx, py, right - rx, Math.Max(140, skinY - 24 - py));
+            int py = BarH + 168, skinH = 112, skinY = h - 100 - skinH;
+            var prev = new Rectangle(rx, py, right - rx, Math.Max(140, skinY - 28 - py));
             using (var p = Chamfer(prev, 18, true, false, true, false))
             {
-                g.FillPath(Br(A(Panel, 210)), p);
+                g.FillPath(Br(A(Panel, 200)), p);
                 g.DrawPath(Pn(Line, 1f), p);
             }
+            UiBrackets(g, prev, A(Ink, 90), 14, 8);
             var sc = SkinColor(skin);
             g.FillEllipse(Br(A(sc, 22)), prev.X + prev.Width * .2f, prev.Y + prev.Height * .15f, prev.Width * .6f, prev.Height * .7f);
             g.FillRectangle(Br(sc), prev.X + 18, prev.Y, prev.Width - 18, 3);
@@ -1509,7 +1674,7 @@ private void DrawLobby(Graphics g, int w, int h)
             }
             else
             {
-                Spaced(g, "PRÉVIA DA ARMA", FMid, Dim, prev.X + prev.Width / 2f, prev.Y + prev.Height / 2f - 10, 4f, StringAlignment.Center);
+                Spaced(g, "PRÉVIA DA ARMA", VNav, Dim, prev.X + prev.Width / 2f, prev.Y + prev.Height / 2f - 10, 5f, StringAlignment.Center);
                 Txt(g, $"Coloque um PNG em Assets/Previews/{gun.GunId}_{skin.SkinId}.png", FSmall, A(Dim, 170),
                     new RectangleF(prev.X, prev.Y + prev.Height / 2f + 6, prev.Width, 22), StringAlignment.Center);
             }
@@ -1557,7 +1722,7 @@ private void DrawLobby(Graphics g, int w, int h)
                 Reg(pill, "friendsOpen"); float hv = Hv("friendsOpen");
                 using (var p = Chamfer(pill, 10, true, false, true, false))
                 {
-                    g.FillPath(Br(Mix(Panel, PanelHi, hv)), p);
+                    g.FillPath(Br(Mix(A(Panel, 240), A(PanelHi, 250), hv)), p);
                     g.DrawPath(Pn(Mix(Line, Red, hv), 1f), p);
                 }
                 g.FillEllipse(Br(Green), pill.X + 18, pill.Y + 19, 10, 10);
@@ -1597,6 +1762,13 @@ private void DrawLobby(Graphics g, int w, int h)
             float max = Math.Max(0, total - view.Height);
             _fscroll = Math.Clamp(_fscroll, 0f, max);
 
+            if (_friendList.Count == 0)
+            {
+                Spaced(g, "NENHUM AMIGO AINDA", FLabel, Dim, view.X + view.Width / 2f, view.Y + view.Height / 2f - 8, 3f, StringAlignment.Center);
+                Txt(g, "Use ADICIONAR AMIGO para começar", FSmall, A(Dim, 160),
+                    new RectangleF(view.X, view.Y + view.Height / 2f + 6, view.Width, 20), StringAlignment.Center);
+            }
+
             g.SetClip(view);
             int y = view.Y + 8 - (int)_fscroll;
             bool onHdr = false, offHdr = false;
@@ -1620,40 +1792,47 @@ private void DrawLobby(Graphics g, int w, int h)
 
             // rodapé
             g.DrawLine(Pn(Line, 1f), pr.X, view.Bottom, pr.Right, view.Bottom);
-            Button(g, new Rectangle(pr.X + 20, pr.Bottom - 56, 70, 42), "frdMenu", "PEDIDOS", false, FLabel, 2.5f);
-            Button(g, new Rectangle(pr.X + 95, pr.Bottom - 56, pr.Width - 115, 42), "addFriend", "ADICIONAR AMIGO", false, FLabel, 2.5f);
+            Button(g, new Rectangle(pr.X + 20, pr.Bottom - 56, 90, 42), "frdMenu", "PEDIDOS", false, FLabel, 2f);
+            Button(g, new Rectangle(pr.X + 118, pr.Bottom - 56, pr.Width - 138, 42), "addFriend", "ADICIONAR AMIGO", false, FLabel, 2.5f);
 
             g.ResetTransform();
             _off = Point.Empty;
             if (_requestsOpen) DrawFriendRequests(g, pr);
         }
 
+        // popup de pedidos: aparece acima do painel (antes ficava fora da tela, abaixo dele)
         private void DrawFriendRequests(Graphics g, Rectangle basePr)
         {
-            int reqH = _friendRequests.Count == 0 ? 56 : 26 + _friendRequests.Count * 26 + 8;
-            var r = new Rectangle(basePr.X + 20, basePr.Bottom - reqH - 70, 360, reqH);
-            FillRoundedRect(g, r, Panel, 8);
-            using (var p = RoundRect(r, 8)) g.DrawPath(Pn(Line, 1f), p);
-            Spaced(g, "PEDIDOS", FLabel, Ink, r.X + 16, r.Y + 12, 3f);
+            int rh = _friendRequests.Count == 0 ? 64 : 44 + _friendRequests.Count * 34 + 8;
+            var r = new Rectangle(basePr.Right - 360, basePr.Y - rh - 8, 360, rh);
+            using (var p = Chamfer(r, 12, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 12, r.Y, r.Width - 12, 3);
+            Spaced(g, "PEDIDOS", FLabel, Ink, r.X + 18, r.Y + 22, 3f);
             if (_friendRequests.Count == 0)
             {
-                Txt(g, "Nenhum pedido disponível", FBody, Dim, new RectangleF(r.X + 18, r.Y + 32, r.Width - 36, 22));
+                Txt(g, "Nenhum pedido pendente", FSmall, Dim, new RectangleF(r.X + 18, r.Y + 36, r.Width - 36, 20));
                 return;
             }
             for (int i = 0; i < _friendRequests.Count; i++)
             {
-                var row = new Rectangle(r.X + 12, r.Y + 32 + i * 26, r.Width - 24, 20);
-                Txt(g, _friendRequests[i], FBody, Ink, row);
-                var accept = new Rectangle(row.Right - 84, row.Y - 4, 40, 28);
-                Reg(accept, "frdAccept:" + i);
-                float ah = Hv("frdAccept:" + i);
-                FillRoundedRect(g, accept, Mix(Red, RedHi, ah), 5);
-                Txt(g, "Aceitar", FTiny, Color.White, accept, StringAlignment.Center);
-                var rec = new Rectangle(accept.Right + 8, row.Y - 4, 40, 28);
-                Reg(rec, "frdReject:" + i);
-                float rh = Hv("frdReject:" + i);
-                FillRoundedRect(g, rec, Mix(A(Ink, 120), A(Ink, 60), rh), 5);
-                Txt(g, "Recusar", FTiny, Ink, rec, StringAlignment.Center);
+                var row = new Rectangle(r.X + 14, r.Y + 44 + i * 34, r.Width - 28, 28);
+                Txt(g, _friendRequests[i], FMid, Ink, new RectangleF(row.X, row.Y, row.Width - 160, row.Height));
+                var accept = new Rectangle(row.Right - 150, row.Y, 70, 28);
+                var rec = new Rectangle(row.Right - 74, row.Y, 74, 28);
+                Reg(accept, "frdAccept:" + i); Reg(rec, "frdReject:" + i);
+                float ah = Hv("frdAccept:" + i), rhv = Hv("frdReject:" + i);
+                using (var ap = Chamfer(accept, 6, true, false, true, false)) g.FillPath(Br(Mix(Red, RedHi, ah)), ap);
+                Spaced(g, "ACEITAR", FTiny, Color.White, accept.X + accept.Width / 2f, accept.Y + 14, 2f, StringAlignment.Center);
+                using (var rp = Chamfer(rec, 6, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Ink, (int)(rhv * 22))), rp);
+                    g.DrawPath(Pn(Mix(A(Ink, 110), Ink, rhv), 1.5f), rp);
+                }
+                Spaced(g, "RECUSAR", FTiny, Ink, rec.X + rec.Width / 2f, rec.Y + 14, 2f, StringAlignment.Center);
             }
         }
 
@@ -1674,20 +1853,25 @@ private void DrawLobby(Graphics g, int w, int h)
             Txt(g, f.Name, FMid, off ? Dim : Ink, new RectangleF(row.X + 76, row.Y + 11, row.Width - 170, 22));
             Txt(g, f.Sub, FSmall, f.St == FStatus.InGame ? Blue : Dim, new RectangleF(row.X + 76, row.Y + 33, row.Width - 100, 18));
             if (!off && hv > 0.02f)
-                Spaced(g, "CONVIDAR", FTiny, A(Red, (int)(255 * hv)), row.Right - 22, row.Y + 21, 2f, StringAlignment.Far);
-            var rm = new Rectangle(row.Right - 30, row.Y + 24, 22, 22);
-            Reg(rm, "frdRemove:" + idx);
+                Spaced(g, "CONVIDAR", FTiny, A(Red, (int)(255 * hv)), row.Right - 52, row.Y + 21, 2f, StringAlignment.Far);
+
+            // botão remover (X desenhado, sem depender de glifo da fonte)
+            var rm = new Rectangle(row.Right - 34, row.Y + 19, 22, 22);
+            Reg(Rectangle.Intersect(rm, view), "frdRemove:" + idx);
             float rv = Hv("frdRemove:" + idx);
-            using (var rb = new SolidBrush(A(Red, off ? 60 : 90 + (int)(50 * rv)))) g.FillEllipse(rb, rm);
-            Txt(g, "✕", FSmallB, off ? Dim : Color.White, rm, StringAlignment.Center);
+            g.FillEllipse(Br(A(Red, (int)(rv * 70))), rm);
+            var xp = Pn(Mix(A(Dim, 200), Red, rv), 1.5f);
+            g.DrawLine(xp, rm.X + 7, rm.Y + 7, rm.Right - 7, rm.Bottom - 7);
+            g.DrawLine(xp, rm.Right - 7, rm.Y + 7, rm.X + 7, rm.Bottom - 7);
         }
 
+        // ---------- Aviso (canto superior direito, abaixo da barra) ----------
         private void DrawToast(Graphics g, int w)
         {
             if (_toastLeft <= 0f) return;
             float a = Math.Min(1f, Math.Min(_toastLeft / 0.4f, (2.6f - _toastLeft) / 0.2f));
             float tw = g.MeasureString(_toast, FMid).Width + 56;
-            var r = new RectangleF((w - tw) / 2f, BarH + 18, tw, 44);
+            var r = new RectangleF(w - tw - 24, _page == 4 ? 70 : BarH + 16, tw, 44);
             using (var p = Chamfer(r, 10, true, false, true, false))
             {
                 g.FillPath(Br(A(Panel, (int)(250 * a))), p);
@@ -1696,21 +1880,7 @@ private void DrawLobby(Graphics g, int w, int h)
             g.FillRectangle(Br(A(Red, (int)(255 * a))), r.X + 10, r.Y, 4, r.Height);
             Txt(g, _toast, FMid, A(Ink, (int)(255 * a)), new RectangleF(r.X + 28, r.Y, r.Width - 40, r.Height));
         }
-
-
-        // Tela de atualização estilo carregamento
-        private void DrawUpdateLoading(Graphics g, int w, int h)
-        {
-            g.FillRectangle(Br(BgDeep), 0, 0, w, h);
-            var title = _custom.WindowTitle.ToUpperInvariant();
-            Spaced(g, title, FHuge, Ink, w / 2f, h / 2f - 70, 14f, StringAlignment.Center);
-            Spaced(g, "UPDATING DEADZONE", FLabel, Red, w / 2f, h / 2f - 10, 6f, StringAlignment.Center);
-            int bw = 520, bx = (w - bw) / 2, by = h / 2 + 24;
-            g.FillRectangle(Br(A(Ink, 28)), bx, by, bw, 6);
-            float prog = Math.Clamp(UpdateService.DownloadProgress, 0f, 1f);
-            g.FillRectangle(Br(Red), bx, by, (int)(bw * prog), 6);
-            Txt(g, $"{(int)(prog * 100)}% — Downloading update...", FMid, Dim, new RectangleF(bx, by + 18, bw, 24), StringAlignment.Center);
-        }    }
+    }
 
     public class Customize { public string WindowTitle { get; set; } = "Deadzone"; }
     public class GunData
@@ -1721,24 +1891,3 @@ private void DrawLobby(Graphics g, int w, int h)
     }
     public class Skin { public string SkinId { get; set; } = ""; public string Name { get; set; } = ""; }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
