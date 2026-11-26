@@ -1,10 +1,9 @@
 [Setup]
 AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
-AppName=Deadzone2D2D
+AppName=Deadzone2D
 AppPublisher=Lume Studio INC
 
 AppVersion=2.3
-AppComments=Deadzone — DeadTheme shooter
 AppCopyright=Lume Studio INC
 DefaultDirName={commonpf}\Deadzone
 DefaultGroupName=Deadzone
