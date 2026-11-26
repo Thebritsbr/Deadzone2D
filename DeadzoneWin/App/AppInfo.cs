@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public static class AppInfo
     {

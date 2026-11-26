@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj": {}
+    "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj": {}
   },
   "projects": {
-    "c:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj": {
+    "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj",
+        "projectUniqueName": "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj",
         "projectName": "Deadzone",
-        "projectPath": "c:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj",
+        "projectPath": "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\Deadzone.csproj",
         "packagesPath": "C:\\Users\\pc\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\obj\\",
+        "outputPath": "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\pc\\AppData\\Roaming\\NuGet\\NuGet.Config"

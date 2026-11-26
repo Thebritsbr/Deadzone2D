@@ -11,7 +11,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Windows.Forms;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public partial class MainForm : Form
     {

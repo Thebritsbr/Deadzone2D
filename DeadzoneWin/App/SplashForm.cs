@@ -1,4 +1,4 @@
-﻿// SplashForm.cs — Splash inicial: nome do jogo, ícone e barra de carregamento.
+// SplashForm.cs — Splash inicial: nome do jogo, ícone e barra de carregamento.
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -6,7 +6,7 @@ using System.Drawing.Text;
 using System.IO;
 using System.Windows.Forms;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     internal sealed class SplashForm : Form
     {

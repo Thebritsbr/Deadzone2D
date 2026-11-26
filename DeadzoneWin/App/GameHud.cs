@@ -1,11 +1,11 @@
-﻿// GameHud.cs â€” HUD: vida, grupo, status, minimapa, placar, arma e kill feed.
+// GameHud.cs â€” HUD: vida, grupo, status, minimapa, placar, arma e kill feed.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public partial class MainForm
     {

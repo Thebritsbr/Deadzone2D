@@ -1,10 +1,10 @@
-﻿// GameSession.cs â€” LÃ³gica da partida: Deal Duo, Squad Battle e Dead Royale.
+// GameSession.cs â€” LÃ³gica da partida: Deal Duo, Squad Battle e Dead Royale.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public sealed class GameSession
     {

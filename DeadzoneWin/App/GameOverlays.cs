@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public partial class MainForm
     {

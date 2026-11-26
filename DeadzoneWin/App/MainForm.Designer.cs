@@ -1,4 +1,4 @@
-namespace CrossfireWin
+namespace Deadzone2D
 {
     partial class MainForm
     {

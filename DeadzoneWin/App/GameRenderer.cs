@@ -1,11 +1,11 @@
-﻿// GameRenderer.cs â€” RenderizaÃ§Ã£o do mundo, personagens, veÃ­culos e efeitos.
+// GameRenderer.cs â€” RenderizaÃ§Ã£o do mundo, personagens, veÃ­culos e efeitos.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public partial class MainForm
     {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public sealed class GameMap
     {

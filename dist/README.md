@@ -5,7 +5,7 @@ Aplicativo executável Windows (.NET 8), sem engine externa.
 ## Rodar a partir do `dist`
 
 ```
-dist\Deadzone\CrossfireApp.exe
+dist\Deadzone\Deadzone2DApp.exe
 ```
 
 O config padrão carrega as colas: `Config\Maps.json`, `Config\Gameplay.json`,
@@ -20,5 +20,5 @@ Modos:
   contêm armas, moedas, itens e kit de cura.
 
 Para usar o projeto fonte, realize `dotnet build` no
-`DeadzoneWin\App\CrossfireApp.csproj` e execute a partir de `DeadzoneWin\App`
+`DeadzoneWin\App\Deadzone2DApp.csproj` e execute a partir de `DeadzoneWin\App`
 (o output também é copiado para `dist\Deadzone`).

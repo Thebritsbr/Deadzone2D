@@ -1,9 +1,9 @@
-﻿// MapBuilder.cs — Layout dos 3 mapas iniciais.
+// MapBuilder.cs — Layout dos 3 mapas iniciais.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public sealed partial class WorldMap
     {

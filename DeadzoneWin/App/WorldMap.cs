@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public enum PropKind { Car, Truck, Crate, Barrel, Tree, Rock, Fountain }
 

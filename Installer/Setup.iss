@@ -1,6 +1,6 @@
 [Setup]
 AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
-AppName=Deadzone
+AppName=Deadzone2D2D
 AppPublisher=Lume Studio INC
 
 AppVersion=2.2
@@ -39,12 +39,12 @@ Source: "..\dist\Deadzone\*"; DestDir: {app}; Flags: ignoreversion recursesubdir
 Source: "CheckUpdate.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\Deadzone"; Filename: "{app}\CrossfireApp.exe"; WorkingDir: "{app}"
-Name: "{commondesktop}\Deadzone"; Filename: "{app}\CrossfireApp.exe"; IconFilename: "{app}\CrossfireApp.exe"
+Name: "{group}\Deadzone"; Filename: "{app}\Deadzone2DApp.exe"; WorkingDir: "{app}"
+Name: "{commondesktop}\Deadzone"; Filename: "{app}\Deadzone2DApp.exe"; IconFilename: "{app}\Deadzone2DApp.exe"
 
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\CheckUpdate.ps1"""; Flags: runhidden unchecked; Tasks: update
-Filename: "{app}\CrossfireApp.exe"; Description: "Launch Deadzone"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\Deadzone2DApp.exe"; Description: "Launch Deadzone"; Flags: postinstall nowait skipifsilent
 
 [Code]
 // ---------- Paleta (formato BGR: $00BBGGRR) ----------

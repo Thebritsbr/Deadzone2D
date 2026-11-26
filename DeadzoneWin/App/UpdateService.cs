@@ -8,7 +8,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public sealed class UpdateService
     {

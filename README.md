@@ -1,11 +1,11 @@
-﻿{
-  "name": "Crossfire",
+{
+  "name": "Deadzone2D",
   "version": "1.1",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
-      "name": "Crossfire",
+      "name": "Deadzone2D",
       "version": "1.1",
       "dependencies": {
         "@fontsource/barlow": "^5.2.6",

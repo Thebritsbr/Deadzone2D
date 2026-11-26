@@ -1,9 +1,9 @@
-// Program.cs — Entry point do Crossfire Win (sem Engine)
+// Program.cs — Entry point do Deadzone2D (sem Engine)
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using CrossfireWin;
+using Deadzone2D;
 
 [DllImport("user32.dll")]
 static extern IntPtr SetForegroundWindow(IntPtr hwnd);

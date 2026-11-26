@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 
-namespace CrossfireWin
+namespace Deadzone2D
 {
     public enum SessionPhase { Countdown, Live, RoundOver, MatchOver }
     public enum SessionKind { Team, Royale }
