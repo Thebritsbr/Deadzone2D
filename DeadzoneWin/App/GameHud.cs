@@ -1,4 +1,4 @@
-// GameHud.cs â€” HUD: vida, grupo, status, minimapa, placar, arma e kill feed.
+// GameHud.cs — HUD: vida, grupo, status, minimapa, placar, arma e kill feed.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -35,7 +35,7 @@ namespace Deadzone2D
             using (var path = RoundRect(r, 10)) g.DrawPath(Pn(A(Line, 190), 1f), path);
             g.FillRectangle(Br(Red), r.X + 12, r.Y, 3, 18);
 
-            Txt(g, "VOCÃŠ", FTiny, Red, new RectangleF(r.X + 22, r.Y + 8, 80, 14));
+            Txt(g, "VOCÊ", FTiny, Red, new RectangleF(r.X + 22, r.Y + 8, 80, 14));
             Txt(g, ((int)Math.Round(_hpAnim)).ToString("00"), F(32),
                 p.Health > 50 ? Ink : p.Health > 25 ? Amber : HpRed,
                 new RectangleF(r.X + 20, r.Y + 24, 66, 42));
@@ -81,7 +81,7 @@ namespace Deadzone2D
                 using var b = new SolidBrush(c);
                 g.FillRectangle(b, r.X + 13 + (i % 2) * 9, r.Y + 10 + (i / 2) * 9, 7, 7);
             }
-            Txt(g, "INVENTÃRIO", FLabel, _inventoryOpen ? Color.White : Ink, new RectangleF(r.X + 42, r.Y + 8, 92, 20));
+            Txt(g, "INVENTÁRIO", FLabel, _inventoryOpen ? Color.White : Ink, new RectangleF(r.X + 42, r.Y + 8, 92, 20));
             Txt(g, "[TAB]", FTiny, _inventoryOpen ? A(Color.White, 190) : Dim, new RectangleF(r.X + 120, r.Y + 10, 44, 16));
         }
 
@@ -245,7 +245,7 @@ namespace Deadzone2D
                 {
                     var ts = TimeSpan.FromSeconds(Math.Max(0, _g.Countdown));
                     Txt(g, ts.ToString(@"mm\:ss"), FTitle, Ink, new RectangleF(r.X + 18, r.Y + 24, 150, 48));
-                    Spaced(g, "PREPARAÃ‡ÃƒO", FLabel, Amber, r.X + 178, r.Y + 40, 3f);
+                    Spaced(g, "PREPARAÇÃO", FLabel, Amber, r.X + 178, r.Y + 40, 3f);
                     var skip = new Rectangle(r.Right - 92, r.Y + 46, 78, 24);
                     Reg(skip, "skipCountdown");
                     float hv = Hv("skipCountdown");
@@ -321,7 +321,7 @@ namespace Deadzone2D
                 var r = new Rectangle(22, y, rowW, 26);
                 FillRoundedRect(g, r, A(BgDeep, (int)(185 * a)), 5);
                 g.FillRectangle(Br(A(e.KillerTeam == 0 ? Blue : HpRed, (int)(200 * a))), r.X, r.Y, 3, r.Height);
-                string k = string.IsNullOrEmpty(e.Killer) ? "â€”" : e.Killer;
+                string k = string.IsNullOrEmpty(e.Killer) ? "—" : e.Killer;
                 Txt(g, k, FSmallB, A(e.KillerTeam == 0 ? Ink : HpRed, (int)(240 * a)),
                     new RectangleF(r.X + 12, r.Y + 3, 112, 18));
                 Txt(g, e.Weapon, FTiny, A(Dim, (int)(220 * a)),
@@ -350,11 +350,11 @@ namespace Deadzone2D
 
         private void DrawHints(Graphics g, int w, int h)
         {
-            string hint = "WASD MOVER   â€¢   MOUSE MIRAR   â€¢   CLIQUE ATIRAR   â€¢   R RECARREGAR   â€¢   E PEGAR   â€¢   TAB INVENTÃRIO   â€¢   ESC PAUSA";
+            string hint = "WASD MOVER   •   MOUSE MIRAR   •   CLIQUE ATIRAR   •   R RECARREGAR   •   E PEGAR   •   TAB INVENTÁRIO   •   ESC PAUSA";
             Txt(g, hint, FTiny, A(Dim, 160), new RectangleF(0, h - 26, w, 16), StringAlignment.Center);
         }
 
-        // ---------- Ãcones ----------
+        // ---------- Ícones ----------
         private static void PersonIcon(Graphics g, float x, float y, float s, Color c)
         {
             using var b = new SolidBrush(c);

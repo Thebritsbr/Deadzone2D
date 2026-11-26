@@ -12,7 +12,7 @@ Este projeto adapta o jogo original ("Deadzone", mantido na versão Unreal) para
 ## Status do port
 
 - [x] `project.godot` + `scenes/main.tscn`
-- [x] Sistema de carregamento (`scripts/ui/LoadingScreen.gd`) — estilo Valorant
+- [x] Sistema de carregamento (`scripts/ui/LoadingScreen.gd`) — estilo tático
 - [x] Login Google / Guest (`scripts/ui/LoginScreen.gd`)
 - [x] Lobby estilo Free Fire (`scenes/LobbyScreen.tscn` + `scripts/ui/LobbyScreen.gd`)
 - [x] Lista de amizadas com detalhes de ID/criação/último login (`scenes/FriendsPanel.tscn` + `scripts/ui/FriendsPanel.gd`)

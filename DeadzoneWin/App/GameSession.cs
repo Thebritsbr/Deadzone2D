@@ -1,4 +1,4 @@
-// GameSession.cs â€” LÃ³gica da partida: Deal Duo, Squad Battle e Dead Royale.
+// GameSession.cs — Lógica da partida: Deal Duo, Squad Battle e Dead Royale.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -507,8 +507,8 @@ namespace Deadzone2D
             WinnerTeam = winnerTeam;
             bool pw = winnerTeam == 0;
             BannerText = pw ? "YOU WIN!" : "DEFEAT";
-            BannerSub = pw ? "1Âº LUGAR â€¢ " + Player.Kills + " KILLS"
-                           : (PlayerPlacement > 0 ? "#" + PlayerPlacement + " â€¢ " + Player.Kills + " KILLS" : Player.Kills + " KILLS");
+            BannerSub = pw ? "1º LUGAR • " + Player.Kills + " KILLS"
+                           : (PlayerPlacement > 0 ? "#" + PlayerPlacement + " • " + Player.Kills + " KILLS" : Player.Kills + " KILLS");
             BannerBg = pw ? Color.FromArgb(242, 200, 70) : Color.FromArgb(85, 85, 85);
             BannerFg = pw ? Color.FromArgb(24, 20, 10) : Color.White;
             BannerMatch = true;

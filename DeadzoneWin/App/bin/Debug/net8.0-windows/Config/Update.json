@@ -1,0 +1,6 @@
+{
+  "Enabled": true,
+  "ServerUrl": "https://thebritsbr.github.io/Deadzone2D/update.json",
+  "Notes": "Next Update for Deadzone",
+  "Files": ["Deadzone.exe", "Deadzone.dll", "Deadzone.runtimeconfig.json", "Deadzone.deps.json"]
+}

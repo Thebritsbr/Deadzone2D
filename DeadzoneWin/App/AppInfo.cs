@@ -1,4 +1,4 @@
-// AppInfo.cs â€” InformaÃ§Ãµes do aplicativo: nome, empresa fundadora, versÃ£o, tema.
+// AppInfo.cs — Informações do aplicativo: nome, empresa fundadora, versão, tema.
 using System;
 using System.IO;
 using System.Text.Json;
@@ -9,7 +9,7 @@ namespace Deadzone2D
     {
         public static string Nome = "Deadzone";
         public static string EmpresaFundadora = "Lume Studio";
-        public static string Versao = "2.4";
+        public static string Versao = "2.5";
         public static string Tema = "DeadTheme";
 
         public static void Load(string dir)

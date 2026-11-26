@@ -1,5 +1,5 @@
-// MainForm.cs â€” Deadzone (WinForms, sem engine) â€” visual estilo Valorant
-//   Loading â†’ Login â†’ Lobby â†’ Armas, com lista de amigos no canto inferior direito.
+// MainForm.cs — Deadzone (WinForms, sem engine) — visual estilo tático
+//   Loading → Login → Lobby → Armas, com lista de amigos no canto inferior direito.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,7 +17,7 @@ namespace Deadzone2D
     {
         private const int BarH = 64;
 
-        // ---------- Paleta (inspirada no Valorant) ----------
+        // ---------- Paleta (estilo tático) ----------
         private static readonly Color Bg      = Color.FromArgb(15, 25, 35);
         private static readonly Color BgDeep  = Color.FromArgb(9, 15, 22);
         private static readonly Color Panel   = Color.FromArgb(24, 35, 47);
@@ -106,7 +106,7 @@ namespace Deadzone2D
         private bool _queue;
         private readonly Stopwatch _queueSw = new();
         private bool _friendsOpen;
-        private float _fo;                 // animaÃ§Ã£o do painel de amigos (0..1)
+        private float _fo;                 // animação do painel de amigos (0..1)
         private float _fscroll;
         private int _gun;
         private readonly Dictionary<string, int> _skinSel = new();
@@ -141,6 +141,7 @@ namespace Deadzone2D
         private int _spectate = -1;
         private bool _storeOpen;
         private bool _pendingUpdate;
+        private bool _closingForUpdate;
         private float _storeTimer;
         private float _deathFade;
         private float _scorePop;
@@ -322,9 +323,15 @@ namespace Deadzone2D
             return null;
         }
 
-        // ---------- LÃ³gica ----------
+        // ---------- Lógica ----------
         private void Step(float dt)
         {
+            if (UpdateService.InstallerStarted && !_closingForUpdate)
+            {
+                _closingForUpdate = true;
+                BeginInvoke(new Action(Close));
+                return;
+            }
             _clock += dt;
             if (_page == 0)
             {
@@ -519,7 +526,7 @@ namespace Deadzone2D
             if (id.StartsWith("friend:"))
             {
                 var f = _friendList[int.Parse(id.Substring(7))];
-                ShowToast(f.St == FStatus.Offline ? $"{f.Name} estÃ¡ offline" : $"Convite enviado para {f.Name}");
+                ShowToast(f.St == FStatus.Offline ? $"{f.Name} está offline" : $"Convite enviado para {f.Name}");
                 return;
             }
             if (id.StartsWith("gun:")) { _gun = int.Parse(id.Substring(4)); return; }
@@ -550,13 +557,12 @@ namespace Deadzone2D
                 }
                 case "updateInstall":
                     UpdateService.InstallNow();
-                    Close();
                     break;
                 case "updateLater":
                     ShowPage("Login");
                     break;
                 case "updateIgnore":
-                    UpdateService.IgnoreVersion = UpdateService.Available?.Version ?? "";
+                    UpdateService.IgnoreCurrent();
                     ShowPage("Login");
                     break;
                 case "updateSoft":
@@ -565,6 +571,10 @@ namespace Deadzone2D
                         ShowToast("Atualização baixada; aplicada no próximo início do Deadzone.");
                         Close();
                     }
+                    else
+                    {
+                        ShowToast(UpdateService.LastError ?? "Não foi possível baixar a atualização.");
+                    }
                     break;
                 case "start":
                     _queue = false;
@@ -572,10 +582,10 @@ namespace Deadzone2D
                     else { _queue = !_queue; if (_queue) _queueSw.Restart(); else _queueSw.Reset(); }
                     break;
                 case "mapNext":
-                    if (_maps.Count > 0) { _mapIndex = (_mapIndex + 1) % _maps.Count; _map = _maps[_mapIndex]; ShowToast(_map.Name + " â€¢ " + _map.Type); }
+                    if (_maps.Count > 0) { _mapIndex = (_mapIndex + 1) % _maps.Count; _map = _maps[_mapIndex]; ShowToast(_map.Name + " • " + _map.Type); }
                     break;
                 case "mapPrev":
-                    if (_maps.Count > 0) { _mapIndex = (_mapIndex - 1 + _maps.Count) % _maps.Count; _map = _maps[_mapIndex]; ShowToast(_map.Name + " â€¢ " + _map.Type); }
+                    if (_maps.Count > 0) { _mapIndex = (_mapIndex - 1 + _maps.Count) % _maps.Count; _map = _maps[_mapIndex]; ShowToast(_map.Name + " • " + _map.Type); }
                     break;
                 case "size1": SetSquadSize(1); break;
                 case "size2": SetSquadSize(2); break;
@@ -585,7 +595,7 @@ namespace Deadzone2D
                 case "invClose": _inventoryOpen = false; break;
                 case "invMed":
                     if (_g != null && _g.UseMedkit(_g.Player)) ShowToast("Vida restaurada");
-                    else ShowToast("Sem kit mÃ©dico ou vida cheia");
+                    else ShowToast("Sem kit médico ou vida cheia");
                     break;
                 case "pause": if (_inGame) _paused = true; break;
                 case "resume": _paused = false; break;
@@ -921,7 +931,7 @@ namespace Deadzone2D
             return w;
         }
 
-        // Texto em caixa alta com espaÃ§amento entre letras (cy = centro vertical)
+        // Texto em caixa alta com espaçamento entre letras (cy = centro vertical)
         private float Spaced(Graphics g, string s, Font f, Color c, float x, float cy, float sp, StringAlignment al = StringAlignment.Near)
         {
             float total = 0;
@@ -1079,7 +1089,7 @@ namespace Deadzone2D
 
             if (_page >= 2)
             {
-                // navegaÃ§Ã£o
+                // navegação
                 var tabs = new[] { ("JOGAR", "Lobby", 2), ("ARMAS", "Weapons", 3) };
                 float tw = 0; var widths = new float[tabs.Length];
                 for (int i = 0; i < tabs.Length; i++)
@@ -1157,8 +1167,8 @@ namespace Deadzone2D
                 g.FillRectangle(Br(A(Red, 50)), bx, by - 3, fw, 10);
                 g.FillRectangle(Br(Red), bx, by, fw, 4);
             }
-            string status = _progress < 30 ? "Iniciando serviÃ§os" : _progress < 60 ? "Carregando armas"
-                          : _progress < 90 ? "Sincronizando perfil" : "Quase lÃ¡";
+            string status = _progress < 30 ? "Iniciando serviços" : _progress < 60 ? "Carregando armas"
+                          : _progress < 90 ? "Sincronizando perfil" : "Quase lá";
             Spaced(g, status.ToUpperInvariant(), FLabel, Dim, bx, by + 24, 2f);
             Txt(g, $"{(int)_progress}%", FSmallB, Ink, new RectangleF(bx, by + 14, bw, 20), StringAlignment.Far);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(28, h - 40, 120, 20));
@@ -1258,7 +1268,7 @@ namespace Deadzone2D
         {
             var info = UpdateService.Available;
             string version = info?.Version ?? "";
-            var card = new Rectangle((w - 640) / 2, BarH + 60, 640, 240);
+            var card = new Rectangle((w - 640) / 2, BarH + 40, 640, 330);
             FillRoundedRect(g, card, Panel, 12);
             using (var p = RoundRect(card, 12)) g.DrawPath(Pn(Line, 1f), p);
             g.FillRectangle(Br(Red), card.X + 22, card.Y, card.Width - 44, 3);
@@ -1269,22 +1279,36 @@ namespace Deadzone2D
             if (!string.IsNullOrEmpty(info?.Notes))
                 Txt(g, info.Notes, FBody, A(Ink, 200), new RectangleF(card.X + 30, card.Y + 96, card.Width - 60, 32), StringAlignment.Center);
 
-            var br = new Rectangle(card.X + 30, card.Y + 130, card.Width - 60, 10);
+            var br = new Rectangle(card.X + 30, card.Y + 136, card.Width - 60, 10);
             FillRoundedRect(g, br, A(HpGray, 180), 4);
             float prog = Math.Clamp(UpdateService.DownloadProgress, 0f, 1f);
             if (prog > 0f) FillRoundedRect(g, new Rectangle(br.X, br.Y, (int)(br.Width * prog), br.Height), Red, 4);
 
-            if (UpdateService.DownloadFinished)
-                Spaced(g, "Instalação pronta", FLabel, A(Dim, 200), card.X + 30, card.Y + 150, 2f);
+            string status;
+            Color statusColor = A(Dim, 210);
+            if (!string.IsNullOrEmpty(UpdateService.LastError))
+            {
+                status = "Falha: " + UpdateService.LastError;
+                statusColor = Red;
+            }
+            else if (UpdateService.DownloadFinished)
+            {
+                status = "Download concluído — abrindo o instalador...";
+                statusColor = HpGreen;
+            }
+            else if (UpdateService.DownloadStarted)
+            {
+                status = "Baixando atualização... " + (int)(prog * 100f) + "%";
+            }
+            else status = "Pronto para baixar e instalar.";
+            Txt(g, status, FTiny, statusColor, new RectangleF(card.X + 30, card.Y + 154, card.Width - 60, 16));
 
-            Button(g, new Rectangle(card.X + 30, card.Bottom - 78, 215, 56), "updateInstall", "Instalar agora", true);
-            Button(g, new Rectangle(card.X + 270, card.Bottom - 78, 145, 56), "updateSoft", "Sem reinstalar", false, FMid, 2.5f);
-            Button(g, new Rectangle(card.X + 425, card.Bottom - 78, 215, 56), "updateLater", "Compatível depois", false, FMid, 2.5f);
-            if (UpdateService.IgnoreVersion == UpdateService.Available?.Version)
-                Spaced(g, "Esta versão será ignorada", FTiny, A(Dim, 200), card.X + 30, card.Bottom - 132, 2f);
-            else
-                Button(g, new Rectangle(card.X + 425, card.Bottom - 78, 215, 56), "updateIgnore", "Ignorar 1h", false, FMid, 2.5f);
-            if (UpdateService.IgnoreVersion == UpdateService.Available?.Version) { }
+            int by = card.Bottom - 136;
+            Button(g, new Rectangle(card.X + 30, by, 280, 52), "updateInstall", "Instalar agora", true);
+            Button(g, new Rectangle(card.X + 330, by, 280, 52), "updateSoft", "Sem reinstalar", false, FMid, 2.5f);
+            by += 62;
+            Button(g, new Rectangle(card.X + 30, by, 280, 52), "updateLater", "Atualizar depois", false, FMid, 2.5f);
+            Button(g, new Rectangle(card.X + 330, by, 280, 52), "updateIgnore", "Ignorar 1h", false, FMid, 2.5f);
         }
 
         // ---------- Lobby ----------
@@ -1368,7 +1392,7 @@ private void DrawLobby(Graphics g, int w, int h)
                 Spaced(g, "SQUAD 4V4", FLabel, Dim, w / 2f, mode.Bottom + 25, 3f, StringAlignment.Center);
             }
 
-            // botÃ£o iniciar
+            // botão iniciar
             var btn = new Rectangle(w / 2 - 190, h - 72 - 64, 380, 72);
 
             // party
@@ -1402,7 +1426,7 @@ private void DrawLobby(Graphics g, int w, int h)
                 var plate = new Rectangle(rect.X, rect.Bottom - 70, rect.Width, 70);
                 g.FillRectangle(Br(A(Color.Black, 120)), plate);
                 Txt(g, _players[i], FMid, Ink, new RectangleF(plate.X + 18, plate.Y + 12, plate.Width - 36, 24));
-                if (i == 0) Spaced(g, "LÃDER", FTiny, Red, plate.X + 18, plate.Y + 50, 3f);
+                if (i == 0) Spaced(g, "LÍDER", FTiny, Red, plate.X + 18, plate.Y + 50, 3f);
                 else { g.FillEllipse(Br(Green), plate.X + 18, plate.Y + 45, 8, 8); Spaced(g, "PRONTO", FTiny, Green, plate.X + 32, plate.Y + 50, 3f); }
             }
 
@@ -1465,7 +1489,7 @@ private void DrawLobby(Graphics g, int w, int h)
             Button(g, new Rectangle((w - 200) / 2, h - 56, 200, 40), "nav:Lobby", "JOGAR", false, FMid, 3f);        }
             else Button(g, eb, "equip", "EQUIPAR", true, FMid, 3f);
 
-            // prÃ©via
+            // prévia
             int py = BarH + 156, skinH = 112, skinY = h - 100 - skinH;
             var prev = new Rectangle(rx, py, right - rx, Math.Max(140, skinY - 24 - py));
             using (var p = Chamfer(prev, 18, true, false, true, false))
@@ -1485,7 +1509,7 @@ private void DrawLobby(Graphics g, int w, int h)
             }
             else
             {
-                Spaced(g, "PRÃ‰VIA DA ARMA", FMid, Dim, prev.X + prev.Width / 2f, prev.Y + prev.Height / 2f - 10, 4f, StringAlignment.Center);
+                Spaced(g, "PRÉVIA DA ARMA", FMid, Dim, prev.X + prev.Width / 2f, prev.Y + prev.Height / 2f - 10, 4f, StringAlignment.Center);
                 Txt(g, $"Coloque um PNG em Assets/Previews/{gun.GunId}_{skin.SkinId}.png", FSmall, A(Dim, 170),
                     new RectangleF(prev.X, prev.Y + prev.Height / 2f + 6, prev.Width, 22), StringAlignment.Center);
             }
@@ -1558,7 +1582,7 @@ private void DrawLobby(Graphics g, int w, int h)
             }
             g.FillRectangle(Br(Red), pr.X + 16, pr.Y, pr.Width - 16, 3);
 
-            // cabeÃ§alho
+            // cabeçalho
             float hw = Spaced(g, "AMIGOS", FNav, Ink, pr.X + 22, pr.Y + 32, 3f);
             Txt(g, $"{online} online", FSmall, Green, new RectangleF(pr.X + 22 + hw + 14, pr.Y + 22, 120, 20));
             var cb = new Rectangle(pr.Right - 48, pr.Y + 16, 32, 32);
@@ -1579,8 +1603,8 @@ private void DrawLobby(Graphics g, int w, int h)
             for (int i = 0; i < _friendList.Count; i++)
             {
                 var f = _friendList[i];
-                if (f.St != FStatus.Offline && !onHdr) { Spaced(g, $"ONLINE â€” {online}", FTiny, Dim, pr.X + 22, y + 15, 2f); y += 30; onHdr = true; }
-                if (f.St == FStatus.Offline && !offHdr) { Spaced(g, $"OFFLINE â€” {off}", FTiny, Dim, pr.X + 22, y + 15, 2f); y += 30; offHdr = true; }
+                if (f.St != FStatus.Offline && !onHdr) { Spaced(g, $"ONLINE — {online}", FTiny, Dim, pr.X + 22, y + 15, 2f); y += 30; onHdr = true; }
+                if (f.St == FStatus.Offline && !offHdr) { Spaced(g, $"OFFLINE — {off}", FTiny, Dim, pr.X + 22, y + 15, 2f); y += 30; offHdr = true; }
                 var row = new Rectangle(pr.X, y, pr.Width, 60);
                 if (row.Bottom > view.Top && row.Top < view.Bottom) DrawFriendRow(g, row, view, f, i);
                 y += 60;
@@ -1594,7 +1618,7 @@ private void DrawLobby(Graphics g, int w, int h)
                 g.FillRectangle(Br(A(Ink, 40)), pr.Right - 7, ty, 3, th);
             }
 
-            // rodapÃ©
+            // rodapé
             g.DrawLine(Pn(Line, 1f), pr.X, view.Bottom, pr.Right, view.Bottom);
             Button(g, new Rectangle(pr.X + 20, pr.Bottom - 56, 70, 42), "frdMenu", "PEDIDOS", false, FLabel, 2.5f);
             Button(g, new Rectangle(pr.X + 95, pr.Bottom - 56, pr.Width - 115, 42), "addFriend", "ADICIONAR AMIGO", false, FLabel, 2.5f);

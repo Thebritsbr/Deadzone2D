@@ -1,7 +1,7 @@
 # Deadzone — Licença
 
 Deadzone é um jogo de mata-mata top-down (.NET 8, WinForms, sem engine externa).
-Estilo visual inspirado no Valorant; nenhuma parte do código é de terceiros.
+Estilo visual original do projeto; nenhuma parte do código é de terceiros.
 Dados proceduralmente gerados (mapas, layout de vilas abandonadas).
 
 Instalador Inno Setup 7.1.1 — para construir:

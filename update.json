@@ -1,6 +1,6 @@
-﻿{
+{
   "Version": "2.5",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.4.exe",
-  "Notes": "Deadzone2D 2.4 - fixed in-game update download/install.",
-  "Files": ["Deadzone2DApp.exe", "CrossfireApp.dll", "CrossfireApp.deps.json", "CrossfireApp.runtimeconfig.json"]
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.5.exe",
+  "Notes": "Deadzone2D 2.5 - fixed in-game update (download, silent install, restart) and update screen UI.",
+  "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

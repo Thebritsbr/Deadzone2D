@@ -81,7 +81,7 @@ namespace Deadzone2D
                     g.DrawString("Deadzone", f1, b, tx, 45);
             using (var f2 = new Font("Segoe UI", 12, FontStyle.Regular, GraphicsUnit.Pixel))
                 using (var b = new SolidBrush(Dim))
-                    g.DrawString("Matar mata com estilo Valorant", f2, b, tx, 67);
+                    g.DrawString("Precisão tática em cada tiro", f2, b, tx, 67);
 
             // barra de carregamento
             int bx = tx, by = H - 34, bw = W - tx - 30, bh = 5;

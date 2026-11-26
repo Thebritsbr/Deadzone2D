@@ -17,7 +17,6 @@ Application.SetCompatibleTextRenderingDefault(false);
 var form = new MainForm();
 if (args.Length > 0 && args[0].Equals("--play", StringComparison.OrdinalIgnoreCase))
     form.QuickPlay(args.Skip(1).ToArray());
-UpdateService.ApplyPending();
 
 // Se já existir uma instância do jogo, focar a janela existente e sair.
 foreach (var p in System.Diagnostics.Process.GetProcessesByName(System.IO.Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetEntryAssembly()!.Location)))
@@ -31,6 +30,9 @@ foreach (var p in System.Diagnostics.Process.GetProcessesByName(System.IO.Path.G
         return;
     }
 }
+
+// Só a instância principal aplica a atualização pendente.
+UpdateService.ApplyPending();
 
 Application.Run(new SplashForm());
 Application.Run(form);

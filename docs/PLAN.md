@@ -20,7 +20,7 @@ construído com **C++** (principal) e utilitários auxiliares em **C#**
 1. **FUpdateManager** (`Systems/FUpdateManager.h/.cpp`) — consulta `UpdateConfig.json`, compara versão e entrega notificação de update. O update ocorre antes do primeiro login.
 2. **FNativeWindowManager** (`Systems/FNativeWindowManager.h/.cpp`) — janela personalizada (borderless) com `SGameBar` no topo.
 3. **SGameBar** (`UI/SGameBar.h/.cpp`) — barra de título com botões de minimizar / maximizar / fechar, styled via `Customize.json`.
-4. **SLoadingScreen** (`UI/SLoadingScreen.h/.cpp`) — tela de carregamento estilo Valorant (spinners animados, barra).
+4. **SLoadingScreen** (`UI/SLoadingScreen.h/.cpp`) — tela de carregamento estilo tático (spinners animados, barra).
 5. **SLoginScreen** (`UI/SLoginScreen.h/.cpp`) — botões Google / Convidado.
 6. **SLobbyScreen** (`UI/SLobbyScreen.h/.cpp`) — Lobby estilo Free Fire: lista de jogadores com avatares.
 7. **SFriendsManager** (`UI/SFriendsManager.h/.cpp`) — amizades com nome + ícone; detalhes (ID, data de criação, último login).

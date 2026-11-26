@@ -1,4 +1,4 @@
-// GameRenderer.cs â€” RenderizaÃ§Ã£o do mundo, personagens, veÃ­culos e efeitos.
+// GameRenderer.cs — Renderização do mundo, personagens, veículos e efeitos.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -486,7 +486,7 @@ namespace Deadzone2D
                 // corpo
                 using (var b = NB(teamColor)) g.FillEllipse(b, -10, -10, 20, 20);
                 using (var b = NB(A(Color.White, 35))) g.FillEllipse(b, -6, -8, 10, 8);
-                // cabeÃ§a
+                // cabeça
                 using (var b = NB(Mix(teamColor, Color.White, .35f))) g.FillEllipse(b, -6, -14, 12, 12);
                 // arma
                 using (var p = NP(Color.FromArgb(28, 28, 30), 3.5f)) g.DrawLine(p, 6, 0, 22, 0);

@@ -3,7 +3,8 @@ AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
 AppName=Deadzone2D
 AppPublisher=Lume Studio INC
 
-AppVersion=2.4
+AppVersion=2.5
+AppComments=Published 2026-11-26 02:33 - Deadzone2D
 AppCopyright=Lume Studio INC
 DefaultDirName={commonpf}\Deadzone
 DefaultGroupName=Deadzone
@@ -13,7 +14,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 LicenseFile=LICENSE.md
 OutputDir=..\dist
-OutputBaseFilename=DeadzoneSetup_v2.4
+OutputBaseFilename=DeadzoneSetup_v2.5
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -43,7 +44,7 @@ Name: "{commondesktop}\Deadzone"; Filename: "{app}\Deadzone2DApp.exe"; IconFilen
 
 [Run]
 Filename: "{sys}\WindowsPowerShell\v1.0\powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\CheckUpdate.ps1"""; Flags: runhidden unchecked; Tasks: update
-Filename: "{app}\Deadzone2DApp.exe"; Description: "Launch Deadzone"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\Deadzone2DApp.exe"; Description: "Launch Deadzone"; Flags: postinstall nowait runasoriginaluser
 
 [Code]
 // ---------- Paleta (formato BGR: $00BBGGRR) ----------
