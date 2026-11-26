@@ -1,7 +1,7 @@
 ﻿[Setup]
 AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
 AppName=Deadzone
-AppVersion=1.8
+AppVersion=1.9
 AppPublisher=Lume Studio
 AppComments=Deadzone — shooter top-down, estilo Valorant
 AppCopyright=Lume Studio INC
@@ -13,7 +13,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 LicenseFile=LICENSE.md
 OutputDir=..\dist
-OutputBaseFilename=DeadzoneSetup_v1.8
+OutputBaseFilename=DeadzoneSetup_v1.9
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -168,6 +168,8 @@ begin
   except
   end;
 end;
+
+
 
 
 

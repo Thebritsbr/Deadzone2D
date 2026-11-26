@@ -1,6 +1,6 @@
-{
-  "Version": "1.8",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v1.6.exe",
-  "Notes": "Deadzone v1.8 - corrected UI, shops, coins and group system.",
+﻿{
+  "Version": "1.9",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v1.9.exe",
+  "Notes": "Deadzone v1.9 - UI fixes, account options, save confirm and group system.",
   "Files": ["CrossfireApp.exe", "CrossfireApp.dll", "CrossfireApp.deps.json", "CrossfireApp.runtimeconfig.json"]
 }
