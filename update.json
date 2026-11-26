@@ -1,6 +1,6 @@
 ﻿{
-  "Version": "2.3",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.2.exe",
-  "Notes": "Deadzone2D 2.3 - unique gun previews, UI fixes, Deadzone2D rename, Lume Studio publisher.",
+  "Version": "2.4",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.3.exe",
+  "Notes": "Deadzone2D 2.3 - unique gun previews, UI fixes, Deadzone2D rename.",
   "Files": ["CrossfireApp.exe", "CrossfireApp.dll", "CrossfireApp.deps.json", "CrossfireApp.runtimeconfig.json"]
 }

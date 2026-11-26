@@ -3,7 +3,7 @@ AppId={{A6D0CBF4-1E65-4D24-9A7F-3A9E0D1F2B53}}
 AppName=Deadzone2D2D
 AppPublisher=Lume Studio INC
 
-AppVersion=2.2
+AppVersion=2.3
 AppComments=Deadzone — DeadTheme shooter
 AppCopyright=Lume Studio INC
 DefaultDirName={commonpf}\Deadzone
@@ -14,7 +14,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 LicenseFile=LICENSE.md
 OutputDir=..\dist
-OutputBaseFilename=DeadzoneSetup_v2.2
+OutputBaseFilename=DeadzoneSetup_v2.3
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
