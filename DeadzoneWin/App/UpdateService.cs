@@ -69,7 +69,8 @@ namespace Deadzone2D
                 try
                 {
                     using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-                    using var doc = JsonDocument.Parse(await client.GetStringAsync(url));
+                    string json = (await client.GetStringAsync(url)).TrimStart('\uFEFF');
+                    using var doc = JsonDocument.Parse(json);
                     var root = doc.RootElement;
                     string? v = Get(root, "Version");
                     string? p = Get(root, "PackageUrl") ?? Get(root, "DownloadUrl") ?? Get(root, "Url");
