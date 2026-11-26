@@ -79,6 +79,7 @@ namespace CrossfireWin
         private bool _requestsOpen;
         private bool _cfgOpen;
         private float _saveConfirm;
+        private bool _groupOpen;
         private int _cfgVol = 60;
         private int _cfgLang;
         private bool _cfgOpt = true;
@@ -617,7 +618,7 @@ namespace CrossfireWin
                 case "friendsOpen": _friendsOpen = true; break;
                 case "frdMenu": _requestsOpen = !_requestsOpen; break;
                 case "cfg": _cfgOpen = !_cfgOpen; break;
-                case "groupNew": ShowToast("Grupo criado — você é o líder"); break;
+                case "groupNew": _cfgOpen = false; _groupOpen = !_groupOpen; break;
                 case "cfgVolUp": _cfgVol = Math.Min(100, _cfgVol + 5); break;
                 case "cfgVolDn": _cfgVol = Math.Max(0, _cfgVol - 5); break;
                 case "cfgLang0": _cfgLang = 0; break;
@@ -627,6 +628,10 @@ namespace CrossfireWin
                 case "cfgSaveConfirm": SaveLastUser(_players[0]); _saveConfirm = 0f; ShowToast("Saved"); break;
                 case "cfgSaveRevert": _saveConfirm = 0f; ShowToast("Config reverted"); break;
                 case "cfgSaveCancel": _saveConfirm = 0f; break;
+                case "grpSel1": SetSquadSize(1); _groupOpen=false; break;
+                case "grpSel2": SetSquadSize(2); _groupOpen=false; break;
+                case "grpSel3": _royaleSquad=3; _teamSize=2; _groupOpen=false; break;
+                case "grpSel4": _royaleSquad=4; _teamSize=2; _groupOpen=false; break;
                 case "cfgOpt": _cfgOpt = !_cfgOpt; break;
                 case "viewUpd":
                     if (UpdateService.Available != null) ShowPage("Update");
@@ -1287,7 +1292,7 @@ namespace CrossfireWin
                 private void DrawConfigPanel(Graphics g, int w, int h)
         {
             if (!_cfgOpen) return;
-            var r = new Rectangle((w - 520) / 2, BarH + 30, 520, 268);
+            var r = new Rectangle((w - 640) / 2, BarH + 24, 640, 360);
             FillRoundedRect(g, r, A(BgDeep, 248), 12);
             using (var p = RoundRect(r, 12)) g.DrawPath(Pn(Line, 1f), p);
             g.FillRectangle(Br(Red), r.X + 22, r.Y, r.Width - 44, 3);
@@ -1306,14 +1311,14 @@ namespace CrossfireWin
             Txt(g, "LANGUAGE", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
             string[] langs = { "PORTUGUÊS", "ENGLISH", "ESPAÑOL" };
             for (int i = 0; i < langs.Length; i++)
-                Button(g, new Rectangle(r.X + 24 + i * 156, y + 22, 146, 32), "cfgLang" + i, langs[i], i == _cfgLang, FMid, 1f);
+                Button(g, new Rectangle(r.X + 24 + i * 196, y + 22, 186, 36), "cfgLang" + i, langs[i], i == _cfgLang, FMid, 1f);
             y += 76;
             // optimized mode
             Txt(g, "PERFORMANCE", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
-            Button(g, new Rectangle(r.X + 24, y + 22, r.Width - 48, 32), "cfgOpt", _cfgOpt ? "OPTIMIZED MODE: ON" : "OPTIMIZED MODE: OFF", false, FMid, 1f);
+            Button(g, new Rectangle(r.X + 24, y + 22, r.Width - 48, 36), "cfgOpt", _cfgOpt ? "OPTIMIZED MODE: ON" : "OPTIMIZED MODE: OFF", false, FMid, 1f);
             y += 66;
-            Button(g, new Rectangle(r.X + 24, y, 215, 30), "viewUpd", "VIEW UPDATE", false, FMid, 1f);
-            Button(g, new Rectangle(r.X + 255, y, 215, 30), "cfgSave", "SAVE", true, FMid, 1f);
+            Button(g, new Rectangle(r.X + 24, y + 10, 280, 34), "viewUpd", "VIEW UPDATE", false, FMid, 1f);
+            Button(g, new Rectangle(r.X + 324, y + 10, 280, 34), "cfgSave", "SAVE", true, FMid, 1f);
         }
 private void DrawLobby(Graphics g, int w, int h)
         {
@@ -1414,6 +1419,7 @@ private void DrawLobby(Graphics g, int w, int h)
             Button(g, btn, "start", _queue ? "CANCELAR" : "INICIAR", !_queue, FStart, 6f);
             Button(g, new Rectangle((w - 200) / 2, btn.Bottom + 12, 200, 38), "cfg", "CONFIG", false);
             Button(g, new Rectangle(22, h - 60, 44, 34), "groupNew", "+", true, FName, 1f);
+            if (_groupOpen) { Txt(g, "Create Group:", FLabel, Ink, new RectangleF(76, h - 60, 110, 16)); for (int gi=1; gi<=4; gi++) Button(g, new Rectangle(76 + (gi-1)*74, h - 42, 68, 28), "grpSel"+gi, gi==1?"SOLO":gi==2?"DUO":gi==3?"TRIO":"SQUAD", gi==(_map.Mode=="DeadRoyale"?_royaleSquad:_teamSize), FMid, 1f); }
             string[] squadLbl = { "SOLO", "DUPLA", "TRIO", "SQUAD" };
             int sqBase = isRoyale ? _royaleSquad - 1 : _teamSize - 1;
             for (int i = 0; i < 4; i++)
@@ -1456,7 +1462,8 @@ private void DrawLobby(Graphics g, int w, int h)
                 g.FillPath(Br(A(Green, 30)), p);
                 g.DrawPath(Pn(Green, 2f), p);
                 Spaced(g, "EQUIPADA", FMid, Green, eb.X + eb.Width / 2f, eb.Y + eb.Height / 2f, 3f, StringAlignment.Center);
-            }
+    
+            Button(g, new Rectangle((w - 200) / 2, h - 56, 200, 40), "nav:Lobby", "JOGAR", false, FMid, 3f);        }
             else Button(g, eb, "equip", "EQUIPAR", true, FMid, 3f);
 
             // prÃ©via

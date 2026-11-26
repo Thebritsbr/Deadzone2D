@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CrossfireApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+927727b0704cef282f9dde0ca1ea6089a8578f2b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a05582251238773c2c352014fd6bb022b84b414c")]
 [assembly: System.Reflection.AssemblyProductAttribute("CrossfireApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CrossfireApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
