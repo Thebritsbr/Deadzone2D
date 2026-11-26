@@ -1,4 +1,4 @@
-﻿// UpdateService.cs â€” VerificaÃ§Ã£o e instalaÃ§Ã£o automÃ¡tica de atualizaÃ§Ãµes (estilo Roblox).
+// UpdateService.cs â€” VerificaÃ§Ã£o e instalaÃ§Ã£o automÃ¡tica de atualizaÃ§Ãµes (estilo Roblox).
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -14,7 +14,7 @@ namespace CrossfireWin
     {
         public sealed record UpdateInfo(string Version, string PackageUrl, string? Notes, string[] Files = null);
 
-        public static string LocalVersion = "1.9";
+        public static string LocalVersion = "2.0";
         public static string IgnoreVersion = "";
         public static UpdateInfo? Available;
         public static float DownloadProgress;

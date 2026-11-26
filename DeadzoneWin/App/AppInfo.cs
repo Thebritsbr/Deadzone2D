@@ -1,4 +1,4 @@
-﻿// AppInfo.cs â€” InformaÃ§Ãµes do aplicativo: nome, empresa fundadora, versÃ£o, tema.
+// AppInfo.cs â€” InformaÃ§Ãµes do aplicativo: nome, empresa fundadora, versÃ£o, tema.
 using System;
 using System.IO;
 using System.Text.Json;
@@ -9,7 +9,7 @@ namespace CrossfireWin
     {
         public static string Nome = "Deadzone";
         public static string EmpresaFundadora = "";
-        public static string Versao = "1.9";
+        public static string Versao = "2.0";
         public static string Tema = "Valorant";
 
         public static void Load(string dir)
