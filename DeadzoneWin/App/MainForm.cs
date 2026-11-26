@@ -78,8 +78,9 @@ namespace CrossfireWin
         private readonly List<string> _friendRequests = new();
         private bool _requestsOpen;
         private bool _cfgOpen;
+        private float _saveConfirm;
         private int _cfgVol = 60;
-        private bool _cfgLangEn;
+        private int _cfgLang;
         private bool _cfgOpt = true;
 
         private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
@@ -512,7 +513,7 @@ namespace CrossfireWin
                 _friendRequests.RemoveAt(frq);
                 return;
             }
-            if (id.StartsWith("nav:")) { ShowPage(id.Substring(4)); return; }
+            if (id.StartsWith("nav:")) { string np = id.Substring(4); ShowPage(np == "Partida" ? "Lobby" : np); return; }
             if (id.StartsWith("friend:"))
             {
                 var f = _friendList[int.Parse(id.Substring(7))];
@@ -528,7 +529,6 @@ namespace CrossfireWin
                 case "max": ToggleMax(); break;
                 case "close": Close(); break;
                 case "guest":
-                case "createAcc":
                 case "google":
                     SaveLastUser(_players[0]);
                     ShowPage("Lobby");
@@ -616,9 +616,16 @@ namespace CrossfireWin
                 case "friendsOpen": _friendsOpen = true; break;
                 case "frdMenu": _requestsOpen = !_requestsOpen; break;
                 case "cfg": _cfgOpen = !_cfgOpen; break;
+                case "groupNew": ShowToast("Grupo criado — você é o líder"); break;
                 case "cfgVolUp": _cfgVol = Math.Min(100, _cfgVol + 5); break;
                 case "cfgVolDn": _cfgVol = Math.Max(0, _cfgVol - 5); break;
-                case "cfgLang": _cfgLangEn = !_cfgLangEn; break;
+                case "cfgLang0": _cfgLang = 0; break;
+                case "cfgLang1": _cfgLang = 1; break;
+                case "cfgLang2": _cfgLang = 2; break;
+                case "cfgSave": _saveConfirm = 3f; break;
+                case "cfgSaveConfirm": SaveLastUser(_players[0]); _saveConfirm = 0f; ShowToast("Saved"); break;
+                case "cfgSaveRevert": _saveConfirm = 0f; ShowToast("Config reverted"); break;
+                case "cfgSaveCancel": _saveConfirm = 0f; break;
                 case "cfgOpt": _cfgOpt = !_cfgOpt; break;
                 case "viewUpd":
                     if (UpdateService.Available != null) ShowPage("Update");
@@ -1067,7 +1074,7 @@ namespace CrossfireWin
             if (_page >= 2)
             {
                 // navegaÃ§Ã£o
-                var tabs = new[] { ("JOGAR", "Partida", 2), ("ARMAS", "Weapons", 3) };
+                var tabs = new[] { ("JOGAR", "Lobby", 2), ("ARMAS", "Weapons", 3) };
                 float tw = 0; var widths = new float[tabs.Length];
                 for (int i = 0; i < tabs.Length; i++)
                 {
@@ -1219,24 +1226,20 @@ namespace CrossfireWin
             FillRoundedRect(g, new Rectangle(card.X + 40, fy, card.Width - 80, 46), PanelHi, 8);
             using (var p = RoundRect(new Rectangle(card.X + 40, fy, card.Width - 80, 46), 8))
                 g.DrawPath(Pn(A(Line, 190), 1f), p);
-            using (var pen = new Pen(A(Red, 160), 1f))
-                g.DrawLine(pen, card.X + 60, fy + 45, card.X + card.Width - 60, fy + 45);
-            using (var sb = new SolidBrush(Dim))
-                g.DrawString("username", FSmallB, sb, card.X + 54, fy + 12);
+
 
             int py = BarH + 182;
             FillRoundedRect(g, new Rectangle(card.X + 40, py, card.Width - 80, 46), PanelHi, 8);
             using (var p = RoundRect(new Rectangle(card.X + 40, py, card.Width - 80, 46), 8))
                 g.DrawPath(Pn(A(Line, 190), 1f), p);
-            using (var sb = new SolidBrush(Dim))
-                g.DrawString("****************", FSmallB, sb, card.X + 54, py + 12);
+
 
             var login = new Rectangle(card.X + 40, BarH + 240, card.Width - 80, 52);
             Reg(login, "login"); float lhv = Hv("login");
             Button(g, login, "login", "FAZER LOGIN", true, FBtn, 4f);
 
             var guest = new Rectangle(card.X + 40, login.Bottom + 12, (card.Width - 92) / 2, 40);
-            Button(g, guest, "createAcc", "Create Account", false, FMid, 2.5f);
+            Button(g, guest, "createAcc", "Create Local Account", false, FMid, 2.5f);
             Button(g, new Rectangle(card.X + 52 + (card.Width - 92) / 2, login.Bottom + 12, (card.Width - 92) / 2, 40), "google", "Google (Recommended)", false, FMid, 2.5f);
             Txt(g, "Local account saves data on this PC.", FTiny, A(Dim, 170), new RectangleF(0, BarH + 366, w, 14), StringAlignment.Center);
             Txt(g, "Tab para avançar, Enter para fazer login", FTiny, A(Dim, 160),
@@ -1278,41 +1281,38 @@ namespace CrossfireWin
         }
 
         // ---------- Lobby ----------
-        private void DrawConfigPanel(Graphics g, int w, int h)
+                private void DrawConfigPanel(Graphics g, int w, int h)
         {
             if (!_cfgOpen) return;
-            var r = new Rectangle((w - 520) / 2, BarH + 42, 520, 216);
-            FillRoundedRect(g, r, Panel, 12);
+            var r = new Rectangle((w - 520) / 2, BarH + 30, 520, 268);
+            FillRoundedRect(g, r, A(BgDeep, 248), 12);
             using (var p = RoundRect(r, 12)) g.DrawPath(Pn(Line, 1f), p);
             g.FillRectangle(Br(Red), r.X + 22, r.Y, r.Width - 44, 3);
-            Spaced(g, "CONFIGURAÇÕES", FTitle, Ink, r.X + 30, r.Y + 18, 4f);
-            Txt(g, "Ajustes do jogo", FBody, Dim, new RectangleF(r.X + 30, r.Y + 62, r.Width - 60, 18), StringAlignment.Center);
-
-            int y = r.Y + 100;
-            int rowH = 44;
-            // volume com slider centralizado
-            var volRow = new Rectangle(r.X + 30, y, r.Width - 60, rowH);
-            using (var b = new SolidBrush(A(Dim, 200))) g.FillRectangle(b, volRow.X + 40, volRow.Y + 20, volRow.Width - 80, 8);
-            int barW = volRow.Width - 80;
-            using (var b = new SolidBrush(Red)) g.FillRectangle(b, volRow.X + 40, volRow.Y + 20, barW * _cfgVol / 100f, 8);
-            using (var b = new SolidBrush(A(Red, 80))) g.FillEllipse(b, volRow.X + 40 + barW * _cfgVol / 100f - 10, volRow.Y + 16, 20, 16);
-            Txt(g, $"VOLUME: {_cfgVol}%", FMid, Ink, new RectangleF(volRow.X + 40 + barW + 16, volRow.Y, 90, rowH), StringAlignment.Center);
-            Button(g, new Rectangle(volRow.Right - 120, volRow.Y + 7, 38, 30), "cfgVolDn", "−", false, FMid, 1f);
-            Button(g, new Rectangle(volRow.Right - 60, volRow.Y + 7, 38, 30), "cfgVolUp", "+", false, FMid, 1f);
-
-            var lb = new Rectangle(r.X + 30, y + rowH + 6, r.Width - 60, rowH);
-            var langBtn = new Rectangle(lb.X + (lb.Width - 340) / 2, lb.Y, 340, 34);
-            Button(g, langBtn, "cfgLang", _cfgLangEn ? "IDIOMA: EN" : "IDIOMA: PT", false, FMid, 2.5f);
-
-            var ob = new Rectangle(r.X + 30, y + 2 * rowH + 12, r.Width - 60, rowH);
-            var optBtn = new Rectangle(ob.X + (ob.Width - 340) / 2, ob.Y, 340, 34);
-            Button(g, optBtn, "cfgOpt", _cfgOpt ? "MODO OTIMIZADO: ON" : "MODO OTIMIZADO: OFF", false, FMid, 2.5f);
-
-            Button(g, new Rectangle((r.Right - 180) / 2, r.Bottom - 40, 180, 32), "cfg", "Fechar", false);
-            Button(g, new Rectangle(r.X + 8, r.Y + 4, 60, 24), "viewUpd", "View Update", false);
+            Spaced(g, "SETTINGS", FTitle, Ink, r.X + 24, r.Y + 18, 4f);
+            int y = r.Y + 72;
+            // volume
+            Txt(g, "VOLUME", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
+            var vb = new Rectangle(r.X + 24, y + 20, r.Width - 48, 8);
+            g.FillRectangle(Br(A(Dim, 180)), vb);
+            g.FillRectangle(Br(Red), vb.X, vb.Y, vb.Width * _cfgVol / 100f, vb.Height);
+            Button(g, new Rectangle(r.X + 24, y + 38, 80, 28), "cfgVolDn", "-", false, FMid, 1f);
+            Button(g, new Rectangle(r.X + 116, y + 38, 80, 28), "cfgVolUp", "+", false, FMid, 1f);
+            Txt(g, _cfgVol + "%", FName, Ink, new RectangleF(r.Right - 130, y + 34, 100, 32), StringAlignment.Far);
+            y += 84;
+            // language
+            Txt(g, "LANGUAGE", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
+            string[] langs = { "PORTUGUÊS", "ENGLISH", "ESPAÑOL" };
+            for (int i = 0; i < langs.Length; i++)
+                Button(g, new Rectangle(r.X + 24 + i * 156, y + 22, 146, 32), "cfgLang" + i, langs[i], i == _cfgLang, FMid, 1f);
+            y += 76;
+            // optimized mode
+            Txt(g, "PERFORMANCE", FLabel, Dim, new RectangleF(r.X + 24, y, 200, 18));
+            Button(g, new Rectangle(r.X + 24, y + 22, r.Width - 48, 32), "cfgOpt", _cfgOpt ? "OPTIMIZED MODE: ON" : "OPTIMIZED MODE: OFF", false, FMid, 1f);
+            y += 66;
+            Button(g, new Rectangle(r.X + 24, y, 215, 30), "viewUpd", "VIEW UPDATE", false, FMid, 1f);
+            Button(g, new Rectangle(r.X + 255, y, 215, 30), "cfgSave", "SAVE", true, FMid, 1f);
         }
-
-        private void DrawLobby(Graphics g, int w, int h)
+private void DrawLobby(Graphics g, int w, int h)
         {
             // seletor de mapa
             bool isRoyale = _map.Mode == "DeadRoyale";
@@ -1410,6 +1410,7 @@ namespace CrossfireWin
             }
             Button(g, btn, "start", _queue ? "CANCELAR" : "INICIAR", !_queue, FStart, 6f);
             Button(g, new Rectangle((w - 200) / 2, btn.Bottom + 12, 200, 38), "cfg", "CONFIG", false);
+            Button(g, new Rectangle(22, h - 60, 44, 34), "groupNew", "+", true, FName, 1f);
             string[] squadLbl = { "SOLO", "DUPLA", "TRIO", "SQUAD" };
             int sqBase = isRoyale ? _royaleSquad - 1 : _teamSize - 1;
             for (int i = 0; i < 4; i++)
@@ -1596,7 +1597,8 @@ namespace CrossfireWin
 
         private void DrawFriendRequests(Graphics g, Rectangle basePr)
         {
-            var r = new Rectangle(basePr.X, basePr.Bottom + 6, 360, _friendRequests.Count == 0 ? 56 : 26 + _friendRequests.Count * 26 + 8);
+            int reqH = _friendRequests.Count == 0 ? 56 : 26 + _friendRequests.Count * 26 + 8;
+            var r = new Rectangle(basePr.X + 20, basePr.Bottom - reqH - 70, 360, reqH);
             FillRoundedRect(g, r, Panel, 8);
             using (var p = RoundRect(r, 8)) g.DrawPath(Pn(Line, 1f), p);
             Spaced(g, "PEDIDOS", FLabel, Ink, r.X + 16, r.Y + 12, 3f);
@@ -1672,6 +1674,16 @@ namespace CrossfireWin
     }
     public class Skin { public string SkinId { get; set; } = ""; public string Name { get; set; } = ""; }
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
