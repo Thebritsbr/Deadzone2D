@@ -1,0 +1,55 @@
+[
+  {
+    "Id": "glock_crimson",
+    "Name": "Crimson Fang",
+    "Type": "WeaponSkin",
+    "WeaponId": "glock",
+    "SkinId": "crimson_fang",
+    "Price": 900,
+    "Rarity": "Legendary",
+    "Description": "Skin lendária para a Glock, com detalhes carmesim e linhas de energia.",
+    "Icon": "◆"
+  },
+  {
+    "Id": "mp40_neon",
+    "Name": "Neon Strike",
+    "Type": "WeaponSkin",
+    "WeaponId": "mp40",
+    "SkinId": "neon_strike",
+    "Price": 750,
+    "Rarity": "Epic",
+    "Description": "Skin épica para a MP40 com pulsos neon e acabamento fosco.",
+    "Icon": "▲"
+  },
+  {
+    "Id": "awm_gold",
+    "Name": "Golden Reaper",
+    "Type": "WeaponSkin",
+    "WeaponId": "sniper_awm",
+    "SkinId": "golden_reaper",
+    "Price": 1400,
+    "Rarity": "Legendary",
+    "Description": "Skin lendária para a AWM, forjada em ouro e sombras.",
+    "Icon": "✦"
+  },
+  {
+    "Id": "icon_calavera",
+    "Name": "Calavera",
+    "Type": "Icon",
+    "IconId": "icon_04",
+    "Price": 400,
+    "Rarity": "Rare",
+    "Description": "Ícone de perfil Calavera para usar no Cofre.",
+    "Icon": "☠"
+  },
+  {
+    "Id": "banner_royal",
+    "Name": "Dead Royal",
+    "Type": "Banner",
+    "BannerId": "banner_03",
+    "Price": 600,
+    "Rarity": "Epic",
+    "Description": "Banner Dead Royal para destacar seu perfil no lobby.",
+    "Icon": "♛"
+  }
+]

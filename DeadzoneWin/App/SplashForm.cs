@@ -1,4 +1,4 @@
-// SplashForm.cs — Splash inicial no estilo Riot/Valorant: logo, nome do jogo e barra de carregamento fina.
+// SplashForm.cs — Splash inicial do Deadzone: logo, nome do jogo e barra de carregamento fina.
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -156,10 +156,10 @@ namespace Deadzone2D
             // nome + subtítulo
             int tx = lx + ls + 36;
             Spaced(g, "DEADZONE", _fHead, Ink, tx, 84, 10f);
-            Spaced(g, "MATA-MATA COM ESTILO VALORANT", _fTiny, Dim, tx + 2, 128, 4f);
+            Spaced(g, "MATA-MATA TÁTICO • DEADTHEME", _fTiny, Dim, tx + 2, 128, 4f);
             using (var lb = new SolidBrush(Red)) g.FillRectangle(lb, tx + 2, 144, 46, 3);
 
-            // barra de carregamento fina (como o loader do Valorant)
+            // barra de carregamento fina
             float p = Math.Clamp(_t, 0f, 1f);
             float eased = 1f - (float)Math.Pow(1f - p, 2);
             int bx = tx + 2, by = H - 46, bw = W - bx - 52;

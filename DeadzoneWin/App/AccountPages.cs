@@ -1,0 +1,1313 @@
+// AccountPages.cs — telas de conta, perfil, Cofre, anúncios, Dead Royal, notificações e painel admin.
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace Deadzone2D
+{
+    public partial class MainForm
+    {
+        private static readonly Font FMono = new Font("Consolas", 14f, FontStyle.Regular, GraphicsUnit.Pixel);
+        private static readonly Font FMonoS = new Font("Consolas", 12f, FontStyle.Regular, GraphicsUnit.Pixel);
+        private static readonly Font FMonoB = new Font("Consolas", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
+
+        // ---------- Entrada de texto das novas telas ----------
+        private void InitAccountControls()
+        {
+            if (_accountInputsReady) return;
+            _accountInputsReady = true;
+
+            var tf = new Font(Fam, 16f, FontStyle.Regular, GraphicsUnit.Pixel);
+            var all = new[]
+            {
+                _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegDesc,
+                _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd
+            };
+            foreach (var tb in all)
+            {
+                tb.Parent = this;
+                tb.BorderStyle = BorderStyle.None;
+                tb.BackColor = FieldBg;
+                tb.ForeColor = Ink;
+                tb.Font = tf;
+                tb.TextAlign = HorizontalAlignment.Left;
+                tb.Visible = false;
+            }
+
+            _tbRegPass.UseSystemPasswordChar = true;
+            _tbRegPass2.UseSystemPasswordChar = true;
+            _tbAdminPass.UseSystemPasswordChar = true;
+            _tbRegDesc.MaxLength = 140;
+            _tbDesc.MaxLength = 140;
+            _tbAdminCmd.MaxLength = 600;
+            _tbAdminUser.Text = "sr.idev";
+
+            _tbFriendSearch.TextChanged += (s, e) =>
+            {
+                SetFriendResults(_account == null
+                    ? new List<Account>()
+                    : AccountStore.SearchAccounts(_tbFriendSearch.Text, _account.UserId));
+            };
+            _tbAdminCmd.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter)
+                {
+                    e.Handled = true;
+                    e.SuppressKeyPress = true;
+                    string cmd = _tbAdminCmd.Text;
+                    _tbAdminCmd.Clear();
+                    ExecuteAdminCommand(cmd);
+                }
+            };
+        }
+
+        private void SyncAccountInputs()
+        {
+            if (!_accountInputsReady) return;
+
+            bool reg = _page == 6;
+            ShowInput(_tbRegGmail, reg);
+            ShowInput(_tbRegNick, reg);
+            ShowInput(_tbRegDisplay, reg);
+            ShowInput(_tbRegPass, reg);
+            ShowInput(_tbRegPass2, reg);
+            ShowInput(_tbRegDesc, reg);
+
+            bool profile = _profileOpen && _page >= 2 && _page != 4;
+            ShowInput(_tbDisplay, profile);
+            ShowInput(_tbDesc, profile);
+
+            bool add = _addFriendOpen && _page >= 2 && _page != 4;
+            ShowInput(_tbFriendSearch, add);
+
+            bool adminAuth = _adminOpen && !_adminAuthed && _page != 4;
+            ShowInput(_tbAdminUser, adminAuth);
+            ShowInput(_tbAdminPass, adminAuth);
+            ShowInput(_tbAdminCmd, _adminOpen && _adminAuthed && _page != 4);
+        }
+
+        private static void ShowInput(TextBox tb, bool visible)
+        {
+            if (tb.Visible != visible) tb.Visible = visible;
+        }
+
+        // ---------- Conta / perfil ----------
+        private void OpenProfile()
+        {
+            if (_account == null) return;
+            _profileOpen = true;
+            _profileError = "";
+            _tbDisplay.Text = _account.DisplayName;
+            _tbDesc.Text = _account.Description;
+        }
+
+        private void CloseProfile()
+        {
+            _profileOpen = false;
+            _profileError = "";
+            _tbDisplay.Text = "";
+            _tbDesc.Text = "";
+        }
+
+        private void SaveProfile()
+        {
+            if (_account == null) return;
+            _profileError = "";
+            if (!string.Equals(_tbDisplay.Text.Trim(), _account.DisplayName, StringComparison.Ordinal))
+            {
+                if (!AccountStore.ChangeDisplayName(_account, _tbDisplay.Text, out var err))
+                {
+                    _profileError = err;
+                    return;
+                }
+            }
+            AccountStore.SetDescription(_account, _tbDesc.Text);
+            ShowToast("Perfil atualizado.");
+            _tbDisplay.Text = _account.DisplayName;
+        }
+
+        private void DrawAccountIcon(Graphics g, RectangleF r, ProfileIcon icon, bool locked = false)
+        {
+            var col = locked ? Mix(icon.Color, Panel, .7f) : icon.Color;
+            using (var p = RoundRect(r, r.Width * .5f))
+            {
+                using (var lb = new LinearGradientBrush(r, Mix(col, Color.Black, .25f), col, 90f))
+                    g.FillPath(lb, p);
+                g.DrawPath(Pn(A(Color.White, locked ? 35 : 80), 1.2f), p);
+            }
+            if (locked)
+            {
+                var c = A(Ink, 140);
+                var pen = Pn(c, 1.5f);
+                float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f;
+                g.DrawArc(pen, cx - 6, cy - 8, 12, 11, 180, 180);
+                g.FillRectangle(Br(c), cx - 8, cy - 2, 16, 12);
+            }
+            else
+            {
+                Txt(g, icon.Glyph, FAvatar, Color.White, r, StringAlignment.Center);
+            }
+        }
+
+        private void DrawBanner(Graphics g, Rectangle r, ProfileBanner b)
+        {
+            using var path = Chamfer(r, 14, true, false, true, false);
+            g.SetClip(path);
+            using (var lb = new LinearGradientBrush(r, b.A, b.B, 0f))
+                g.FillRectangle(lb, r);
+            if (b.Style == "grid")
+            {
+                var pen = Pn(A(Color.White, 26), 1f);
+                for (int x = r.X - r.Height; x < r.Right + r.Height; x += 22)
+                    g.DrawLine(pen, x, r.Bottom, x + r.Height, r.Top);
+            }
+            else if (b.Style == "crown")
+            {
+                using var wb = new SolidBrush(A(Color.White, 18));
+                for (int i = 0; i < 4; i++)
+                    g.FillPolygon(wb, new[]
+                    {
+                        new PointF(r.X + r.Width * .55f + i * 54, r.Bottom),
+                        new PointF(r.X + r.Width * .72f + i * 54, r.Top),
+                        new PointF(r.X + r.Width * .80f + i * 54, r.Top),
+                        new PointF(r.X + r.Width * .63f + i * 54, r.Bottom)
+                    });
+            }
+            else
+            {
+                using var wb = new SolidBrush(A(Color.White, 14));
+                for (int i = -2; i < 8; i++)
+                    g.FillPolygon(wb, new[]
+                    {
+                        new PointF(r.X + i * 80, r.Bottom),
+                        new PointF(r.X + i * 80 + 34, r.Bottom),
+                        new PointF(r.X + i * 80 + 94, r.Top),
+                        new PointF(r.X + i * 80 + 60, r.Top)
+                    });
+            }
+            using (var shade = new LinearGradientBrush(r, A(Color.Black, 0), A(Color.Black, 130), 0f))
+                g.FillRectangle(shade, r);
+            g.ResetClip();
+            g.DrawPath(Pn(A(Color.White, 55), 1f), path);
+        }
+
+        private void DrawProfileCard(Graphics g, Rectangle r)
+        {
+            Reg(r, "accountOpen");
+            float hv = Hv("accountOpen");
+            using (var p = Chamfer(r, 16, true, false, true, false))
+            {
+                using (var lb = new LinearGradientBrush(r, A(PanelHi, 245), A(Panel, 245), 90f))
+                    g.FillPath(lb, p);
+                g.DrawPath(Pn(Mix(Line, Red, hv * .7f), 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 14, r.Y, r.Width - 14, 3);
+
+            if (_account == null) return;
+            var icon = AccountStore.Icon(_account.IconId);
+            var banner = AccountStore.Banner(_account.BannerId);
+
+            var ban = new Rectangle(r.X + 14, r.Y + 14, r.Width - 28, 72);
+            DrawBanner(g, ban, banner);
+
+            var av = new RectangleF(r.X + 30, r.Y + 70, 72, 72);
+            g.FillEllipse(Br(Panel), av.X - 4, av.Y - 4, av.Width + 8, av.Height + 8);
+            DrawAccountIcon(g, av, icon);
+
+            Txt(g, _account.Nick.ToUpperInvariant(), VName, Ink, new RectangleF(r.X + 116, r.Y + 78, r.Width - 132, 28));
+            Txt(g, _account.DisplayName, FMid, A(Ink, 210), new RectangleF(r.X + 116, r.Y + 105, r.Width - 132, 20));
+            g.FillEllipse(Br(Green), r.X + 118, r.Y + 131, 8, 8);
+            Spaced(g, "ONLINE • " + _account.Region.ToUpperInvariant(), FTiny, Green, r.X + 132, r.Y + 135, 2f);
+
+            int y = r.Y + 168;
+            g.DrawLine(Pn(A(Line, 170), 1f), r.X + 18, y, r.Right - 18, y);
+            y += 18;
+            ProfileLine(g, r.X + 18, y, "USERID", _account.UserId);
+            y += 34;
+            ProfileLine(g, r.X + 18, y, "CONTA CRIADA", AccountStore.CreationText(_account));
+            y += 34;
+            ProfileLine(g, r.X + 18, y, "IDADE", AccountStore.AgeText(_account.CreatedAt));
+            y += 34;
+            Txt(g, "DESCRIÇÃO", FTiny, Dim, new RectangleF(r.X + 18, y, r.Width - 36, 16));
+            g.DrawString(string.IsNullOrWhiteSpace(_account.Description) ? "Sem descrição." : _account.Description,
+                FSmall, Br(A(Ink, 180)), new RectangleF(r.X + 18, y + 16, r.Width - 36, 48), SfWrap);
+
+            int by = r.Bottom - 54;
+            int half = (r.Width - 36 - 8) / 2;
+            Button(g, new Rectangle(r.X + 18, by, half, 40), "accountOpen", "PERFIL", false, FLabel, 2.5f);
+            Button(g, new Rectangle(r.X + 18 + half + 8, by, half, 40), _squadOpen ? "squadLeave" : "squadCreate",
+                _squadOpen ? "SAIR DO SQUAD" : "CRIAR SQUAD", false, FTiny, 1.8f);
+        }
+
+        private void ProfileLine(Graphics g, int x, int y, string label, string value)
+        {
+            Spaced(g, label, FTiny, Dim, x, y + 6, 2f);
+            Txt(g, value, FSmallB, Ink, new RectangleF(x + 100, y, 180, 18), StringAlignment.Far);
+        }
+
+        private void DrawProfilePanel(Graphics g, int w, int h)
+        {
+            if (!_profileOpen || _account == null) return;
+            g.FillRectangle(Br(A(Color.Black, 165)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "profileBackdrop");
+
+            int pw = Math.Min(920, w - 60), ph = Math.Min(566, h - BarH - 28);
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 12, (h - ph) / 2), pw, ph);
+            Reg(r, "profilePanel");
+            using (var p = Chamfer(r, 18, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 254)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 18, r.Y, r.Width - 18, 3);
+            Spaced(g, "CONTA", FLabel, Red, r.X + 34, r.Y + 30, 4f);
+            Txt(g, "PERFIL DO JOGADOR", VSub, Ink, new RectangleF(r.X + 34, r.Y + 44, r.Width - 68, 46));
+            var close = new Rectangle(r.Right - 48, r.Y + 18, 30, 30);
+            Reg(close, "profileClose");
+            var xp = Pn(Mix(Dim, Ink, Hv("profileClose")), 1.8f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            int lx = r.X + 34, lw = (int)(pw * .45f);
+            var ban = new Rectangle(lx, r.Y + 104, lw, 86);
+            DrawBanner(g, ban, AccountStore.Banner(_account.BannerId));
+            var icon = AccountStore.Icon(_account.IconId);
+            DrawAccountIcon(g, new RectangleF(lx + 18, r.Y + 164, 80, 80), icon);
+            Txt(g, _account.Nick.ToUpperInvariant(), VName, Ink, new RectangleF(lx + 114, r.Y + 170, lw - 120, 30));
+            Txt(g, _account.DisplayName, FMid, A(Ink, 210), new RectangleF(lx + 114, r.Y + 200, lw - 120, 20));
+            g.FillEllipse(Br(Green), lx + 116, r.Y + 227, 8, 8);
+            Spaced(g, "ONLINE", FTiny, Green, lx + 130, r.Y + 231, 2f);
+
+            int iy = r.Y + 272;
+            InfoLine(g, lx, iy, lw, "USERID", _account.UserId); iy += 30;
+            InfoLine(g, lx, iy, lw, "GMAIL", _account.Gmail); iy += 30;
+            InfoLine(g, lx, iy, lw, "REGIÃO", _account.Region); iy += 30;
+            InfoLine(g, lx, iy, lw, "CONTA CRIADA", AccountStore.CreationText(_account)); iy += 30;
+            InfoLine(g, lx, iy, lw, "IDADE DA CONTA", AccountStore.AgeText(_account.CreatedAt)); iy += 30;
+            InfoLine(g, lx, iy, lw, "NICK (BLOQUEADO)", _account.Nick); iy += 30;
+            InfoLine(g, lx, iy, lw, "DEAD COINS", _account.DeadCoins.ToString("N0")); iy += 34;
+
+            int rx = lx + lw + 28, rw = r.Right - 34 - rx;
+            Spaced(g, "EDITAR PERFIL", FLabel, Red, rx, r.Y + 112, 3f);
+            var df = new Rectangle(rx, r.Y + 126, rw, 56);
+            UiField(g, df, "DISPLAYNAME", _tbDisplay);
+            string hint = _account.DisplayNameChanges == 0
+                ? "Troca de DisplayName grátis disponível."
+                : "Próxima troca de DisplayName: 500 Dead Coins.";
+            Txt(g, hint, FTiny, _account.DisplayNameChanges == 0 ? Green : Amber,
+                new RectangleF(rx, df.Bottom + 6, rw, 16));
+
+            var ef = new Rectangle(rx, df.Bottom + 32, rw, 56);
+            UiField(g, ef, "DESCRIÇÃO", _tbDesc);
+            Txt(g, "Máximo de 140 caracteres.", FTiny, A(Dim, 170),
+                new RectangleF(rx, ef.Bottom + 6, rw, 16));
+
+            Button(g, new Rectangle(rx, ef.Bottom + 34, rw, 46), "profileSave", "SALVAR ALTERAÇÕES", true, FLabel, 2.5f);
+            if (!string.IsNullOrEmpty(_profileError))
+                Txt(g, _profileError, FSmall, HpRed, new RectangleF(rx, ef.Bottom + 88, rw, 20));
+
+            int by = r.Bottom - 58;
+            Button(g, new Rectangle(rx, by, 126, 42), "profileLogout", "SAIR DA CONTA", false, FTiny, 2f);
+            Button(g, new Rectangle(rx + 136, by, 108, 42), "nav:Cofre", "COFRE", false, FTiny, 2f);
+            if (AccountStore.IsAdminAllowed(_account))
+                Button(g, new Rectangle(rx + 254, by, 92, 42), "adminOpen", "ADMIN", false, FTiny, 2f);
+            Button(g, new Rectangle(rx + rw - 94, by, 94, 42), "profileClose", "FECHAR", false, FTiny, 2f);
+        }
+
+        private void InfoLine(Graphics g, int x, int y, int w, string label, string value)
+        {
+            Spaced(g, label, FTiny, Dim, x, y + 7, 2f);
+            Txt(g, value, FSmallB, Ink, new RectangleF(x + 150, y, w - 150, 18), StringAlignment.Far);
+            g.DrawLine(Pn(A(Line, 120), 1f), x, y + 21, x + w, y + 21);
+        }
+
+        // ---------- Registro ----------
+        private void DrawRegister(Graphics g, int w, int h)
+        {
+            int cw = Math.Min(880, w - 80);
+            int ch = Math.Min(636, h - BarH - 36);
+            var card = new Rectangle((w - cw) / 2, BarH + 18, cw, ch);
+            using (var p = Chamfer(card, 18, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 246)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), card.X + 18, card.Y, card.Width - 18, 3);
+
+            int x = card.X + 34, y = card.Y + 24;
+            Spaced(g, "CRIAR CONTA LOCAL", FLabel, Red, x, y, 4f);
+            Txt(g, "NOVO JOGADOR", VSub, Ink, new RectangleF(x, y + 12, cw - 68, 44));
+            Txt(g, "Seus dados ficam salvos neste PC. O Nick é permanente; escolha com cuidado.",
+                FSmall, Dim, new RectangleF(x, y + 54, cw - 68, 20));
+
+            int fy = card.Y + 106;
+            var gmailF = new Rectangle(card.X + 34, fy, cw - 68, 54);
+            UiField(g, gmailF, "GMAIL (@GMAIL.COM)", _tbRegGmail);
+
+            int half = (cw - 68 - 16) / 2;
+            var nickF = new Rectangle(card.X + 34, fy + 62, half, 54);
+            var dispF = new Rectangle(card.X + 34 + half + 16, fy + 62, half, 54);
+            UiField(g, nickF, "NICK (PERMANENTE)", _tbRegNick);
+            UiField(g, dispF, "DISPLAYNAME", _tbRegDisplay);
+
+            var passF = new Rectangle(card.X + 34, fy + 124, half, 54);
+            var pass2F = new Rectangle(card.X + 34 + half + 16, fy + 124, half, 54);
+            UiField(g, passF, "SENHA", _tbRegPass);
+            UiField(g, pass2F, "CONFIRMAR SENHA", _tbRegPass2);
+
+            var descF = new Rectangle(card.X + 34, fy + 186, cw - 68, 54);
+            UiField(g, descF, "DESCRIÇÃO (OPCIONAL)", _tbRegDesc);
+
+            Spaced(g, "ESCOLHA SEU ÍCONE", FLabel, Dim, x, fy + 248, 3f);
+            int iconSize = 54, iconGap = 10;
+            int totalIcons = AccountStore.Icons.Length * iconSize + (AccountStore.Icons.Length - 1) * iconGap;
+            int ix = (w - totalIcons) / 2;
+            for (int i = 0; i < AccountStore.Icons.Length; i++)
+            {
+                var icon = AccountStore.Icons[i];
+                var rr = new Rectangle(ix + i * (iconSize + iconGap), fy + 264, iconSize, iconSize);
+                bool sel = string.Equals(icon.Id, _regIcon, StringComparison.OrdinalIgnoreCase);
+                Reg(rr, "regIcon:" + icon.Id);
+                if (sel)
+                {
+                    using var ring = RoundRect(Rectangle.Inflate(rr, 4, 4), iconSize);
+                    g.DrawPath(Pn(Red, 2f), ring);
+                }
+                DrawAccountIcon(g, rr, icon);
+                Txt(g, icon.Name, FTiny, sel ? Ink : Dim,
+                    new RectangleF(rr.X - 10, rr.Bottom + 2, rr.Width + 20, 14), StringAlignment.Center);
+            }
+
+            Spaced(g, "REGIÃO", FLabel, Dim, x, fy + 334, 3f);
+            string[] regionLabels = { "BRASIL", "EUA", "ESPANHA", "PORTUGAL", "MÉXICO", "ARGENTINA" };
+            int rbw = 96, rgap = 8;
+            int totalR = regionLabels.Length * rbw + (regionLabels.Length - 1) * rgap;
+            int rx = (w - totalR) / 2;
+            for (int i = 0; i < regionLabels.Length; i++)
+            {
+                string reg = AccountStore.Regions[i];
+                SizeBtn(g, new Rectangle(rx + i * (rbw + rgap), fy + 350, rbw, 28), "regRegion:" + reg,
+                    regionLabels[i], string.Equals(reg, _regRegion, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrEmpty(_regError))
+                Txt(g, _regError, FSmall, HpRed, new RectangleF(card.X + 34, card.Bottom - 90, cw - 68, 20));
+
+            Button(g, new Rectangle(card.X + 34, card.Bottom - 58, 150, 42), "registerBack", "VOLTAR", false, FLabel, 2.5f);
+            Button(g, new Rectangle(card.Right - 34 - 210, card.Bottom - 58, 210, 42), "registerCreate", "CRIAR CONTA", true, FLabel, 3f);
+        }
+
+        // ---------- Anúncios ----------
+        private void DrawAnnouncements(Graphics g, int w, int h)
+        {
+            int listW = Math.Min(980, w - 96);
+            int x = (w - listW) / 2;
+            int y = BarH + 28;
+
+            Spaced(g, "MURAL", FLabel, Red, x, y, 4f);
+            Txt(g, "ANÚNCIOS", VSub, Ink, new RectangleF(x, y + 14, listW - 200, 48));
+            Txt(g, "Atualizações, notícias e eventos publicados pela equipe.", FSmall, Dim,
+                new RectangleF(x, y + 56, listW - 200, 20));
+            if (_account != null && AccountStore.IsAdminAllowed(_account))
+                Button(g, new Rectangle(x + listW - 190, y + 10, 190, 42), "adminOpen", "PAINEL ADMIN", false, FLabel, 2.5f);
+
+            string[] cats = { "Updates", "News", "Events", "Patch Notes" };
+            string[] labels = { "ATUALIZAÇÕES", "NOTÍCIAS", "EVENTOS", "NOTAS" };
+            int bw = 148, gap = 8;
+            int ty = y + 88;
+            for (int i = 0; i < cats.Length; i++)
+            {
+                bool active = string.Equals(_annCategory, cats[i], StringComparison.OrdinalIgnoreCase);
+                SizeBtn(g, new Rectangle(x + i * (bw + gap), ty, bw, 30), "annCat:" + cats[i], labels[i], active);
+            }
+
+            var items = AccountStore.Announcements
+                .Where(a => string.Equals(a.Category, _annCategory, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(a => a.CreatedAt)
+                .ToList();
+
+            var view = new Rectangle(x, ty + 44, listW, h - (ty + 44) - 26);
+            int cardH = 152, cardGap = 14;
+            int total = Math.Max(0, items.Count * (cardH + cardGap) - cardGap);
+            float max = Math.Max(0, total - view.Height);
+            _annScroll = Math.Clamp(_annScroll, 0f, max);
+
+            g.SetClip(view);
+            if (items.Count == 0)
+            {
+                Spaced(g, "NENHUM ANÚNCIO NESTA ÁREA", FLabel, Dim, view.X + view.Width / 2f,
+                    view.Y + view.Height / 2f - 8, 3f, StringAlignment.Center);
+            }
+            int cy = view.Y - (int)_annScroll;
+            for (int i = 0; i < items.Count; i++)
+            {
+                var a = items[i];
+                var r = new Rectangle(x, cy, listW, cardH);
+                if (r.Bottom > view.Top && r.Top < view.Bottom) DrawAnnouncementCard(g, r, a, i);
+                cy += cardH + cardGap;
+            }
+            g.ResetClip();
+
+            if (max > 0)
+            {
+                float th = Math.Max(30f, view.Height * (view.Height / (float)total));
+                float tyy = view.Y + (view.Height - th) * (_annScroll / max);
+                g.FillRectangle(Br(A(Ink, 40)), view.Right - 6, tyy, 3, th);
+            }
+        }
+
+        private void DrawAnnouncementCard(Graphics g, Rectangle r, Announcement a, int idx)
+        {
+            using (var p = Chamfer(r, 12, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 235)), p);
+                g.DrawPath(Pn(A(Line, 210), 1f), p);
+            }
+            var col = a.Category switch
+            {
+                "News" => Blue,
+                "Events" => IconPurple,
+                "Patch Notes" => Amber,
+                _ => Red
+            };
+            g.FillRectangle(Br(col), r.X + 14, r.Y, 4, r.Height - 14);
+
+            Spaced(g, a.Category.ToUpperInvariant(), FTiny, col, r.X + 30, r.Y + 20, 2.5f);
+            Txt(g, a.Title, VName, Ink, new RectangleF(r.X + 30, r.Y + 32, r.Width - 230, 30));
+            Spaced(g, $"{a.Author.ToUpperInvariant()}  •  {a.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}",
+                FTiny, Dim, r.X + 30, r.Y + 64, 1.5f);
+
+            bool hasImage = !string.IsNullOrEmpty(a.Attachment) && File.Exists(a.Attachment) && IsImage(a.Attachment);
+            int bodyW = r.Width - (hasImage ? 250 : 60);
+            g.DrawString(string.IsNullOrWhiteSpace(a.Body) ? "(sem conteúdo)" : a.Body, FSmall, Br(A(Ink, 200)),
+                new RectangleF(r.X + 30, r.Y + 82, bodyW, r.Height - 94), SfWrap);
+
+            if (hasImage)
+            {
+                var ir = new Rectangle(r.Right - 196, r.Y + 20, 168, 112);
+                var img = LoadImage(a.Attachment!);
+                if (img != null)
+                {
+                    float k = Math.Min(ir.Width / (float)img.Width, ir.Height / (float)img.Height);
+                    float dw = img.Width * k, dh = img.Height * k;
+                    using (var p = RoundRect(ir, 8)) g.SetClip(p);
+                    g.DrawImage(img, ir.X + (ir.Width - dw) / 2f, ir.Y + (ir.Height - dh) / 2f, dw, dh);
+                    g.ResetClip();
+                }
+                Reg(ir, "annFile:" + idx);
+            }
+            else if (!string.IsNullOrEmpty(a.AttachmentName))
+            {
+                var fr = new Rectangle(r.Right - 220, r.Y + 84, 192, 40);
+                Reg(fr, "annFile:" + idx);
+                using (var p = Chamfer(fr, 7, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Ink, 12)), p);
+                    g.DrawPath(Pn(A(Line, 200), 1f), p);
+                }
+                Txt(g, "ANEXO: " + a.AttachmentName, FTiny, Ink,
+                    new RectangleF(fr.X + 10, fr.Y, fr.Width - 20, fr.Height));
+            }
+        }
+
+        private static bool IsImage(string path)
+        {
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            return ext is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".webp";
+        }
+
+        private List<Announcement> CurrentAnnouncements() =>
+            AccountStore.Announcements
+                .Where(a => string.Equals(a.Category, _annCategory, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(a => a.CreatedAt)
+                .ToList();
+
+        private void OpenAnnouncementFile(int idx)
+        {
+            var list = CurrentAnnouncements();
+            if (idx < 0 || idx >= list.Count) return;
+            var path = list[idx].Attachment;
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                ShowToast("Anexo não encontrado.");
+                return;
+            }
+            try
+            {
+                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+            }
+            catch { ShowToast("Não foi possível abrir o anexo."); }
+        }
+
+        private Image? LoadImage(string path)
+        {
+            if (_imgs.TryGetValue(path, out var cached)) return cached;
+            Image? img = null;
+            try
+            {
+                using var fs = File.OpenRead(path);
+                using var tmp = Image.FromStream(fs);
+                img = new Bitmap(tmp);
+            }
+            catch { img = null; }
+            _imgs[path] = img;
+            return img;
+        }
+
+        // ---------- Cofre ----------
+        private void DrawCofre(Graphics g, int w, int h)
+        {
+            int x = 48, y = BarH + 28;
+            Spaced(g, "INVENTÁRIO DO LOBBY", FLabel, Red, x, y, 4f);
+            Txt(g, "COFRE", VSub, Ink, new RectangleF(x, y + 14, 300, 48));
+            Txt(g, "Banners, ícones e personalização do seu perfil.", FSmall, Dim,
+                new RectangleF(x, y + 56, 500, 20));
+            if (_account != null)
+                DrawCoinsChip(g, new Rectangle(w - 48 - 238, y + 8, 238, 46), "nav:DeadRoyal");
+
+            string[] tabs = { "Perfil", "Banners", "Ícones" };
+            string[] labels = { "PERFIL", "BANNERS", "ÍCONES" };
+            int ty = y + 90;
+            for (int i = 0; i < tabs.Length; i++)
+            {
+                bool active = string.Equals(_cofreTab, tabs[i], StringComparison.OrdinalIgnoreCase);
+                SizeBtn(g, new Rectangle(x + i * 156, ty, 148, 32), "cofreTab:" + tabs[i], labels[i], active);
+            }
+            g.DrawLine(Pn(A(Line, 180), 1f), x, ty + 40, w - 48, ty + 40);
+
+            if (_account == null) return;
+            int cy = ty + 58;
+            if (_cofreTab.Equals("Banners", StringComparison.OrdinalIgnoreCase)) DrawCofreBanners(g, x, cy, w - 96, h);
+            else if (_cofreTab.Equals("Ícones", StringComparison.OrdinalIgnoreCase)) DrawCofreIcons(g, x, cy, w - 96, h);
+            else DrawCofreProfile(g, x, cy, w - 96, h);
+        }
+
+        private void DrawCofreProfile(Graphics g, int x, int y, int w, int h)
+        {
+            var acc = _account!;
+            var ban = new Rectangle(x, y, w, 140);
+            DrawBanner(g, ban, AccountStore.Banner(acc.BannerId));
+            Spaced(g, "BANNER EQUIPADO", FTiny, Color.White, x + 24, y + 24, 3f);
+            Txt(g, AccountStore.Banner(acc.BannerId).Name, VName, Color.White, new RectangleF(x + 24, y + 34, 300, 30));
+
+            var icon = AccountStore.Icon(acc.IconId);
+            DrawAccountIcon(g, new RectangleF(x + 24, y + 152, 92, 92), icon);
+            Txt(g, acc.Nick.ToUpperInvariant(), VSub, Ink, new RectangleF(x + 134, y + 156, 420, 46));
+            Txt(g, acc.DisplayName, FMid, A(Ink, 210), new RectangleF(x + 134, y + 194, 420, 22));
+            g.FillEllipse(Br(Green), x + 136, y + 224, 8, 8);
+            Spaced(g, "ONLINE • " + acc.Region.ToUpperInvariant(), FTiny, Green, x + 150, y + 228, 2f);
+
+            int cardW = (w - 2 * 18) / 3, cardH = 64;
+            int gx = x, gy = y + 266;
+            CofreStat(g, new Rectangle(gx, gy, cardW, cardH), "USERID", acc.UserId, Red);
+            CofreStat(g, new Rectangle(gx + cardW + 18, gy, cardW, cardH), "CONTA CRIADA", AccountStore.CreationText(acc), Blue);
+            CofreStat(g, new Rectangle(gx + 2 * (cardW + 18), gy, cardW, cardH), "IDADE DA CONTA", AccountStore.AgeText(acc.CreatedAt), Green);
+            gy += cardH + 16;
+            CofreStat(g, new Rectangle(gx, gy, cardW, cardH), "DEAD COINS", acc.DeadCoins.ToString("N0"), Amber);
+            CofreStat(g, new Rectangle(gx + cardW + 18, gy, cardW, cardH), "ÍCONE", icon.Name, IconPurple);
+            CofreStat(g, new Rectangle(gx + 2 * (cardW + 18), gy, cardW, cardH), "BANNER", AccountStore.Banner(acc.BannerId).Name, Ink);
+        }
+
+        private void CofreStat(Graphics g, Rectangle r, string label, string value, Color accent)
+        {
+            using (var p = Chamfer(r, 10, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 220)), p);
+                g.DrawPath(Pn(A(Line, 180), 1f), p);
+            }
+            g.FillRectangle(Br(accent), r.X + 12, r.Y + 12, 3, 18);
+            Spaced(g, label, FTiny, Dim, r.X + 24, r.Y + 16, 2f);
+            Txt(g, value, FMid, accent, new RectangleF(r.X + 18, r.Y + 34, r.Width - 36, 24));
+        }
+
+        private void DrawCofreBanners(Graphics g, int x, int y, int w, int h)
+        {
+            int cols = 3, gap = 18;
+            int cw = (w - (cols - 1) * gap) / cols, chh = 150;
+            for (int i = 0; i < AccountStore.Banners.Length; i++)
+            {
+                var b = AccountStore.Banners[i];
+                int col = i % cols, row = i / cols;
+                var r = new Rectangle(x + col * (cw + gap), y + row * (chh + gap), cw, chh);
+                if (r.Bottom > h - 20) break;
+                string id = "equipBanner:" + b.Id;
+                Reg(r, id);
+                float hv = Hv(id);
+                using (var p = Chamfer(r, 12, true, false, true, false))
+                {
+                    g.FillPath(Br(Mix(A(Panel, 235), A(PanelHi, 245), hv)), p);
+                    g.DrawPath(Pn(Mix(A(Line, 190), Red, hv), 1f), p);
+                }
+                var prev = new Rectangle(r.X + 10, r.Y + 10, r.Width - 20, 80);
+                DrawBanner(g, prev, b);
+                Txt(g, b.Name, FMid, Ink, new RectangleF(r.X + 14, r.Y + 98, r.Width - 28, 22));
+                bool eq = string.Equals(_account!.BannerId, b.Id, StringComparison.OrdinalIgnoreCase);
+                Spaced(g, eq ? "EQUIPADO" : "EQUIPAR", FTiny, eq ? Green : A(Ink, 190),
+                    r.X + 14, r.Y + 128, 2f);
+            }
+        }
+
+        private void DrawCofreIcons(Graphics g, int x, int y, int w, int h)
+        {
+            int cols = 3, gap = 18;
+            int cw = (w - (cols - 1) * gap) / cols, chh = 150;
+            for (int i = 0; i < AccountStore.Icons.Length; i++)
+            {
+                var icon = AccountStore.Icons[i];
+                int col = i % cols, row = i / cols;
+                var r = new Rectangle(x + col * (cw + gap), y + row * (chh + gap), cw, chh);
+                if (r.Bottom > h - 20) break;
+                string id = "equipIcon:" + icon.Id;
+                Reg(r, id);
+                float hv = Hv(id);
+                using (var p = Chamfer(r, 12, true, false, true, false))
+                {
+                    g.FillPath(Br(Mix(A(Panel, 235), A(PanelHi, 245), hv)), p);
+                    g.DrawPath(Pn(Mix(A(Line, 190), Red, hv), 1f), p);
+                }
+                DrawAccountIcon(g, new RectangleF(r.X + 22, r.Y + 18, 64, 64), icon);
+                Txt(g, icon.Name, FMid, Ink, new RectangleF(r.X + 100, r.Y + 28, r.Width - 110, 24));
+                bool eq = string.Equals(_account!.IconId, icon.Id, StringComparison.OrdinalIgnoreCase);
+                Spaced(g, eq ? "EQUIPADO" : "EQUIPAR", FTiny, eq ? Green : A(Ink, 190),
+                    r.X + 100, r.Y + 58, 2f);
+                bool owned = _account.OwnedIcons.Contains(icon.Id, StringComparer.OrdinalIgnoreCase);
+                if (!owned) Spaced(g, "BLOQUEADO", FTiny, Amber, r.X + 22, r.Y + 112, 2f);
+            }
+        }
+
+        // ---------- Dead Royal ----------
+        private void DrawDeadRoyal(Graphics g, int w, int h)
+        {
+            int x = 48, y = BarH + 28;
+            Spaced(g, "LOJA DE ITENS", FLabel, Red, x, y, 4f);
+            Txt(g, "DEAD ROYAL", VSub, Ink, new RectangleF(x, y + 14, 420, 48));
+            Txt(g, "Itens carregados de Config/DeadRoyalShop.json.", FSmall, Dim,
+                new RectangleF(x, y + 56, 520, 20));
+            if (_account != null)
+                DrawCoinsChip(g, new Rectangle(w - 48 - 238, y + 8, 238, 46), "shopReload");
+
+            var items = AccountStore.Shop;
+            int cols = 3, gap = 18;
+            int cw = (w - 96 - (cols - 1) * gap) / cols;
+            int chh = Math.Min(224, (h - (BarH + 128) - 30 - gap) / 2);
+            int gy = BarH + 116;
+            for (int i = 0; i < items.Count; i++)
+            {
+                int col = i % cols, row = i / cols;
+                var r = new Rectangle(x + col * (cw + gap), gy + row * (chh + gap), cw, chh);
+                if (r.Bottom > h - 18) break;
+                DrawShopCard(g, r, items[i], i);
+            }
+        }
+
+        private void DrawShopCard(Graphics g, Rectangle r, ShopItem item, int idx)
+        {
+            var rarity = item.Rarity switch
+            {
+                "Legendary" => Amber,
+                "Epic" => IconPurple,
+                "Rare" => Blue,
+                _ => Dim
+            };
+            using (var p = Chamfer(r, 12, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 238)), p);
+                g.DrawPath(Pn(A(Line, 210), 1f), p);
+            }
+            g.FillRectangle(Br(rarity), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, item.Rarity.ToUpperInvariant(), FTiny, rarity, r.X + 16, r.Y + 18, 2f);
+
+            var art = new Rectangle(r.X + 16, r.Y + 30, r.Width - 32, 74);
+            using (var p = Chamfer(art, 8, true, false, true, false))
+            {
+                using (var lb = new LinearGradientBrush(art, A(rarity, 26), A(Panel, 120), 90f))
+                    g.FillPath(lb, p);
+                g.DrawPath(Pn(A(rarity, 80), 1f), p);
+            }
+            DrawShopArt(g, art, item, rarity);
+
+            Txt(g, item.Name, VName, Ink, new RectangleF(r.X + 16, r.Y + 108, r.Width - 32, 28));
+            string type = item.Type == "WeaponSkin" ? "SKIN DE ARMA" : item.Type == "Icon" ? "ÍCONE" : "BANNER";
+            Spaced(g, type, FTiny, Dim, r.X + 16, r.Y + 134, 2f);
+            g.DrawString(item.Description, FSmall, Br(A(Ink, 170)),
+                new RectangleF(r.X + 16, r.Y + 144, r.Width - 32, 24), SfWrap);
+
+            bool owned = _account != null && AccountStore.Owns(_account, item);
+            bool equipped = IsShopItemEquipped(item);
+            int by = r.Bottom - 48;
+            if (equipped)
+            {
+                using var p = Chamfer(new Rectangle(r.X + 16, by, r.Width - 32, 36), 8, true, false, true, false);
+                g.FillPath(Br(A(Green, 26)), p);
+                g.DrawPath(Pn(Green, 1.5f), p);
+                Spaced(g, "EQUIPADO", FLabel, Green, r.X + r.Width / 2f, by + 18, 3f, StringAlignment.Center);
+            }
+            else if (owned)
+            {
+                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 36), "shopEquip:" + item.Id, "EQUIPAR", true, FLabel, 2.5f);
+            }
+            else
+            {
+                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 36), "shopBuy:" + item.Id,
+                    "COMPRAR  •  " + item.Price.ToString("N0"), false, FLabel, 2f);
+            }
+        }
+
+        private void DrawShopArt(Graphics g, Rectangle r, ShopItem item, Color rarity)
+        {
+            if (item.Type.Equals("WeaponSkin", StringComparison.OrdinalIgnoreCase))
+            {
+                var gun = _guns.FirstOrDefault(x => string.Equals(x.GunId, item.WeaponId, StringComparison.OrdinalIgnoreCase));
+                var skin = gun?.Skins.FirstOrDefault(s => string.Equals(s.SkinId, item.SkinId, StringComparison.OrdinalIgnoreCase));
+                if (gun != null && skin != null)
+                {
+                    var img = Preview(gun, skin);
+                    if (img != null)
+                    {
+                        float k = Math.Min((r.Width - 20f) / img.Width, (r.Height - 10f) / img.Height);
+                        float dw = img.Width * k, dh = img.Height * k;
+                        g.DrawImage(img, r.X + (r.Width - dw) / 2f, r.Y + (r.Height - dh) / 2f, dw, dh);
+                        return;
+                    }
+                    // silhueta de arma
+                    var pen = Pn(A(rarity, 220), 5f);
+                    float cy = r.Y + r.Height / 2f;
+                    g.DrawLine(pen, r.X + 26, cy, r.Right - 26, cy);
+                    g.DrawLine(pen, r.Right - 52, cy, r.Right - 38, cy - 15);
+                    g.DrawLine(pen, r.X + 44, cy, r.X + 54, cy + 14);
+                    g.DrawLine(pen, r.X + 40, cy - 6, r.X + 70, cy - 6);
+                    return;
+                }
+            }
+            else if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase))
+            {
+                DrawAccountIcon(g, new RectangleF(r.X + r.Width / 2f - 27, r.Y + 8, 54, 54),
+                    AccountStore.Icon(item.IconId));
+                return;
+            }
+            else if (item.Type.Equals("Banner", StringComparison.OrdinalIgnoreCase))
+            {
+                DrawBanner(g, new Rectangle(r.X + 18, r.Y + 16, r.Width - 36, 44),
+                    AccountStore.Banner(item.BannerId));
+                return;
+            }
+            Txt(g, string.IsNullOrEmpty(item.Icon) ? "✦" : item.Icon, VTitle, rarity, r, StringAlignment.Center);
+        }
+
+        private bool IsShopItemEquipped(ShopItem item)
+        {
+            if (_account == null) return false;
+            if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase))
+                return string.Equals(_account.IconId, item.IconId, StringComparison.OrdinalIgnoreCase);
+            if (item.Type.Equals("Banner", StringComparison.OrdinalIgnoreCase))
+                return string.Equals(_account.BannerId, item.BannerId, StringComparison.OrdinalIgnoreCase);
+            return _equipped.Any(kv => string.Equals(AccountStore.GunId(kv.Key), AccountStore.GunId(item.WeaponId), StringComparison.OrdinalIgnoreCase) &&
+                                       string.Equals(kv.Value, item.SkinId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private void BuyShopItem(string id)
+        {
+            if (_account == null) return;
+            var item = AccountStore.Shop.FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (item == null) return;
+            if (AccountStore.Buy(_account, item, out var err))
+            {
+                ShowToast("Comprado: " + item.Name);
+                SaveEquippedToAccount();
+            }
+            else ShowToast(err);
+        }
+
+        private void EquipShopItem(string id)
+        {
+            if (_account == null) return;
+            var item = AccountStore.Shop.FirstOrDefault(i => string.Equals(i.Id, id, StringComparison.OrdinalIgnoreCase));
+            if (item == null) return;
+            if (!AccountStore.Owns(_account, item)) { ShowToast("Compre este item primeiro."); return; }
+            if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase))
+            {
+                _account.IconId = AccountStore.Icon(item.IconId).Id;
+                AccountStore.SaveAccounts();
+            }
+            else if (item.Type.Equals("Banner", StringComparison.OrdinalIgnoreCase))
+            {
+                _account.BannerId = AccountStore.Banner(item.BannerId).Id;
+                AccountStore.SaveAccounts();
+            }
+            else
+            {
+                var gun = _guns.FirstOrDefault(g => string.Equals(AccountStore.GunId(g.GunId), AccountStore.GunId(item.WeaponId), StringComparison.OrdinalIgnoreCase));
+                _equipped[gun?.GunId ?? item.WeaponId] = item.SkinId;
+                SaveEquippedToAccount();
+            }
+            ShowToast("Equipado: " + item.Name);
+        }
+
+        private void SaveEquippedToAccount()
+        {
+            if (_account == null) return;
+            _account.EquippedSkins = new Dictionary<string, string>(_equipped, StringComparer.OrdinalIgnoreCase);
+            AccountStore.SaveAccounts();
+        }
+
+        private void LoadEquippedFromAccount()
+        {
+            _equipped.Clear();
+            if (_account == null) return;
+            foreach (var kv in _account.EquippedSkins)
+                _equipped[kv.Key] = kv.Value;
+        }
+
+        private void InjectShopSkins()
+        {
+            foreach (var item in AccountStore.Shop.Where(i => i.Type.Equals("WeaponSkin", StringComparison.OrdinalIgnoreCase)))
+            {
+                var gun = _guns.FirstOrDefault(g => string.Equals(AccountStore.GunId(g.GunId), AccountStore.GunId(item.WeaponId), StringComparison.OrdinalIgnoreCase));
+                if (gun == null) continue;
+                if (!gun.Skins.Any(s => string.Equals(s.SkinId, item.SkinId, StringComparison.OrdinalIgnoreCase)))
+                    gun.Skins.Add(new Skin { SkinId = item.SkinId, Name = item.Name });
+            }
+        }
+
+        // ---------- Notificações ----------
+        private void DrawNotifications(Graphics g, int w, int h)
+        {
+            if (!_notifOpen || _account == null) return;
+            g.FillRectangle(Br(A(Color.Black, 110)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "notifBackdrop");
+
+            int pw = 400, ph = Math.Min(470, h - BarH - 30);
+            var r = new Rectangle(w - pw - 20, BarH + 12, pw, ph);
+            Reg(r, "notifPanel");
+            using (var p = Chamfer(r, 14, true, false, false, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, "NOTIFICAÇÕES", FNav, Ink, r.X + 20, r.Y + 28, 3f);
+            var close = new Rectangle(r.Right - 44, r.Y + 12, 30, 30);
+            Reg(close, "notifClose");
+            var xp = Pn(Mix(Dim, Ink, Hv("notifClose")), 1.8f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+            g.DrawLine(Pn(A(Line, 160), 1f), r.X, r.Y + 54, r.Right, r.Y + 54);
+
+            var list = AccountStore.NotificationsFor(_account);
+            int maxItems = Math.Max(1, (ph - 78) / 72);
+            int y = r.Y + 66;
+            if (list.Count == 0)
+            {
+                Spaced(g, "NENHUMA NOTIFICAÇÃO", FLabel, Dim, r.X + r.Width / 2f, r.Y + 120, 3f, StringAlignment.Center);
+            }
+            foreach (var n in list.Take(maxItems))
+            {
+                var nr = new Rectangle(r.X + 14, y, r.Width - 28, 66);
+                using (var p = Chamfer(nr, 8, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Ink, 8)), p);
+                    g.DrawPath(Pn(A(Line, 140), 1f), p);
+                }
+                bool unread = !_account.ReadNotifications.Contains(n.Id);
+                if (unread) g.FillEllipse(Br(Red), nr.X + 10, nr.Y + 12, 6, 6);
+                Txt(g, n.Message, FSmall, Ink, new RectangleF(nr.X + 22, nr.Y + 8, nr.Width - 32, 34));
+                Spaced(g, $"{n.Author.ToUpperInvariant()}  •  {n.Target.ToUpperInvariant()}  •  {n.CreatedAt.ToLocalTime():dd/MM HH:mm}",
+                    FTiny, Dim, nr.X + 22, nr.Y + 50, 1.2f);
+                y += 72;
+            }
+        }
+
+        // ---------- Adicionar amigo ----------
+        private void DrawAddFriend(Graphics g, int w, int h)
+        {
+            if (!_addFriendOpen || _account == null) return;
+            g.FillRectangle(Br(A(Color.Black, 160)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "addFriendBackdrop");
+
+            int pw = 600, ph = 500;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 16, (h - ph) / 2), pw, ph);
+            Reg(r, "addFriendPanel");
+            using (var p = Chamfer(r, 16, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 16, r.Y, r.Width - 16, 3);
+            Spaced(g, "AMIGOS", FLabel, Red, r.X + 28, r.Y + 30, 4f);
+            Txt(g, "ADICIONAR AMIGO", VSub, Ink, new RectangleF(r.X + 28, r.Y + 42, pw - 56, 44));
+            Txt(g, "Busque pelo UserID ou DisplayName de outra conta local.", FSmall, Dim,
+                new RectangleF(r.X + 28, r.Y + 84, pw - 56, 20));
+
+            var sf = new Rectangle(r.X + 28, r.Y + 112, pw - 56, 56);
+            UiField(g, sf, "USERID OU DISPLAYNAME", _tbFriendSearch);
+
+            int y = r.Y + 182;
+            if ((_tbFriendSearch.Text ?? "").Trim().Length < 2)
+            {
+                Spaced(g, "DIGITE PELO MENOS 2 CARACTERES", FLabel, Dim, r.X + pw / 2f, y + 60, 3f, StringAlignment.Center);
+            }
+            else if (_friendResults.Count == 0)
+            {
+                Spaced(g, "NENHUMA CONTA ENCONTRADA", FLabel, Dim, r.X + pw / 2f, y + 60, 3f, StringAlignment.Center);
+            }
+            else
+            {
+                foreach (var a in _friendResults.Take(4))
+                {
+                    var row = new Rectangle(r.X + 28, y, pw - 56, 52);
+                    using (var p = Chamfer(row, 8, true, false, true, false))
+                    {
+                        g.FillPath(Br(A(Ink, 8)), p);
+                        g.DrawPath(Pn(A(Line, 140), 1f), p);
+                    }
+                    DrawAccountIcon(g, new RectangleF(row.X + 10, row.Y + 8, 36, 36), AccountStore.Icon(a.IconId));
+                    Txt(g, a.Nick, FMid, Ink, new RectangleF(row.X + 56, row.Y + 6, 200, 20));
+                    Txt(g, a.DisplayName + "  •  " + a.UserId, FSmall, Dim,
+                        new RectangleF(row.X + 56, row.Y + 27, 300, 18));
+                    bool already = _account.Friends.Contains(a.UserId, StringComparer.OrdinalIgnoreCase);
+                    if (already)
+                        Spaced(g, "JÁ É SEU AMIGO", FTiny, Green, row.Right - 20, row.Y + 26, 2f, StringAlignment.Far);
+                    else
+                        Button(g, new Rectangle(row.Right - 108, row.Y + 10, 94, 32), "addFriendResult:" + a.UserId,
+                            "ADICIONAR", true, FTiny, 1.5f);
+                    y += 60;
+                }
+            }
+
+            Button(g, new Rectangle(r.X + 28, r.Bottom - 54, 140, 40), "addFriendClose", "FECHAR", false, FLabel, 2.5f);
+        }
+
+        // ---------- Painel admin ----------
+        private void ToggleAdmin()
+        {
+            if (_adminOpen) { CloseAdmin(); return; }
+            if (_account == null || !AccountStore.IsAdminAllowed(_account))
+            {
+                ShowToast("Acesso administrativo restrito.");
+                return;
+            }
+            _adminOpen = true;
+            _adminError = "";
+            _tbAdminPass.Text = "";
+            if (_adminLog.Count == 0)
+            {
+                _adminLog.Add("Deadzone Admin Console v" + AppInfo.Versao);
+                _adminLog.Add("Digite 'help' para ver os comandos.");
+            }
+        }
+
+        private void CloseAdmin()
+        {
+            _adminOpen = false;
+            _adminAuthed = false;
+            _adminError = "";
+            _tbAdminPass.Text = "";
+            _tbAdminCmd.Text = "";
+        }
+
+        private void DrawAdminPanel(Graphics g, int w, int h)
+        {
+            if (!_adminOpen) return;
+            g.FillRectangle(Br(A(Color.Black, 195)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "adminBackdrop");
+
+            if (!_adminAuthed)
+            {
+                int pw = 520, ph = 382;
+                var r = new Rectangle((w - pw) / 2, (h - ph) / 2, pw, ph);
+                Reg(r, "adminPanel");
+                using (var p = Chamfer(r, 14, true, false, true, false))
+                {
+                    g.FillPath(Br(Color.FromArgb(10, 16, 20)), p);
+                    g.DrawPath(Pn(Color.FromArgb(40, 190, 120), 1.4f), p);
+                }
+                g.FillRectangle(Br(Color.FromArgb(40, 220, 140)), r.X + 14, r.Y, r.Width - 14, 3);
+                Spaced(g, "ACESSO RESTRITO", FLabel, Color.FromArgb(40, 220, 140), r.X + 28, r.Y + 30, 4f);
+                Txt(g, "ADMIN CONSOLE", VSub, Ink, new RectangleF(r.X + 28, r.Y + 44, pw - 56, 44));
+                Txt(g, "Somente contas autorizadas. Informe as credenciais de administrador.",
+                    FSmall, Dim, new RectangleF(r.X + 28, r.Y + 88, pw - 56, 20));
+
+                var uf = new Rectangle(r.X + 28, r.Y + 126, pw - 56, 54);
+                var pf = new Rectangle(r.X + 28, r.Y + 190, pw - 56, 54);
+                UiField(g, uf, "USUÁRIO ADMIN", _tbAdminUser);
+                UiField(g, pf, "SENHA ADMIN", _tbAdminPass);
+                if (!string.IsNullOrEmpty(_adminError))
+                    Txt(g, _adminError, FSmall, HpRed, new RectangleF(r.X + 28, r.Y + 252, pw - 56, 20));
+
+                Button(g, new Rectangle(r.X + 28, r.Bottom - 62, pw - 56, 44), "adminAuth", "AUTENTICAR", true, FLabel, 3f);
+                var authClose = new Rectangle(r.Right - 42, r.Y + 12, 28, 28);
+                Reg(authClose, "adminClose");
+                var authXp = Pn(A(Ink, 180), 1.6f);
+                g.DrawLine(authXp, authClose.X + 8, authClose.Y + 8, authClose.Right - 8, authClose.Bottom - 8);
+                g.DrawLine(authXp, authClose.Right - 8, authClose.Y + 8, authClose.X + 8, authClose.Bottom - 8);
+                return;
+            }
+
+            int cw = Math.Min(920, w - 60), chh = Math.Min(620, h - BarH - 26);
+            var cr = new Rectangle((w - cw) / 2, Math.Max(BarH + 10, (h - chh) / 2), cw, chh);
+            Reg(cr, "adminPanel");
+            using (var p = Chamfer(cr, 12, true, false, true, false))
+            {
+                g.FillPath(Br(Color.FromArgb(7, 12, 10)), p);
+                g.DrawPath(Pn(Color.FromArgb(40, 190, 120), 1.4f), p);
+            }
+            g.FillRectangle(Br(Color.FromArgb(40, 220, 140)), cr.X + 14, cr.Y, cr.Width - 14, 3);
+
+            Spaced(g, "DEADZONE ADMIN // " + _account!.Nick.ToUpperInvariant(), FNav,
+                Color.FromArgb(60, 230, 150), cr.X + 24, cr.Y + 26, 2f);
+            Spaced(g, "CONSOLE DE COMANDOS", FTiny, Color.FromArgb(40, 160, 110), cr.X + 24, cr.Y + 48, 2f);
+            var close = new Rectangle(cr.Right - 44, cr.Y + 12, 28, 28);
+            Reg(close, "adminClose");
+            var xp = Pn(A(Ink, 170), 1.6f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+            g.DrawLine(Pn(Color.FromArgb(30, 80, 60), 1f), cr.X, cr.Y + 64, cr.Right, cr.Y + 64);
+
+            var green = Color.FromArgb(90, 235, 160);
+            var dim = Color.FromArgb(60, 130, 100);
+            int maxLines = Math.Max(4, (chh - 150) / 18);
+            int start = Math.Max(0, _adminLog.Count - maxLines);
+            int ly = cr.Y + 82;
+            for (int i = start; i < _adminLog.Count; i++)
+            {
+                var line = _adminLog[i];
+                var c = line.StartsWith("> ", StringComparison.Ordinal) ? Color.FromArgb(230, 245, 235)
+                    : line.StartsWith("[erro]", StringComparison.OrdinalIgnoreCase) ? HpRed
+                    : green;
+                g.DrawString(line, FMono, Br(c), cr.X + 24, ly, StringFormat.GenericTypographic);
+                ly += 18;
+            }
+
+            g.DrawLine(Pn(Color.FromArgb(30, 80, 60), 1f), cr.X, cr.Bottom - 64, cr.Right, cr.Bottom - 64);
+            g.DrawString(">", FMonoB, Br(green), cr.X + 24, cr.Bottom - 48, StringFormat.GenericTypographic);
+            var input = new Rectangle(cr.X + 48, cr.Bottom - 48, cr.Width - 80, 22);
+            if (_tbAdminCmd.Location != input.Location) _tbAdminCmd.Location = input.Location;
+            if (_tbAdminCmd.Width != input.Width) _tbAdminCmd.Width = input.Width;
+            if (_tbAdminCmd.BackColor != Color.FromArgb(7, 12, 10)) _tbAdminCmd.BackColor = Color.FromArgb(7, 12, 10);
+            if (_tbAdminCmd.ForeColor != green) _tbAdminCmd.ForeColor = green;
+            if (_tbAdminCmd.Font != FMono) _tbAdminCmd.Font = FMono;
+
+            Spaced(g, "ENTER EXECUTA  •  ESC FECHA  •  'help' PARA COMANDOS", FTiny, dim,
+                cr.X + 24, cr.Bottom - 22, 1.5f);
+        }
+
+        private void AdminLogin()
+        {
+            if (AccountStore.VerifyAdmin(_tbAdminUser.Text, _tbAdminPass.Text))
+            {
+                _adminAuthed = true;
+                _adminError = "";
+                _tbAdminPass.Text = "";
+                _adminLog.Add("Sessão administrativa iniciada por " + _account?.Nick + ".");
+                _adminLog.Add("help para ver os comandos disponíveis.");
+                _tbAdminCmd.Focus();
+            }
+            else
+            {
+                _adminError = "Usuário ou senha de administrador inválidos.";
+            }
+        }
+
+        private void ExecuteAdminCommand(string raw)
+        {
+            raw = (raw ?? "").Trim();
+            if (raw.Length == 0) return;
+            _adminLog.Add("> " + raw);
+            var parts = raw.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+            string cmd = parts[0].ToLowerInvariant();
+
+            switch (cmd)
+            {
+                case "help":
+                    _adminLog.Add("notify all <mensagem>              — notifica todos");
+                    _adminLog.Add("notify brazil <mensagem>           — notifica uma região");
+                    _adminLog.Add("  regiões: brazil, usa, spain, portugal, mexico, argentina");
+                    _adminLog.Add("announce update <título> | <texto> | <arquivo>");
+                    _adminLog.Add("  áreas: update, news, event, patch");
+                    _adminLog.Add("coins <quantidade>                 — adiciona Dead Coins à conta atual");
+                    _adminLog.Add("accounts                           — lista contas locais");
+                    _adminLog.Add("version | clear | logout");
+                    break;
+
+                case "version":
+                    _adminLog.Add("Deadzone " + AppInfo.Versao + " • " + AppInfo.Tema + " • " + AppInfo.EmpresaFundadora + " INC");
+                    break;
+
+                case "clear":
+                    _adminLog.Clear();
+                    _adminLog.Add("Console limpo.");
+                    break;
+
+                case "logout":
+                    _adminAuthed = false;
+                    _tbAdminPass.Text = "";
+                    _adminLog.Add("Sessão encerrada.");
+                    break;
+
+                case "accounts":
+                    _adminLog.Add($"{AccountStore.Accounts.Count} conta(s) local(is):");
+                    foreach (var a in AccountStore.Accounts.Take(12))
+                        _adminLog.Add($"  {a.Nick}  {a.UserId}  {a.Region}  {a.DeadCoins} DC");
+                    break;
+
+                case "coins":
+                    if (parts.Length < 2 || !int.TryParse(parts[1], out var amount) || amount <= 0)
+                    {
+                        _adminLog.Add("[erro] uso: coins <quantidade>");
+                        break;
+                    }
+                    if (_account == null) { _adminLog.Add("[erro] nenhuma conta logada."); break; }
+                    _account.DeadCoins += amount;
+                    AccountStore.SaveAccounts();
+                    _adminLog.Add($"Adicionados {amount} Dead Coins. Saldo: {_account.DeadCoins}.");
+                    break;
+
+                case "notify":
+                {
+                    if (parts.Length < 3)
+                    {
+                        _adminLog.Add("[erro] uso: notify <all|brazil|usa|spain|...> <mensagem>");
+                        break;
+                    }
+                    string targetRaw = parts[1];
+                    var target = AccountStore.NormalizeRegion(targetRaw);
+                    if (target == null)
+                    {
+                        _adminLog.Add("[erro] região inválida. Use all, brazil, usa, spain, portugal, mexico ou argentina.");
+                        break;
+                    }
+                    string msg = parts[2].Trim();
+                    if (msg.Length == 0) { _adminLog.Add("[erro] mensagem vazia."); break; }
+                    var n = AccountStore.AddNotification(target, msg, _account?.Nick ?? "sr.idev");
+                    _adminLog.Add($"Notificação enviada para {(target == "all" ? "TODOS" : target)}: {n.Message}");
+                    ShowToast("Notificação enviada.");
+                    break;
+                }
+
+                case "announce":
+                {
+                    if (parts.Length < 3)
+                    {
+                        _adminLog.Add("[erro] uso: announce <update|news|event|patch> <título> | <texto> | <arquivo>");
+                        break;
+                    }
+                    string cat = AccountStore.NormalizeCategory(parts[1]);
+                    string rest = parts[2];
+                    var chunks = rest.Split('|');
+                    string title = chunks.Length > 0 ? chunks[0].Trim() : "";
+                    string body = chunks.Length > 1 ? chunks[1].Trim() : "";
+                    string file = chunks.Length > 2 ? chunks[2].Trim().Trim('"') : "";
+                    if (title.Length == 0) { _adminLog.Add("[erro] informe um título."); break; }
+                    var ann = AccountStore.AddAnnouncement(cat, title, body, _account?.Nick ?? "sr.idev",
+                        string.IsNullOrWhiteSpace(file) ? null : file);
+                    _adminLog.Add($"Anúncio publicado em {ann.Category}: {ann.Title}");
+                    if (!string.IsNullOrEmpty(ann.AttachmentName)) _adminLog.Add("Anexo: " + ann.AttachmentName);
+                    else if (!string.IsNullOrWhiteSpace(file)) _adminLog.Add("[erro] arquivo de anexo não encontrado.");
+                    ShowToast("Anúncio publicado.");
+                    break;
+                }
+
+                default:
+                    _adminLog.Add("[erro] comando desconhecido. Digite 'help'.");
+                    break;
+            }
+            if (_adminLog.Count > 200) _adminLog.RemoveRange(0, _adminLog.Count - 200);
+        }
+
+        // ---------- Amigos / conta ----------
+        private void LoadFriendsFromAccount()
+        {
+            _friendList.Clear();
+            if (_account == null) return;
+            foreach (var id in _account.Friends)
+            {
+                var a = AccountStore.FindByUserId(id);
+                if (a == null) continue;
+                _friendList.Add(new Friend(a.Nick, a.DisplayName + "  •  " + a.UserId, FStatus.Online, a.UserId));
+            }
+        }
+
+        private void AddFriendByUserId(string userId)
+        {
+            if (_account == null) return;
+            var other = AccountStore.FindByUserId(userId);
+            if (other == null || other.UserId == _account.UserId) return;
+            AccountStore.AddFriend(_account, other);
+            LoadFriendsFromAccount();
+            SetFriendResults(AccountStore.SearchAccounts(_tbFriendSearch.Text, _account.UserId));
+            ShowToast("Amigo adicionado: " + other.Nick);
+        }
+
+        private void SetFriendResults(List<Account> list)
+        {
+            _friendResults.Clear();
+            _friendResults.AddRange(list);
+        }
+
+        // ---------- Lobby helpers ----------
+        private void DrawCoinsChip(Graphics g, Rectangle r, string id)
+        {
+            Reg(r, id);
+            float hv = Hv(id);
+            using (var p = Chamfer(r, 9, true, false, true, false))
+            {
+                g.FillPath(Br(Mix(A(Panel, 240), A(PanelHi, 250), hv)), p);
+                g.DrawPath(Pn(Mix(Line, Amber, hv), 1f), p);
+            }
+            g.FillEllipse(Br(A(Amber, 40)), r.X + 10, r.Y + 9, 28, 28);
+            g.DrawEllipse(Pn(Amber, 1.6f), r.X + 10, r.Y + 9, 28, 28);
+            Txt(g, "D", FSmallB, Amber, new RectangleF(r.X + 10, r.Y + 9, 28, 28), StringAlignment.Center);
+            Spaced(g, "DEAD COINS", FTiny, Dim, r.X + 50, r.Y + 15, 2f);
+            Txt(g, (_account?.DeadCoins ?? 0).ToString("N0"), FName, Amber,
+                new RectangleF(r.X + 50, r.Y + 24, r.Width - 60, 20));
+        }
+
+        private void DrawSquadRow(Graphics g, int w, int y)
+        {
+            if (!_squadOpen) return;
+            int cw = 170, gap = 12;
+            int total = cw * 4 + gap * 3;
+            int x = (w - total) / 2;
+            for (int i = 0; i < 4; i++)
+            {
+                var r = new Rectangle(x + i * (cw + gap), y, cw, 92);
+                if (i == 0)
+                {
+                    using (var p = Chamfer(r, 10, true, false, true, false))
+                    {
+                        g.FillPath(Br(A(PanelHi, 235)), p);
+                        g.DrawPath(Pn(Red, 1.2f), p);
+                    }
+                    DrawAccountIcon(g, new RectangleF(r.X + 12, r.Y + 14, 42, 42),
+                        AccountStore.Icon(_account?.IconId));
+                    Txt(g, (_account?.Nick ?? "JOGADOR").ToUpperInvariant(), FSmallB, Ink,
+                        new RectangleF(r.X + 62, r.Y + 14, cw - 70, 18));
+                    Spaced(g, "LÍDER", FTiny, Red, r.X + 62, r.Y + 36, 2f);
+                    Spaced(g, "SQUAD CRIADA", FTiny, Dim, r.X + 12, r.Y + 68, 1.5f);
+                }
+                else
+                {
+                    Reg(r, "invite");
+                    float hv = Hv("invite");
+                    using (var p = Chamfer(r, 10, true, false, true, false))
+                    {
+                        g.FillPath(Br(A(Panel, (int)(130 + 60 * hv))), p);
+                        using var dp = new Pen(Mix(Line, Ink, hv), 1.2f) { DashStyle = DashStyle.Dash };
+                        g.DrawPath(dp, p);
+                    }
+                    float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f - 6;
+                    var pen = Pn(Mix(Dim, Ink, hv), 2f);
+                    g.DrawLine(pen, cx - 10, cy, cx + 10, cy);
+                    g.DrawLine(pen, cx, cy - 10, cx, cy + 10);
+                    Spaced(g, "CONVIDAR", FTiny, Mix(Dim, Ink, hv), cx, cy + 24, 2f, StringAlignment.Center);
+                }
+            }
+            Button(g, new Rectangle(x + total + 12, y + 30, 96, 34), "squadLeave", "SAIR", false, FTiny, 1.5f);
+        }
+    }
+}

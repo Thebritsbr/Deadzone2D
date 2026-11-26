@@ -84,7 +84,7 @@ namespace Deadzone2D
             Txt(g, "MORTES  " + p.Deaths, FSmallB, A(Dim, (int)(230 * t)), new RectangleF(info.X + 180, info.Y + 16, 160, 20));
             Txt(g, "MODO  " + (_g.Kind == SessionKind.Royale ? "DEAD ROYALE" : _g.Mode == "SquadBattle" ? "SQUAD BATTLE" : "DEAL DUO"),
                 FSmallB, A(Dim, (int)(230 * t)), new RectangleF(info.X + 18, info.Y + 48, 420, 20));
-            Txt(g, "H  USAR KIT MÉDICO     TAB  FECHAR", FTiny, A(Dim, (int)(190 * t)),
+            Txt(g, "H  USAR KIT MÉDICO     '  FECHAR", FTiny, A(Dim, (int)(190 * t)),
                 new RectangleF(info.X + 18, info.Y + 76, 600, 16));
         }
 

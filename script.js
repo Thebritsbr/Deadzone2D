@@ -8,10 +8,10 @@ for (const link of links) {
   });
 }
 fetch('update.json').then(r => r.json()).then(d => {
-  document.getElementById('version').textContent = d.Version || '2.6';
+  document.getElementById('version').textContent = d.Version || '2.7';
   document.getElementById('latest').textContent = d.Version || '—';
   document.getElementById('notes').textContent = d.Notes || 'No notes available.';
 }).catch(() => {
-  document.getElementById('latest').textContent = '2.6';
+  document.getElementById('latest').textContent = '2.7';
   document.getElementById('notes').textContent = 'Check back soon.';
 });

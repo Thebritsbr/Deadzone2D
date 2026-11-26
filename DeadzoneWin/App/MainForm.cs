@@ -1,4 +1,4 @@
-// MainForm.cs — Deadzone (WinForms, sem engine) — visual estilo Valorant
+// MainForm.cs — Deadzone (WinForms, sem engine) — visual DeadTheme
 //   Loading → Login → Lobby → Armas → Partida, com lista de amigos no canto inferior direito.
 //   Salve todos os .cs como UTF-8 (com BOM) para os acentos aparecerem certos.
 using System;
@@ -18,7 +18,7 @@ namespace Deadzone2D
     {
         private const int BarH = 64;
 
-        // ---------- Paleta (cores da identidade do Valorant) ----------
+        // ---------- Paleta (cores da identidade DeadTheme) ----------
         private static readonly Color Bg      = Color.FromArgb(15, 25, 35);    // #0F1923
         private static readonly Color BgDeep  = Color.FromArgb(9, 15, 22);
         private static readonly Color Panel   = Color.FromArgb(24, 35, 47);
@@ -41,7 +41,7 @@ namespace Deadzone2D
 
         // ---------- Fontes ----------
         private static readonly string Fam = PickFamily("Bahnschrift", "Segoe UI");
-        // Títulos em fonte condensada (parecida com a Tungsten do Valorant); texto corrido na Bahnschrift (parecida com a DIN).
+        // Títulos em fonte condensada; texto corrido na Bahnschrift (parecida com a DIN).
         // ATENÇÃO: todas as fontes "V*" ficam AQUI, depois de UiFamHead, para a ordem de inicialização estática ficar garantida.
         private static readonly string UiFamHead = PickFamily("Bahnschrift SemiBold Condensed", "Bahnschrift Condensed", "Bahnschrift", "Segoe UI");
         private static readonly FontStyle UiHeadStyle = UiFamHead.Contains("SemiBold") ? FontStyle.Regular : FontStyle.Bold;
@@ -92,7 +92,7 @@ namespace Deadzone2D
 
         // ---------- Dados ----------
         private enum FStatus { InGame, Online, Away, Offline }
-        private sealed record Friend(string Name, string Sub, FStatus St);
+        private sealed record Friend(string Name, string Sub, FStatus St, string UserId = "");
         private sealed class Hit { public Rectangle R; public string Id = ""; }
 
         private readonly List<Friend> _friendList = new();
@@ -112,16 +112,41 @@ namespace Deadzone2D
         private readonly GunData[] _guns;
         private string[] _players = { "JOGADOR 1", "JOGADOR 2", "JOGADOR 3", "JOGADOR 4" };
 
-        // ---------- Login ----------
+        // ---------- Login / conta ----------
         private TextBox _tbUser = new();
         private TextBox _tbPass = new();
+
+        private Account? _account;
+        private bool _accountInputsReady;
+        private bool _profileOpen, _notifOpen, _adminOpen, _adminAuthed, _addFriendOpen, _squadOpen;
+        private string _cofreTab = "Perfil";
+        private string _annCategory = "Updates";
+        private float _annScroll;
+        private string _regIcon = "icon_01";
+        private string _regRegion = "Brazil";
+        private string _profileError = "", _adminError = "", _regError = "";
+        private readonly List<Account> _friendResults = new();
+        private readonly List<string> _adminLog = new();
+
+        private TextBox _tbRegGmail = new();
+        private TextBox _tbRegNick = new();
+        private TextBox _tbRegDisplay = new();
+        private TextBox _tbRegPass = new();
+        private TextBox _tbRegPass2 = new();
+        private TextBox _tbRegDesc = new();
+        private TextBox _tbDisplay = new();
+        private TextBox _tbDesc = new();
+        private TextBox _tbFriendSearch = new();
+        private TextBox _tbAdminUser = new();
+        private TextBox _tbAdminPass = new();
+        private TextBox _tbAdminCmd = new();
 
         // ---------- Estado ----------
         private readonly System.Windows.Forms.Timer _timer;
         private readonly Stopwatch _sw = Stopwatch.StartNew();
         private double _last;
         private float _clock;
-        private int _page;                 // 0=Loading 1=Login 2=Lobby 3=Armas 4=Partida 5=Update
+        private int _page;                 // 0=Loading 1=Login 2=Lobby 3=Armas 4=Partida 5=Update 6=Registro 7=Anúncios 8=Cofre 9=Dead Royal
         private float _progress;
         private float _fade = 1f;
         private bool _queue;
@@ -199,9 +224,11 @@ namespace Deadzone2D
 
             _custom = LoadCustomize();
             Text = _custom.WindowTitle;
+            AccountStore.Load();
             UpdateSettings.Load(_appDir);
             AppInfo.Load(_appDir);
             _guns = LoadGuns();
+            InjectShopSkins();
             var data = GameData.Load(_appDir);
             _maps.AddRange(data.Maps);
             _rules = data.Rules;
@@ -346,6 +373,7 @@ namespace Deadzone2D
         private void Step(float dt)
         {
             _clock += dt;
+            SyncAccountInputs();
             if (_page == 0)
             {
                 _progress = Math.Min(100f, _progress + dt * 38f);
@@ -461,9 +489,24 @@ namespace Deadzone2D
 
         private void ShowPage(string name)
         {
-            _page = name switch { "Login" => 1, "Lobby" => 2, "Weapons" => 3, "Partida" => 4, "Update" => 5, _ => 0 };
+            _page = name switch
+            {
+                "Login" => 1,
+                "Lobby" => 2,
+                "Weapons" => 3,
+                "Partida" => 4,
+                "Update" => 5,
+                "Register" => 6,
+                "Announcements" => 7,
+                "Cofre" => 8,
+                "DeadRoyal" => 9,
+                _ => 0
+            };
             _fade = 1f;
             _progress = 0f;
+            _profileOpen = _notifOpen = _adminOpen = _addFriendOpen = _cfgOpen = _requestsOpen = false;
+            _adminAuthed = false;
+            _profileError = _adminError = _regError = "";
             if (_page < 2) _friendsOpen = false;
             if (_page != 4)
             {
@@ -472,9 +515,37 @@ namespace Deadzone2D
                 _keys.Clear();
                 _paused = false;
             }
+            if (_page >= 2 && _page != 4 && _page != 5 && _page != 6) EnsureGuestAccount();
             _tbUser.Visible = _page == 1;
             _tbPass.Visible = _page == 1;
+            SyncAccountInputs();
+            if (_page == 1) BeginInvoke((Action)(() => { if (_page == 1) _tbUser.Focus(); }));
+            if (_page == 6) BeginInvoke((Action)(() => { if (_page == 6) _tbRegGmail.Focus(); }));
             if (_page == 4) StartGame();
+        }
+
+        private void EnsureGuestAccount()
+        {
+            if (_account != null) return;
+            var acc = new Account
+            {
+                UserId = "DZ-GUEST",
+                Gmail = "convidado@local",
+                Nick = "CONVIDADO",
+                DisplayName = "Convidado",
+                IconId = "icon_01",
+                BannerId = "banner_01",
+                Description = "Sessão de convidado (modo de teste).",
+                Region = "Brazil",
+                CreatedAt = DateTime.UtcNow,
+                DeadCoins = 0
+            };
+            foreach (var icon in AccountStore.Icons) acc.OwnedIcons.Add(icon.Id);
+            foreach (var banner in AccountStore.Banners) acc.OwnedBanners.Add(banner.Id);
+            _account = acc;
+            _players[0] = acc.Nick;
+            LoadFriendsFromAccount();
+            LoadEquippedFromAccount();
         }
 
         private void StartGame()
@@ -549,11 +620,58 @@ namespace Deadzone2D
                 if (ri >= 0 && ri < _friendList.Count)
                 {
                     var rf = _friendList[ri];
+                    if (_account != null && !string.IsNullOrEmpty(rf.UserId))
+                        AccountStore.RemoveFriend(_account, rf.UserId);
                     _friendList.RemoveAt(ri);
                     ShowToast("Removido: " + rf.Name);
                 }
                 return;
             }
+            if (id.StartsWith("annCat:", StringComparison.OrdinalIgnoreCase))
+            {
+                _annCategory = AccountStore.NormalizeCategory(id.Substring(7));
+                _annScroll = 0f;
+                return;
+            }
+            if (id.StartsWith("annFile:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(8), out var afi))
+            {
+                OpenAnnouncementFile(afi);
+                return;
+            }
+            if (id.StartsWith("cofreTab:", StringComparison.OrdinalIgnoreCase))
+            {
+                _cofreTab = id.Substring(9);
+                return;
+            }
+            if (id.StartsWith("equipIcon:", StringComparison.OrdinalIgnoreCase) && _account != null)
+            {
+                string iid = id.Substring(10);
+                if (_account.OwnedIcons.Contains(iid, StringComparer.OrdinalIgnoreCase))
+                {
+                    _account.IconId = AccountStore.Icon(iid).Id;
+                    AccountStore.SaveAccounts();
+                    ShowToast("Ícone equipado.");
+                }
+                else ShowToast("Você ainda não possui este ícone.");
+                return;
+            }
+            if (id.StartsWith("equipBanner:", StringComparison.OrdinalIgnoreCase) && _account != null)
+            {
+                string bid = id.Substring(12);
+                if (_account.OwnedBanners.Contains(bid, StringComparer.OrdinalIgnoreCase))
+                {
+                    _account.BannerId = AccountStore.Banner(bid).Id;
+                    AccountStore.SaveAccounts();
+                    ShowToast("Banner equipado.");
+                }
+                else ShowToast("Você ainda não possui este banner.");
+                return;
+            }
+            if (id.StartsWith("shopBuy:", StringComparison.OrdinalIgnoreCase)) { BuyShopItem(id.Substring(8)); return; }
+            if (id.StartsWith("shopEquip:", StringComparison.OrdinalIgnoreCase)) { EquipShopItem(id.Substring(10)); return; }
+            if (id.StartsWith("regIcon:", StringComparison.OrdinalIgnoreCase)) { _regIcon = id.Substring(8); return; }
+            if (id.StartsWith("regRegion:", StringComparison.OrdinalIgnoreCase)) { _regRegion = id.Substring(10); return; }
+            if (id.StartsWith("addFriendResult:", StringComparison.OrdinalIgnoreCase)) { AddFriendByUserId(id.Substring(16)); return; }
             if (id.StartsWith("nav:")) { ShowPage(id.Substring(4)); return; }
             if (id.StartsWith("friend:"))
             {
@@ -586,23 +704,115 @@ namespace Deadzone2D
                 case "min": WindowState = FormWindowState.Minimized; break;
                 case "max": ToggleMax(); break;
                 case "close": Close(); break;
-                case "notif": ShowToast("Nenhuma notificação"); break;
-                case "guest":
-                    SaveLastUser(_players[0]);
-                    ShowPage("Lobby");
+                case "notif":
+                    _notifOpen = !_notifOpen;
+                    if (_notifOpen)
+                    {
+                        _profileOpen = false;
+                        _addFriendOpen = false;
+                        _adminOpen = false;
+                        if (_account != null) AccountStore.MarkNotificationsRead(_account);
+                    }
                     break;
+                case "notifClose":
+                case "notifBackdrop": _notifOpen = false; break;
                 case "login":
                 {
                     string user = _tbUser.Text.Trim();
-                    if (string.IsNullOrEmpty(user)) { ShowToast("Digite seu nome de usuário."); return; }
+                    if (string.IsNullOrEmpty(user)) { ShowToast("Digite seu Gmail."); return; }
                     if (_tbPass.Text.Length == 0) { ShowToast("Digite sua senha."); return; }
-                    SaveLastUser(user);
-                    _players[0] = user;
+                    var acc = AccountStore.Login(user, _tbPass.Text);
+                    if (acc == null) { ShowToast("Gmail/nick ou senha inválidos."); return; }
+                    _account = acc;
+                    _players[0] = acc.Nick;
+                    SaveLastUser(acc.Gmail);
                     _royaleSquad = 1;
                     _teamSize = 1;
+                    LoadFriendsFromAccount();
+                    LoadEquippedFromAccount();
+                    _tbPass.Text = "";
+                    ShowToast("Bem-vindo, " + acc.DisplayName + ".");
                     ShowPage("Lobby");
                     break;
                 }
+                case "register":
+                    _regError = "";
+                    _regIcon = "icon_01";
+                    _regRegion = "Brazil";
+                    _tbRegGmail.Text = _tbUser.Text.Trim();
+                    _tbRegNick.Text = "";
+                    _tbRegDisplay.Text = "";
+                    _tbRegPass.Text = "";
+                    _tbRegPass2.Text = "";
+                    _tbRegDesc.Text = "";
+                    ShowPage("Register");
+                    break;
+                case "registerBack":
+                    ShowPage("Login");
+                    break;
+                case "registerCreate":
+                {
+                    if (_tbRegPass.Text != _tbRegPass2.Text) { _regError = "As senhas não coincidem."; return; }
+                    var acc = AccountStore.CreateAccount(_tbRegGmail.Text, _tbRegNick.Text, _tbRegDisplay.Text,
+                        _tbRegPass.Text, _regIcon, _tbRegDesc.Text, _regRegion, out var err);
+                    if (acc == null) { _regError = err; return; }
+                    _account = acc;
+                    _players[0] = acc.Nick;
+                    SaveLastUser(acc.Gmail);
+                    LoadFriendsFromAccount();
+                    LoadEquippedFromAccount();
+                    ShowToast("Conta criada. Bem-vindo, " + acc.DisplayName + ".");
+                    ShowPage("Lobby");
+                    break;
+                }
+                case "accountOpen":
+                    _notifOpen = false;
+                    _addFriendOpen = false;
+                    OpenProfile();
+                    break;
+                case "profileClose":
+                case "profileBackdrop": CloseProfile(); break;
+                case "profileSave": SaveProfile(); break;
+                case "profileLogout":
+                    CloseProfile();
+                    _account = null;
+                    _friendList.Clear();
+                    _equipped.Clear();
+                    _players[0] = "JOGADOR 1";
+                    ShowPage("Login");
+                    ShowToast("Você saiu da conta.");
+                    break;
+                case "adminOpen":
+                    _profileOpen = false;
+                    _notifOpen = false;
+                    _addFriendOpen = false;
+                    ToggleAdmin();
+                    break;
+                case "adminAuth": AdminLogin(); break;
+                case "adminClose":
+                case "adminBackdrop": CloseAdmin(); break;
+                case "addFriend":
+                    _notifOpen = false;
+                    _addFriendOpen = true;
+                    _tbFriendSearch.Text = "";
+                    _friendResults.Clear();
+                    BeginInvoke((Action)(() => { if (_addFriendOpen) _tbFriendSearch.Focus(); }));
+                    break;
+                case "addFriendClose":
+                case "addFriendBackdrop": _addFriendOpen = false; break;
+                case "squadCreate":
+                    _squadOpen = true;
+                    ShowToast("Squad criada. Convide seus amigos.");
+                    break;
+                case "squadLeave":
+                    _squadOpen = false;
+                    ShowToast("Você saiu da squad.");
+                    break;
+                case "shopReload":
+                    AccountStore.ReloadShop();
+                    InjectShopSkins();
+                    ShowToast("Loja recarregada do JSON.");
+                    break;
                 case "updateInstall":
                     if (!_updInstallRequested)
                     {
@@ -662,7 +872,6 @@ namespace Deadzone2D
                 case "friendsOpen": _friendsOpen = true; break;
                 case "friendsClose": _friendsOpen = false; break;
                 case "frdMenu": _requestsOpen = !_requestsOpen; break;
-                case "addFriend": ShowToast("Adicionar amigo em breve"); break;
                 case "cfg": _cfgOpen = !_cfgOpen; break;
                 case "cfgBackdrop": _cfgOpen = false; break;
                 case "cfgVolUp": _cfgVol = Math.Min(100, _cfgVol + 5); break;
@@ -681,7 +890,14 @@ namespace Deadzone2D
                     {
                         var gun = _guns[_gun];
                         var sk = gun.Skins[SkinIdx(gun)];
+                        var shopItem = AccountStore.ShopItemForSkin(gun.GunId, sk.SkinId);
+                        if (shopItem != null && (_account == null || !AccountStore.Owns(_account, shopItem)))
+                        {
+                            ShowToast("Compre esta skin na Dead Royal.");
+                            break;
+                        }
                         _equipped[gun.GunId] = sk.SkinId;
+                        SaveEquippedToAccount();
                         ShowToast($"{sk.Name} equipada na {gun.Name}");
                         break;
                     }
@@ -724,7 +940,26 @@ namespace Deadzone2D
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
+
+            if (e.Control && e.Shift && e.KeyCode == Keys.P)
+            {
+                if (_page >= 1 && _page != 4) ToggleAdmin();
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                return;
+            }
+
             if (e.KeyCode == Keys.F11) { ToggleMax(); e.Handled = true; return; }
+
+            if (e.KeyCode == Keys.Escape)
+            {
+                if (_adminOpen) { CloseAdmin(); e.Handled = true; return; }
+                if (_profileOpen) { CloseProfile(); e.Handled = true; return; }
+                if (_addFriendOpen) { _addFriendOpen = false; e.Handled = true; return; }
+                if (_notifOpen) { _notifOpen = false; e.Handled = true; return; }
+                if (_cfgOpen) { _cfgOpen = false; e.Handled = true; return; }
+            }
+
             if (_page == 1)
             {
                 if (e.KeyCode == Keys.Enter) { Activate("login"); e.Handled = true; e.SuppressKeyPress = true; return; }
@@ -735,7 +970,13 @@ namespace Deadzone2D
                     return;
                 }
             }
-            if (_cfgOpen && e.KeyCode == Keys.Escape) { _cfgOpen = false; e.Handled = true; return; }
+            if (_page == 6 && e.KeyCode == Keys.Enter)
+            {
+                Activate("registerCreate");
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                return;
+            }
             if (_page != 4 || _g == null) return;
 
             _keys.Add(e.KeyCode);
@@ -747,7 +988,7 @@ namespace Deadzone2D
                 else { _paused = !_paused; _firing = false; }
                 e.Handled = true;
             }
-            else if (e.KeyCode == Keys.Tab)
+            else if (e.KeyCode == Keys.OemQuotes || e.KeyCode == Keys.Oem7)
             {
                 _inventoryOpen = !_inventoryOpen;
                 _firing = false;
@@ -829,6 +1070,7 @@ namespace Deadzone2D
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
+            if (_page == 7) _annScroll = Math.Max(0f, _annScroll - e.Delta / 120f * 64f);
             if (_page >= 2 && _friendsOpen && FriendsRect(ClientSize.Width, ClientSize.Height).Contains(e.Location))
                 _fscroll -= e.Delta / 120f * 60f;
         }
@@ -1057,7 +1299,7 @@ namespace Deadzone2D
             return Pal[Stable(n) % Pal.Length];
         }
 
-        // colchetes nos cantos (detalhe típico da UI do Valorant)
+        // colchetes nos cantos (detalhe típico da UI)
         private void UiBrackets(Graphics g, Rectangle r, Color c, int len = 12, int gap = 6)
         {
             var pen = Pn(c, 1.5f);
@@ -1150,15 +1392,24 @@ namespace Deadzone2D
                 case 3: DrawWeapons(g, w, h); break;
                 case 4: DrawGame(g, w, h); break;
                 case 5: DrawUpdatePage(g, w, h); break;
+                case 6: DrawRegister(g, w, h); break;
+                case 7: DrawAnnouncements(g, w, h); break;
+                case 8: DrawCofre(g, w, h); break;
+                case 9: DrawDeadRoyal(g, w, h); break;
             }
 
             g.ResetTransform();
             _off = Point.Empty;
-            if (_page == 2 || _page == 3) DrawFriends(g, w, h);
-            if (_page == 2 || _page == 3) DrawConfigPanel(g, w, h);
-            DrawToast(g, w);
-
             if (_fade > 0.003f) g.FillRectangle(Br(A(BgDeep, (int)(255 * _fade))), 0, 0, w, h);
+
+            bool hub = _page == 2 || _page == 3 || _page == 7 || _page == 8 || _page == 9;
+            if (hub) DrawFriends(g, w, h);
+            if (hub) DrawConfigPanel(g, w, h);
+            if (_notifOpen) DrawNotifications(g, w, h);
+            if (_profileOpen) DrawProfilePanel(g, w, h);
+            if (_addFriendOpen) DrawAddFriend(g, w, h);
+            if (_adminOpen) DrawAdminPanel(g, w, h);
+            DrawToast(g, w);
         }
 
         private void DrawTopBar(Graphics g, int w)
@@ -1175,40 +1426,69 @@ namespace Deadzone2D
             Txt(g, title.Substring(0, 1), VNav, Color.White, new RectangleF(32, 16, 32, 32), StringAlignment.Center);
             Spaced(g, title, VLogo, Ink, 78, BarH / 2f, 5f);
 
-            if (_page >= 2 && _page != 5)
+            if (_page >= 2 && _page != 5 && _page != 6)
             {
-                // navegação central
-                var tabs = new[] { ("JOGAR", "Lobby", 2), ("ARMAS", "Weapons", 3) };
+                // navegação central (LOBBY, ANÚNCIOS, COFRE, DEAD ROYAL)
+                var tabs = new[]
+                {
+                    ("LOBBY", "Lobby", 2),
+                    ("ANÚNCIOS", "Announcements", 7),
+                    ("COFRE", "Cofre", 8),
+                    ("DEAD ROYAL", "DeadRoyal", 9)
+                };
                 float tw = 0; var widths = new float[tabs.Length];
                 for (int i = 0; i < tabs.Length; i++)
                 {
-                    float sum = 0; foreach (var ch in tabs[i].Item1) sum += CharW(g, ch, VNav) + 4f;
-                    widths[i] = sum + 64; tw += widths[i];
+                    float sum = 0; foreach (var ch in tabs[i].Item1) sum += CharW(g, ch, FSmallB) + 3f;
+                    widths[i] = sum + 30; tw += widths[i];
                 }
-                float x = (w - tw) / 2f;
+                float x = Math.Max(210, (w - 470 - tw) / 2f);
                 for (int i = 0; i < tabs.Length; i++)
                 {
                     var (label, page, idx) = tabs[i];
                     var r = new Rectangle((int)x, 0, (int)widths[i], BarH - 1);
                     string id = "nav:" + page; Reg(r, id);
-                    float hv = Hv(id); bool active = _page == idx;
-                    Spaced(g, label, VNav, active ? Ink : Mix(Dim, Ink, hv), r.X + r.Width / 2f, BarH / 2f, 4f, StringAlignment.Center);
-                    if (active) g.FillRectangle(Br(Red), r.X + 32, BarH - 4, r.Width - 64, 3);
-                    else if (hv > 0.02f) g.FillRectangle(Br(A(Red, (int)(150 * hv))), r.X + 32, BarH - 4, r.Width - 64, 3);
+                    float hv = Hv(id);
+                    bool active = _page == idx || (_page == 3 && idx == 2);
+                    Spaced(g, label, FSmallB, active ? Ink : Mix(Dim, Ink, hv), r.X + r.Width / 2f, BarH / 2f, 2.5f, StringAlignment.Center);
+                    if (active) g.FillRectangle(Br(Red), r.X + 14, BarH - 4, r.Width - 28, 3);
+                    else if (hv > 0.02f) g.FillRectangle(Br(A(Red, (int)(150 * hv))), r.X + 14, BarH - 4, r.Width - 28, 3);
                     x += widths[i];
                 }
 
                 // perfil + notificações + configurações (antes dos botões da janela)
                 int chipX = w - 440;
-                Avatar(g, chipX + 18, BarH / 2f, 34, _players[0], false);
-                Txt(g, _players[0], FMid, Ink, new RectangleF(chipX + 44, 14, 150, 20));
-                Txt(g, "Convidado", FSmall, Dim, new RectangleF(chipX + 44, 33, 150, 18));
+                var chip = new Rectangle(chipX, 8, 190, 48);
+                Reg(chip, "accountOpen");
+                float chv = Hv("accountOpen");
+                if (chv > 0.01f)
+                {
+                    using var cp = RoundRect(chip, 10);
+                    g.FillPath(Br(A(Color.White, (int)(18 * chv))), cp);
+                }
+                DrawAccountIcon(g, new RectangleF(chipX + 8, 15, 34, 34), AccountStore.Icon(_account?.IconId));
+                Txt(g, (_account?.Nick ?? "CONVIDADO").ToUpperInvariant(), FMid, Ink,
+                    new RectangleF(chipX + 50, 11, 132, 20));
+                g.FillEllipse(Br(_account == null ? OffC : Green), chipX + 51, 35, 7, 7);
+                Txt(g, _account == null ? "Sem conta" : "Online • " + _account.Region, FSmall,
+                    _account == null ? Dim : Green, new RectangleF(chipX + 62, 29, 120, 18));
+
                 UiIconBtn(g, new Rectangle(w - 236, 12, 40, 40), "notif", 0);
+                if (_account != null)
+                {
+                    int unread = AccountStore.UnreadCount(_account);
+                    if (unread > 0)
+                    {
+                        var badge = new Rectangle(w - 236 + 23, 10, 18, 18);
+                        g.FillEllipse(Br(Red), badge);
+                        Txt(g, unread > 9 ? "9+" : unread.ToString(), FTiny, Color.White, badge, StringAlignment.Center);
+                    }
+                }
                 UiIconBtn(g, new Rectangle(w - 188, 12, 40, 40), "cfg", 1);
                 g.DrawLine(Pn(A(Ink, 30), 1f), w - 138, BarH / 2 - 11, w - 138, BarH / 2 + 11);
             }
 
-            // botões da janela: só o ícone fino, afastados da borda (como no Valorant)
+            // botões da janela: só o ícone fino, afastados da borda
             UiIconBtn(g, new Rectangle(w - 120, 12, 40, 40), "min", 2);
             UiIconBtn(g, new Rectangle(w - 72, 12, 40, 40), "close", 3);
         }
@@ -1307,6 +1587,7 @@ namespace Deadzone2D
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
+            InitAccountControls();
             LoadLoginControls();
         }
 
@@ -1351,28 +1632,30 @@ namespace Deadzone2D
 
             UiLogoMark(g, cx, top, 60);
             Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 110, 8f, StringAlignment.Center);
+            Txt(g, "Use sua conta local do Deadzone (Gmail + senha).", FSmall, Dim,
+                new RectangleF(cx - 260, top + 140, 520, 20), StringAlignment.Center);
 
-            var uf = new Rectangle(cx - 190, top + 168, 380, 62);
-            var pf = new Rectangle(cx - 190, top + 244, 380, 62);
-            UiField(g, uf, "NOME DE USUÁRIO", _tbUser);
+            var uf = new Rectangle(cx - 190, top + 176, 380, 62);
+            var pf = new Rectangle(cx - 190, top + 252, 380, 62);
+            UiField(g, uf, "GMAIL (@GMAIL.COM)", _tbUser);
             UiField(g, pf, "SENHA", _tbPass);
 
-            // botão redondo com seta (como no Riot Client)
-            var ab = new Rectangle(cx - 32, top + 336, 64, 64);
+            // botão redondo com seta
+            var ab = new Rectangle(cx - 32, top + 344, 64, 64);
             Reg(ab, "login"); float hv = Hv("login");
             if (hv > 0.01f)
                 for (int i = 3; i >= 1; i--)
                     g.FillEllipse(Br(A(Red, (int)(26 * hv))), ab.X - i * 4, ab.Y - i * 4, ab.Width + i * 8, ab.Height + i * 8);
             g.FillEllipse(Br(Mix(Red, RedHi, hv)), ab);
             var ap = Pn(Color.White, 3f);
-            float ax = cx - 8 + hv * 3, ay = top + 368;
+            float ax = cx - 8 + hv * 3, ay = top + 376;
             g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
             g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
 
-            var gl = new Rectangle(cx - 130, top + 424, 260, 28);
-            Reg(gl, "guest"); float gh = Hv("guest");
-            Spaced(g, "CONTINUAR COMO CONVIDADO", FTiny, Mix(Dim, Ink, gh), cx, top + 438, 3f, StringAlignment.Center);
-            g.FillRectangle(Br(A(Red, (int)(255 * gh))), cx - 100, top + 450, 200, 1);
+            Button(g, new Rectangle(cx - 150, top + 432, 300, 44), "register", "CRIAR CONTA LOCAL", false, FLabel, 3f);
+            if (AccountStore.Accounts.Count > 0)
+                Txt(g, $"{AccountStore.Accounts.Count} conta(s) local(is) neste PC", FTiny, A(Dim, 170),
+                    new RectangleF(0, top + 486, w, 18), StringAlignment.Center);
 
             Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
@@ -1399,7 +1682,7 @@ namespace Deadzone2D
             if (!string.IsNullOrEmpty(info?.Notes))
                 g.DrawString(info!.Notes, FBody, Br(A(Ink, 200)), new RectangleF(card.X + 40, card.Y + 140, card.Width - 80, 56), SfWrap);
 
-            // barra de progresso fina, estilo loader do Valorant
+            // barra de progresso fina, estilo loader do DeadTheme
             var bar = new Rectangle(card.X + 40, card.Y + 214, card.Width - 80, 4);
             g.FillRectangle(Br(A(Ink, 28)), bar);
             float prog = Math.Clamp(UpdateService.DownloadProgress, 0f, 1f);
@@ -1498,7 +1781,14 @@ namespace Deadzone2D
             bool isDeal = _map.Mode == "DealDuo";
             int cx = w / 2;
 
-            // seletor de mapa/modo (topo central, como a fila do Valorant)
+            // perfil do jogador (esquerda)
+            int profileH = Math.Min(430, h - BarH - 190);
+            if (profileH > 240) DrawProfileCard(g, new Rectangle(32, BarH + 24, 280, profileH));
+
+            // saldo de Dead Coins no topo do lobby
+            DrawCoinsChip(g, new Rectangle(w - 48 - 238, BarH + 22, 238, 46), "nav:DeadRoyal");
+
+            // seletor de mapa/modo (topo central)
             var mode = new Rectangle(cx - 230, BarH + 22, 460, 64);
             Reg(mode, "mode"); float mh = Hv("mode");
             using (var p = Chamfer(mode, 12, true, false, true, false))
@@ -1543,23 +1833,18 @@ namespace Deadzone2D
             var btn = new Rectangle(cx - 170, under + 16, 340, 70);
             Button(g, btn, "start", "INICIAR", true, VStart, 8f);
 
-            // party: 5 vagas, você no meio e maior
-            int bottomY = h - 70;
-            int ch0 = Math.Clamp(bottomY - (btn.Bottom + 60), 260, 620);
-            int[] order = { 1, 2, 0, 3, -1 };
-            int sideW = 200, midW = 260, gap = 18;
-            int totalW = sideW * 4 + midW + gap * 4;
-            int x = (w - totalW) / 2;
-            for (int s = 0; s < order.Length; s++)
-            {
-                bool center = s == 2;
-                int cw = center ? midW : sideW;
-                int chh = center ? ch0 : ch0 - 60;
-                var rect = new Rectangle(x, bottomY - chh, cw, chh);
-                x += cw + gap;
-                if (order[s] < 0) DrawInviteSlot(g, rect);
-                else DrawPartyCard(g, rect, order[s], center);
-            }
+            // squad só existe depois que o jogador cria uma (nada é criado no login)
+            DrawSquadRow(g, w, btn.Bottom + 20);
+
+            // acessos rápidos na parte de baixo (Armas saiu do topo e veio para cá)
+            int rowW = 802, rowH = 54;
+            int avail = Math.Max(700, w - 250);
+            int rx = (avail - rowW) / 2, ry = h - 94;
+            Spaced(g, "ACESSOS RÁPIDOS", FTiny, A(Dim, 190), rx, ry - 16, 3f);
+            Button(g, new Rectangle(rx, ry, 190, rowH), "nav:Weapons", "ARMAS", false, VNav, 3f);
+            Button(g, new Rectangle(rx + 204, ry, 190, rowH), "nav:Announcements", "ANÚNCIOS", false, VNav, 3f);
+            Button(g, new Rectangle(rx + 408, ry, 190, rowH), "nav:Cofre", "COFRE", false, VNav, 3f);
+            Button(g, new Rectangle(rx + 612, ry, 190, rowH), "nav:DeadRoyal", "DEAD ROYAL", true, VNav, 2.5f);
         }
 
         private void DrawPartyCard(Graphics g, Rectangle rect, int pi, bool center)
@@ -1643,8 +1928,17 @@ namespace Deadzone2D
             Spaced(g, "SKIN  /  " + skin.Name.ToUpperInvariant(), FLabel, Red, rx, BarH + 138, 3f);
 
             bool equipped = _equipped.TryGetValue(gun.GunId, out var eq) && eq == skin.SkinId;
+            var shopSkin = AccountStore.ShopItemForSkin(gun.GunId, skin.SkinId);
+            bool ownsSkin = shopSkin == null || (_account != null && AccountStore.Owns(_account, shopSkin));
             var eb = new Rectangle(right - 210, BarH + 64, 210, 52);
-            if (equipped)
+            if (!ownsSkin)
+            {
+                using var p = Chamfer(eb, 12, true, false, true, false);
+                g.FillPath(Br(A(Amber, 24)), p);
+                g.DrawPath(Pn(Amber, 1.6f), p);
+                Spaced(g, "COMPRE NA DEAD ROYAL", FTiny, Amber, eb.X + eb.Width / 2f, eb.Y + eb.Height / 2f, 1.5f, StringAlignment.Center);
+            }
+            else if (equipped)
             {
                 using var p = Chamfer(eb, 12, true, false, true, false);
                 g.FillPath(Br(A(Green, 30)), p);
@@ -1700,7 +1994,10 @@ namespace Deadzone2D
                 }
                 Txt(g, s.Name, FMid, Ink, new RectangleF(rect.X + 14, rect.Y + 66, rect.Width - 28, 22));
                 bool isEq = _equipped.TryGetValue(gun.GunId, out var e2) && e2 == s.SkinId;
-                if (isEq) Spaced(g, "EQUIPADA", FTiny, Green, rect.X + 14, rect.Y + 98, 2f);
+                var sShop = AccountStore.ShopItemForSkin(gun.GunId, s.SkinId);
+                bool sOwned = sShop == null || (_account != null && AccountStore.Owns(_account, sShop));
+                if (!sOwned) Spaced(g, "BLOQUEADA", FTiny, Amber, rect.X + 14, rect.Y + 98, 2f);
+                else if (isEq) Spaced(g, "EQUIPADA", FTiny, Green, rect.X + 14, rect.Y + 98, 2f);
             }
         }
 

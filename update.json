@@ -1,6 +1,6 @@
 {
-  "Version": "2.6",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.6.exe",
-  "Notes": "Deadzone2D 2.6 - latest UI, build fixes and working in-game update.",
+  "Version": "2.7",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.7.exe",
+  "Notes": "Deadzone2D 2.7 - local/Gmail accounts, profile, Cofre, announcements, Dead Royal shop and admin console.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

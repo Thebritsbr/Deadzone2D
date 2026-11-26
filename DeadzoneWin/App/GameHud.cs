@@ -82,7 +82,7 @@ namespace Deadzone2D
                 g.FillRectangle(b, r.X + 13 + (i % 2) * 9, r.Y + 10 + (i / 2) * 9, 7, 7);
             }
             Txt(g, "INVENTÁRIO", FLabel, _inventoryOpen ? Color.White : Ink, new RectangleF(r.X + 42, r.Y + 8, 92, 20));
-            Txt(g, "[TAB]", FTiny, _inventoryOpen ? A(Color.White, 190) : Dim, new RectangleF(r.X + 120, r.Y + 10, 44, 16));
+            Txt(g, "[']", FTiny, _inventoryOpen ? A(Color.White, 190) : Dim, new RectangleF(r.X + 120, r.Y + 10, 44, 16));
         }
 
         private void DrawSquadPanel(Graphics g)
@@ -350,7 +350,7 @@ namespace Deadzone2D
 
         private void DrawHints(Graphics g, int w, int h)
         {
-            string hint = "WASD MOVER   •   MOUSE MIRAR   •   CLIQUE ATIRAR   •   R RECARREGAR   •   E PEGAR   •   TAB INVENTÁRIO   •   ESC PAUSA";
+            string hint = "WASD MOVER   •   MOUSE MIRAR   •   CLIQUE ATIRAR   •   R RECARREGAR   •   E PEGAR   •   ' INVENTÁRIO   •   TAB DETALHES   •   ESC PAUSA";
             Txt(g, hint, FTiny, A(Dim, 160), new RectangleF(0, h - 26, w, 16), StringAlignment.Center);
         }
 
