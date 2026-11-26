@@ -10,12 +10,12 @@
 using System;
 using System.Reflection;
 
-[assembly: System.Reflection.AssemblyCompanyAttribute("CrossfireApp")]
+[assembly: System.Reflection.AssemblyCompanyAttribute("Deadzone2DApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9baec89948972ccc9d21081a7b307c2c3b8bbb4b")]
-[assembly: System.Reflection.AssemblyProductAttribute("CrossfireApp")]
-[assembly: System.Reflection.AssemblyTitleAttribute("CrossfireApp")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a8a2f9e3e5ac0da59185e85ddac234850118a23")]
+[assembly: System.Reflection.AssemblyProductAttribute("Deadzone2DApp")]
+[assembly: System.Reflection.AssemblyTitleAttribute("Deadzone2DApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]

@@ -6,15 +6,15 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "CrossfireApp/1.0.0": {
+      "Deadzone2DApp/1.0.0": {
         "runtime": {
-          "CrossfireApp.dll": {}
+          "Deadzone2DApp.dll": {}
         }
       }
     }
   },
   "libraries": {
-    "CrossfireApp/1.0.0": {
+    "Deadzone2DApp/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

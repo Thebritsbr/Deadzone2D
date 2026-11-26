@@ -5,10 +5,10 @@
   },
   "projects": {
     "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\DeadzoneWin\\App\\CrossfireApp.csproj": {
-      "version": "1.3",
+      "version": "1.0.0",
       "restore": {
         "projectUniqueName": "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\DeadzoneWin\\App\\CrossfireApp.csproj",
-        "projectName": "CrossfireApp",
+        "projectName": "Deadzone2DApp",
         "projectPath": "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\DeadzoneWin\\App\\CrossfireApp.csproj",
         "packagesPath": "C:\\Users\\pc\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\pc\\OneDrive\\Desktop\\Deadzone\\DeadzoneWin\\App\\obj\\",

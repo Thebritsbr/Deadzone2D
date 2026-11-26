@@ -1,4 +1,4 @@
-C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\CrossfireApp.exe
+C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Deadzone2DApp.exe
 C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Assets\Guns\Ak47.json
 C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Assets\Guns\Glock.json
 C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Assets\Guns\MiniUZI.json
@@ -41,7 +41,7 @@ C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Config\Maps.json
 C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Config\README.md
 C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Config\Update.json
 C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Config\UpdateConfig.json
-C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\CrossfireApp.dll
-C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\CrossfireApp.deps.json
-C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\CrossfireApp.runtimeconfig.json
-C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\CrossfireApp.pdb
+C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Deadzone2DApp.dll
+C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Deadzone2DApp.deps.json
+C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Deadzone2DApp.runtimeconfig.json
+C:\Users\pc\OneDrive\Desktop\Deadzone\dist\Deadzone\Deadzone2DApp.pdb
