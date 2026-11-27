@@ -29,7 +29,8 @@ namespace Deadzone2D
                 _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegCode, _tbRegDesc,
                 _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
                 _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor,
-                _tbGiveTarget, _tbGiveQuery, _tbGiveCoins, _tbGiveLevel, _tbGiveWins, _tbGiveKills, _tbAdminGmail
+                _tbGiveTarget, _tbGiveQuery, _tbGiveCoins, _tbGiveLevel, _tbGiveWins, _tbGiveKills, _tbAdminGmail,
+                _tbChat
             };
             foreach (var tb in all)
             {
@@ -57,6 +58,7 @@ namespace Deadzone2D
             _tbAnnBody.MaxLength = 600;
             _tbAnnFile.MaxLength = 260;
             _tbAnnAuthor.MaxLength = 30;
+            _tbChat.MaxLength = 160;
             _tbAnnAuthor.Text = "sr.idev";
             _tbAdminUser.Text = "sr.idev";
 
@@ -84,6 +86,7 @@ namespace Deadzone2D
             if (!_accountInputsReady) return;
 
             ShowInput(_tbLoginCode, _page == 1);
+            ShowInput(_tbChat, _chatOpen && (_page >= 2) && _page != 5 && _page != 6);
             bool reg = _page == 6;
             ShowInput(_tbRegGmail, reg);
             ShowInput(_tbRegNick, reg);
@@ -1072,11 +1075,22 @@ namespace Deadzone2D
             int y = r.Y + 182;
             if ((_tbFriendSearch.Text ?? "").Trim().Length < 2)
             {
-                Spaced(g, "DIGITE PELO MENOS 2 CARACTERES", FLabel, Dim, r.X + pw / 2f, y + 60, 3f, StringAlignment.Center);
+                Spaced(g, "TYPE AT LEAST 2 CHARACTERS", FLabel, Dim, r.X + pw / 2f, y + 60, 3f, StringAlignment.Center);
             }
             else if (_friendResults.Count == 0)
             {
-                Spaced(g, "NO ACCOUNT FOUND", FLabel, Dim, r.X + pw / 2f, y + 60, 3f, StringAlignment.Center);
+                Spaced(g, "NO LOCAL ACCOUNT FOUND", FLabel, Dim, r.X + pw / 2f, y + 6, 3f, StringAlignment.Center);
+                string query = (_tbFriendSearch.Text ?? "").Trim();
+                var row = new Rectangle(r.X + 28, y + 26, pw - 56, 52);
+                using (var p = Chamfer(row, 8, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Ink, 8)), p);
+                    g.DrawPath(Pn(A(Line, 140), 1f), p);
+                }
+                Txt(g, query, FMid, Ink, new RectangleF(row.X + 14, row.Y + 6, row.Width - 150, 24));
+                Spaced(g, "ADD BY ID / GMAIL", FTiny, Dim, row.X + 14, row.Y + 32, 2f);
+                Button(g, new Rectangle(row.Right - 118, row.Y + 10, 104, 32), "addRemote:" + query,
+                    "ADD", true, FTiny, 1.5f);
             }
             else
             {
@@ -1447,6 +1461,50 @@ namespace Deadzone2D
             Spaced(g, "CONFIRM", FLabel, Color.White, r.Right - 32 - 75, r.Bottom - 50, 3f, StringAlignment.Center);
         }
 
+        private void DrawChat(Graphics g, int w, int h)
+        {
+            if (!_chatOpen) return;
+            int px = _page == 4 ? 32 : 250;
+            int ph = 248, pw = 430;
+            var r = new Rectangle(px, h - ph - 24, pw, ph);
+            Reg(r, "chatPanel");
+            using (var p = Chamfer(r, 12, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 246)), p);
+                g.DrawPath(Pn(A(Line, 220), 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, "CHAT", FLabel, Red, r.X + 20, r.Y + 24, 3f);
+            SizeBtn(g, new Rectangle(r.X + 88, r.Y + 14, 86, 28), "chatScope:0", "TEAM", _chatScope == 0);
+            SizeBtn(g, new Rectangle(r.X + 180, r.Y + 14, 86, 28), "chatScope:1", "ALL", _chatScope == 1);
+            var close = new Rectangle(r.Right - 42, r.Y + 12, 28, 28);
+            Reg(close, "chatClose");
+            var xp = Pn(Mix(Dim, Ink, Hv("chatClose")), 1.6f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            var view = new Rectangle(r.X + 10, r.Y + 48, r.Width - 20, 128);
+            var team = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (_account != null)
+                foreach (var id in _account.Friends) team.Add(id);
+            string scope = _chatScope == 1 ? "all" : "team";
+            var list = ChatStore.For(scope, _account?.UserId ?? "", team);
+            int y = view.Bottom - 8;
+            int count = 0;
+            for (int i = list.Count - 1; i >= 0 && count < 7; i--, count++)
+            {
+                var m = list[i];
+                y -= 22;
+                if (y < view.Top) break;
+                var col = m.Scope == "all" ? Amber : Green;
+                Spaced(g, m.Author.ToUpperInvariant(), FTiny, col, view.X + 6, y + 6, 1.5f);
+                Txt(g, m.Text, FSmall, Ink, new RectangleF(view.X + 86, y, view.Width - 92, 18));
+            }
+
+            UiField(g, new Rectangle(r.X + 10, r.Y + 180, r.Width - 20, 44), "MESSAGE (ENTER TO SEND)", _tbChat);
+            Button(g, new Rectangle(r.Right - 100, r.Bottom - 46, 88, 32), "chatSend", "SEND", true, FTiny, 1.5f);
+        }
+
         private void AdminLogin()
         {
             if (AccountStore.VerifyAdmin(_tbAdminUser.Text, _tbAdminPass.Text))
@@ -1615,6 +1673,8 @@ namespace Deadzone2D
                 if (a == null) continue;
                 _friendList.Add(new Friend(a.Nick, a.DisplayName + "  •  " + a.UserId, FStatus.Online, a.UserId));
             }
+            foreach (var remote in _account.RemoteContacts)
+                _friendList.Add(new Friend(remote, "Remote  •  " + remote, FStatus.Offline, remote));
             _friendRequests.Clear();
             _friendRequests.AddRange(_account.FriendRequests);
         }

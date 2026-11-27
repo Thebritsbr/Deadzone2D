@@ -170,6 +170,10 @@ namespace Deadzone2D
         private TextBox _tbGiveWins = new();
         private TextBox _tbGiveKills = new();
         private TextBox _tbAdminGmail = new();
+        private TextBox _tbChat = new();
+        private bool _chatOpen;
+        private int _chatScope; // 0 = team, 1 = all
+
 
         // ---------- Estado ----------
         private readonly System.Windows.Forms.Timer _timer;
@@ -255,6 +259,7 @@ namespace Deadzone2D
 
             _custom = LoadCustomize();
             Text = _custom.WindowTitle;
+            ChatStore.Load();
             Loc.Load();
             _langSelected = Array.IndexOf(Loc.Languages, Loc.Language);
             if (_langSelected < 0) _langSelected = 0;
@@ -671,6 +676,23 @@ namespace Deadzone2D
             while (_toasts.Count > 5) _toasts.RemoveAt(_toasts.Count - 1);
         }
 
+        private void SendChat()
+        {
+            if (!_chatOpen || _account == null) return;
+            string text = (_tbChat.Text ?? "").Trim();
+            if (text.Length == 0) return;
+            ChatStore.Add(new ChatMessage
+            {
+                UserId = _account.UserId,
+                Author = _account.Nick,
+                Text = text,
+                Scope = _chatScope == 1 ? "all" : "team",
+                At = DateTime.UtcNow
+            });
+            _tbChat.Text = "";
+            ShowToast("Message sent" + (ChatStore.Messages.Last().Text != text ? " (filtered)" : "") + ".");
+        }
+
         private void StartLoading(string title, float seconds, Action done)
         {
             _loading = true;
@@ -813,6 +835,21 @@ namespace Deadzone2D
                     ShowToast("Banner equipado.");
                 }
                 else ShowToast("You do not own this banner yet.");
+                return;
+            }
+            if (id.StartsWith("addRemote:", StringComparison.OrdinalIgnoreCase))
+            {
+                string value = id.Substring(10);
+                if (_account != null)
+                {
+                    if (!AccountStore.AddRemoteContact(_account, value, out var rerr)) ShowToast(rerr);
+                    else { LoadFriendsFromAccount(); ShowToast("Contact added: " + value); }
+                }
+                return;
+            }
+            if (id.StartsWith("chatScope:", StringComparison.OrdinalIgnoreCase))
+            {
+                _chatScope = id.EndsWith("1") ? 1 : 0;
                 return;
             }
             if (id.StartsWith("lang:", StringComparison.OrdinalIgnoreCase))
@@ -1000,6 +1037,14 @@ namespace Deadzone2D
                     StartLoading("ENTERING GAME", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
+                case "chatOpen":
+                    _chatOpen = true;
+                    _chatScope = 0;
+                    _tbChat.Text = "";
+                    BeginInvoke((Action)(() => { if (_chatOpen) _tbChat.Focus(); }));
+                    break;
+                case "chatClose": _chatOpen = false; break;
+                case "chatSend": SendChat(); break;
                 case "langSave":
                     _langConfirmOpen = true;
                     _langConfirmLeft = 3f;
@@ -1251,7 +1296,13 @@ namespace Deadzone2D
                     var cand = _friendList.FirstOrDefault(f => !_groupMembers.Contains(f.Name));
                     if (cand == null) { ShowToast("Add friends to invite."); _friendsOpen = true; break; }
                     var target = AccountStore.FindByUserId(cand.UserId);
-                    if (target == null || _account == null) break;
+                    if (_account == null) break;
+                    if (target == null)
+                    {
+                        AccountStore.QueueRemoteGroupInvite(_account, cand.UserId);
+                        ShowToast("Group invite queued for " + cand.Name + ".");
+                        break;
+                    }
                     if (!AccountStore.SendGroupInvite(_account, target, out var gerr))
                     { ShowToast(gerr); break; }
                     LoadFriendsFromAccount();
@@ -1334,6 +1385,27 @@ namespace Deadzone2D
             base.OnKeyDown(e);
             if (_loading)
             {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                return;
+            }
+
+            if (_chatOpen && e.KeyCode == Keys.Enter)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                SendChat();
+                return;
+            }
+            if (_chatOpen && e.KeyCode == Keys.Escape)
+            {
+                _chatOpen = false;
+                e.Handled = true;
+                return;
+            }
+            if (e.KeyCode == Keys.T && !_chatOpen && (_page == 2 || _page == 3 || _page == 4 || _page == 7 || _page == 8 || _page == 9))
+            {
+                Activate("chatOpen");
                 e.Handled = true;
                 e.SuppressKeyPress = true;
                 return;
@@ -1814,6 +1886,7 @@ namespace Deadzone2D
             if (hub) DrawSideNav(g, w, h);
             if (hub) DrawFriends(g, w, h);
             if (hub) DrawConfigPanel(g, w, h);
+            if (_chatOpen && (_page == 2 || _page == 3 || _page == 4 || _page == 7 || _page == 8 || _page == 9)) DrawChat(g, w, h);
             if (_notifOpen) DrawNotifications(g, w, h);
             if (_profileOpen) DrawProfilePanel(g, w, h);
             if (_rankInfoOpen) DrawRankInfo(g, w, h);
@@ -2200,8 +2273,8 @@ namespace Deadzone2D
             Spaced(g, "LANGUAGE", FLabel, Dim, rx, y + 4, 3f);
             string[] langLabels = { "en-US", "pt-BR", "es-ES" };
             for (int i = 0; i < langLabels.Length; i++)
-                SizeBtn(g, new Rectangle(rx + i * 126, y + 22, 118, 28), "lang:" + i, langLabels[i], _langSelected == i);
-            Button(g, new Rectangle(rx + rw - 170, y + 4, 170, 36), "langSave", "SAVE LANGUAGE", false, FTiny, 1.5f);
+                SizeBtn(g, new Rectangle(rx + i * 106, y + 16, 100, 30), "lang:" + i, langLabels[i], _langSelected == i);
+            Button(g, new Rectangle(rx + 326, y + 16, rw - 326, 30), "langSave", "SAVE LANGUAGE", false, FTiny, 1.5f);
             y += rowH;
             UiToggleRow(g, rx, y, rw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "DESON", "cfgOpt", _cfgOpt);
             y += rowH;

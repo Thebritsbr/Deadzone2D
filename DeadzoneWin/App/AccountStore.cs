@@ -36,6 +36,7 @@ namespace Deadzone2D
         public List<string> FriendRequests { get; set; } = new();
         public List<string> SentFriendRequests { get; set; } = new();
         public List<string> GroupInvites { get; set; } = new();
+        public List<string> RemoteContacts { get; set; } = new();
         public List<string> ReadNotifications { get; set; } = new();
         public Dictionary<string, string> EquippedSkins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         // migração única: contas antigas liberavam todos os icons/banners para teste
@@ -194,7 +195,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Welcome to Deadzone 3.9",
+                        Title = "Welcome to Deadzone 4.0",
                         Body = "New lobby, real Google sign-in, player profile, Cofre, announcements and the Dead Royal store. " +
                                "Use CTRL + SHIFT + P on an admin account to open the admin panel.",
                         Author = "Lume Studio INC",
@@ -211,12 +212,12 @@ namespace Deadzone2D
                     });
                     dirty = true;
                 }
-                if (!Announcements.Any(a => a.Title == "Deadzone2D 3.9 Release"))
+                if (!Announcements.Any(a => a.Title == "Deadzone2D 4.0 Release"))
                 {
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Deadzone2D 3.9 Release",
+                        Title = "Deadzone2D 4.0 Release",
                         Body = "Friend requests are now sent between accounts and must be accepted. " +
                                "Group invites also send a request. A rank/XP system and a new requirements page are available.",
                         Author = "Lume Studio INC",
@@ -313,6 +314,7 @@ namespace Deadzone2D
             a.FriendRequests ??= new List<string>();
             a.SentFriendRequests ??= new List<string>();
             a.GroupInvites ??= new List<string>();
+            a.RemoteContacts ??= new List<string>();
             a.ReadNotifications ??= new List<string>();
             a.Tags ??= new List<string>();
             if (a.EquippedSkins == null || a.EquippedSkins.Comparer != StringComparer.OrdinalIgnoreCase)
@@ -654,6 +656,22 @@ namespace Deadzone2D
             SaveAccounts();
         }
 
+        // Contato informado pelo Gmail/UserID mesmo sem a conta existir neste PC.
+        public static bool AddRemoteContact(Account acc, string value, out string error)
+        {
+            error = "";
+            value = (value ?? "").Trim();
+            if (value.Length < 3) { error = "Informe um UserID ou Gmail válido."; return false; }
+            if (acc.Friends.Contains(value, StringComparer.OrdinalIgnoreCase) ||
+                acc.RemoteContacts.Contains(value, StringComparer.OrdinalIgnoreCase))
+            { error = "Este contato já está na sua lista."; return false; }
+            acc.RemoteContacts.Add(value);
+            if (!acc.SentFriendRequests.Contains(value, StringComparer.OrdinalIgnoreCase))
+                acc.SentFriendRequests.Add(value);
+            SaveAccounts();
+            return true;
+        }
+
         // Group invites are stored in FriendRequests with a "G:" prefix.
         public static bool SendGroupInvite(Account from, Account to, out string error)
         {
@@ -667,6 +685,14 @@ namespace Deadzone2D
                 to.GroupInvites.Add(from.UserId);
             SaveAccounts();
             return true;
+        }
+
+        public static void QueueRemoteGroupInvite(Account acc, string remoteId)
+        {
+            string key = "G:" + remoteId;
+            if (!acc.SentFriendRequests.Contains(key, StringComparer.OrdinalIgnoreCase))
+                acc.SentFriendRequests.Add(key);
+            SaveAccounts();
         }
 
         public static void AcceptGroupInvite(Account acc, string fromUserId)
