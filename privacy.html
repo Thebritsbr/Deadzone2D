@@ -1,52 +1,52 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Deadzone — Política de Privacidade</title>
+<title>Deadzone — Privacy Policy</title>
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="topbar"><div class="brand"><span class="logo">D</span> DEADZONE</div>
-<nav><a class="tablink" href="index.html">DOWNLOAD</a><a class="tablink" href="requirements.html">REQUIREMENTS</a><a class="tablink active" href="privacy.html">PRIVACIDADE</a><a class="tablink" href="terms.html">TERMS</a><a class="tablink" href="releases.html">RELEASES</a></nav></header>
+<nav><a class="tablink" href="index.html">DOWNLOAD</a><a class="tablink" href="requirements.html">REQUIREMENTS</a><a class="tablink active" href="privacy.html">PRIVACY</a><a class="tablink" href="terms.html">TERMS</a><a class="tablink" href="releases.html">RELEASES</a></nav></header>
 <main>
-<p class="hint">Publicado em 26/11/2026 | Lume Studio INC | Deadzone2D v3.7</p>
+<p class="hint">Published 2026-11-27 | Lume Studio INC | Deadzone2D v3.8</p>
 
-<h2 class="lead">Política de Privacidade</h2>
-<p class="lead">Esta política explica quais dados o Deadzone2D utiliza, onde eles ficam e quais são os seus direitos.</p>
+<h2 class="lead">Privacy Policy</h2>
+<p class="lead">This policy explains what data Deadzone2D uses, where it is stored and what rights you have.</p>
 
-<div class="card"><div class="row"><span class="key">1. Quem é o responsável</span><span class="value">Lume Studio INC</span></div>
-<p class="hint">O Deadzone2D é publicado pela Lume Studio INC. O jogo funciona predominantemente offline e não exige a criação de uma conta em servidor próprio.</p></div>
+<div class="card"><div class="row"><span class="key">1. Who is responsible</span><span class="value">Lume Studio INC</span></div>
+<p class="hint">Deadzone2D is published by Lume Studio INC. The game works mostly offline and does not require an account on a server we own.</p></div>
 
-<div class="card"><div class="row"><span class="key">2. Dados que o jogo guarda</span><span class="value">No seu computador</span></div>
-<p class="hint">Ao criar uma conta local, o aplicativo salva no seu PC: endereço de Gmail, Nick, DisplayName, descrição, região, UserID, ícone e banner escolhidos, data de criação, saldo de Dead Coins, amigos, notificações lidas e itens comprados na loja Dead Royal. A senha nunca é guardada em texto puro: é armazenada como hash PBKDF2 com salt.</p>
-<p class="hint">Local dos arquivos: <b>%LOCALAPPDATA%\Deadzone2D</b> (accounts.json, announcements.json, notifications.json, admin.json, DeadRoyalShop.json e pasta media). Esses arquivos permanecem no dispositivo e sobrevivem às atualizações do jogo.</p></div>
+<div class="card"><div class="row"><span class="key">2. Data stored on your device</span><span class="value">Local files</span></div>
+<p class="hint">When you create a local account, the app saves on your PC: Gmail address, Nick, DisplayName, description, region, UserID, chosen icon and banner, creation date, Dead Coins, friends, read notifications and items bought in the Dead Royal store. Passwords are never stored in plain text; they are saved as a PBKDF2 hash with a salt.</p>
+<p class="hint">Location: <b>%LOCALAPPDATA%\Deadzone2D</b> (accounts.json, announcements.json, notifications.json, admin.json, DeadRoyalShop.json and the media folder). These files survive game updates.</p></div>
 
-<div class="card"><div class="row"><span class="key">3. Login com Google</span><span class="value">Opcional</span></div>
-<p class="hint">Quando você escolhe "Entrar com Google", o aplicativo abre a página oficial do Google para autenticação. O Google informa ao jogo o seu endereço de e-mail, nome, ID da conta e foto de perfil. O Deadzone2D não recebe e não armazena a sua senha do Google, nem salva o token de acesso. O e-mail do Google é usado para identificar a sua conta no jogo; se já existir uma conta local com o mesmo e-mail, ela é reutilizada.</p>
-<p class="hint">O retorno da autorização é recebido em uma porta local (127.0.0.1:53682) apenas durante o login. É necessário configurar um Client ID e Client Secret do Google no arquivo Config/Google.json do aplicativo.</p></div>
+<div class="card"><div class="row"><span class="key">3. Google sign-in</span><span class="value">Optional</span></div>
+<p class="hint">When you choose SIGN IN WITH GOOGLE, the app opens the official Google page. Google provides the game with your email address, name, account ID and profile picture. Deadzone2D never receives or stores your Google password and does not save the access token. Your Google email is used to identify your profile; an existing local account with the same email is reused.</p>
+<p class="hint">The authorization response is received on a local port (127.0.0.1:53682) only during sign-in. A Client ID and Client Secret from Google Cloud must be configured in Config/Google.json.</p></div>
 
-<div class="card"><div class="row"><span class="key">4. Verificação por e-mail</span><span class="value">Opcional</span></div>
-<p class="hint">Se o envio por SMTP estiver configurado em Config/Mail.json, o jogo envia um código de 6 dígitos ao Gmail informado no cadastro. O código expira em 5 minutos e é descartado após a validação. Sem configuração, o código aparece somente na tela do próprio computador, para testes.</p></div>
+<div class="card"><div class="row"><span class="key">4. Email verification</span><span class="value">Optional</span></div>
+<p class="hint">If SMTP is configured in Config/Mail.json, a 6-digit code is sent to the Gmail address you entered. The code expires after 5 minutes and is discarded after validation. Without configuration, the code is shown on screen for local testing.</p></div>
 
-<div class="card"><div class="row"><span class="key">5. Uso dos dados</span><span class="value">Finalidades</span></div>
-<p class="hint">Os dados são usados apenas para: autenticar o jogador, exibir o perfil (status, UserID, idade da conta e descrição), manter a lista de amigos local, personalizar ícones e banners, registrar compras na loja Dead Royal e mostrar notificações e anúncios criados pelo administrador.</p></div>
+<div class="card"><div class="row"><span class="key">5. How data is used</span><span class="value">Purposes</span></div>
+<p class="hint">Data is used only to authenticate the player, display the profile (status, UserID, account age and description), keep the local friend list, customize icons and banners, record Dead Royal purchases and show notifications and administrator announcements.</p></div>
 
-<div class="card"><div class="row"><span class="key">6. Compartilhamento</span><span class="value">Nenhum servidor próprio</span></div>
-<p class="hint">Não vendemos, alugamos ou compartilhamos seus dados com terceiros. Não há servidor central de contas. A única comunicação externa ocorre se você optar pelo login com Google ou se o envio de e-mail estiver configurado por você no arquivo de configuração.</p></div>
+<div class="card"><div class="row"><span class="key">6. Sharing</span><span class="value">No central server</span></div>
+<p class="hint">We do not sell, rent or share your data with third parties. There is no central account server. The only external communication happens if you choose Google sign-in or if email sending is configured by you.</p></div>
 
-<div class="card"><div class="row"><span class="key">7. Atualizações do jogo</span><span class="value">GitHub Pages</span></div>
-<p class="hint">Ao iniciar o jogo, é consultado o arquivo update.json publicado neste site apenas para verificar a versão disponível. O download do instalador da nova versão só acontece mediante a sua solicitação no painel de atualização.</p></div>
+<div class="card"><div class="row"><span class="key">7. Game updates</span><span class="value">GitHub Pages</span></div>
+<p class="hint">On startup, the game checks a public update manifest on this site only to detect the available version. A new installer is downloaded only when you request the update.</p></div>
 
-<div class="card"><div class="row"><span class="key">8. Permissões</span><span class="value">Mínimas</span></div>
-<p class="hint">O jogo não solicita câmera, microfone, localização, contatos do dispositivo nem permissão de administrador para fins de coleta de dados. A janela do navegador é aberta somente quando você escolhe entrar com o Google.</p></div>
+<div class="card"><div class="row"><span class="key">8. Permissions</span><span class="value">Minimal</span></div>
+<p class="hint">The game does not request camera, microphone, location, device contacts or administrator access for data collection. The browser opens only when you choose Google sign-in.</p></div>
 
-<div class="card"><div class="row"><span class="key">9. Seus direitos (LGPD)</span><span class="value">Você controla os dados</span></div>
-<p class="hint">Você pode consultar e corrigir seus dados no Perfil do jogo (DisplayName e descrição), excluir a conta local apagando a pasta %LOCALAPPDATA%\Deadzone2D e revogar o acesso do Deadzone2D à sua conta Google nas configurações de segurança do Google. Para solicitar informações ou ajuda, abra uma issue no repositório do projeto.</p></div>
+<div class="card"><div class="row"><span class="key">9. Your rights (LGPD/GDPR)</span><span class="value">You control your data</span></div>
+<p class="hint">You can view and correct your data in the in-game profile (DisplayName and description), delete a local account by removing the %LOCALAPPDATA%\Deadzone2D folder and revoke Deadzone2D access in your Google account settings. For help, open an issue in the project repository.</p></div>
 
-<div class="card"><div class="row"><span class="key">10. Mudanças nesta política</span><span class="value">26/11/2026</span></div>
-<p class="hint">Alterações nesta política serão publicadas nesta página com a data de atualização. Recomendamos revisar o conteúdo periodicamente.</p></div>
+<div class="card"><div class="row"><span class="key">10. Changes</span><span class="value">2026-11-27</span></div>
+<p class="hint">Changes to this policy will be published on this page with the update date.</p></div>
 
-<p class="hint">Contato: <a style="color:#f2c846" href="https://github.com/Thebritsbr/Deadzone2D/issues">github.com/Thebritsbr/Deadzone2D/issues</a></p>
+<p class="hint">Contact: <a style="color:#f2c846" href="https://github.com/Thebritsbr/Deadzone2D/issues">github.com/Thebritsbr/Deadzone2D/issues</a></p>
 </main>
 </body></html>

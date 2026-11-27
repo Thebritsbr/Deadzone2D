@@ -11,7 +11,7 @@
         { "Type": "car", "Count": 4, "Usable": false },
         { "Type": "truck", "Count": 2, "Usable": true }
       ],
-      "BarrierType": "carros e caminhões queimados (visual/colisão inicial)",
+      "BarrierType": "burned cars and trucks (visual/initial collision)",
       "MaxWins": 3,
       "WinText": "You Win!",
       "WinColor": "Amarelo Dourado",
@@ -30,7 +30,7 @@
         { "Type": "car", "Count": 8, "Usable": false },
         { "Type": "truck", "Count": 4, "Usable": false }
       ],
-      "BarrierType": "veículos abandonados (inimigos não podem usá-los)",
+      "BarrierType": "abandoned vehicles (enemies cannot use them)",
       "MaxWins": 3,
       "WinText": "You Win!",
       "WinColor": "Amarelo Dourado",

@@ -44,7 +44,7 @@ namespace Deadzone2D
             error = "";
             if (!IsConfigured)
             {
-                error = "SMTP não configurado. Configure Config/Mail.json para envio real.";
+                error = "SMTP not configured. Configure Config/Mail.json for real sending.";
                 return false;
             }
             try
@@ -59,9 +59,9 @@ namespace Deadzone2D
                 using var msg = new MailMessage
                 {
                     From = new MailAddress(Config.User, Config.FromName),
-                    Subject = "Deadzone2D - código de verificação",
-                    Body = "Seu código de verificação Deadzone2D é: " + code +
-                           "\n\nEle expira em 5 minutos. Se você não solicitou, ignore este e-mail.",
+                    Subject = "Deadzone2D - verification code",
+                    Body = "Your Deadzone2D verification code is: " + code +
+                           "\n\nIt expires in 5 minutes. If you did not request it, ignore this email.",
                     IsBodyHtml = false
                 };
                 msg.To.Add(to);
@@ -70,7 +70,7 @@ namespace Deadzone2D
             }
             catch (Exception ex)
             {
-                error = "Não foi possível enviar o e-mail: " + ex.Message;
+                error = "Could not send the email: " + ex.Message;
                 return false;
             }
         }

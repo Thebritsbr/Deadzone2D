@@ -1,12 +1,12 @@
 [
   { "Level": 1,  "Name": "Ferro",      "Xp": 0,    "Color": "#8B979F", "Description": "Recruta do Deadzone." },
-  { "Level": 2,  "Name": "Bronze",     "Xp": 100,  "Color": "#C07A45", "Description": "Primeiros combates concluídos." },
+  { "Level": 2,  "Name": "Bronze",     "Xp": 100,  "Color": "#C07A45", "Description": "First matches completed." },
   { "Level": 3,  "Name": "Prata",      "Xp": 250,  "Color": "#B8C4CE", "Description": "Jogador consistente." },
   { "Level": 4,  "Name": "Ouro",       "Xp": 500,  "Color": "#F5C542", "Description": "Veterano de campo." },
-  { "Level": 5,  "Name": "Platina",    "Xp": 850,  "Color": "#76C4D4", "Description": "Tática afiada." },
+  { "Level": 5,  "Name": "Platina",    "Xp": 850,  "Color": "#76C4D4", "Description": "Sharp tactics." },
   { "Level": 6,  "Name": "Diamante",   "Xp": 1300, "Color": "#55D6F0", "Description": "Elite do lobby." },
-  { "Level": 7,  "Name": "Ascendente", "Xp": 1900, "Color": "#B478FF", "Description": "Acima da média." },
-  { "Level": 8,  "Name": "Imortal",    "Xp": 2700, "Color": "#FF4655", "Description": "Difícil de derrubar." },
+  { "Level": 7,  "Name": "Ascendente", "Xp": 1900, "Color": "#B478FF", "Description": "Above average." },
+  { "Level": 8,  "Name": "Imortal",    "Xp": 2700, "Color": "#FF4655", "Description": "Hard to take down." },
   { "Level": 9,  "Name": "Radiante",   "Xp": 3800, "Color": "#FF8A4C", "Description": "Topo do ranking." },
   { "Level": 10, "Name": "Lenda",      "Xp": 5200, "Color": "#FFD76A", "Description": "Lenda do Deadzone2D." }
 ]

@@ -1,4 +1,4 @@
-// RankStore.cs — ranks e progressão de nível carregados de Config/Ranks.json.
+// RankStore.cs — ranks e progressão de level carregados de Config/Ranks.json.
 using System;
 using System.Collections.Generic;
 using System.Drawing;

@@ -31,8 +31,8 @@ namespace Deadzone2D
                 g.DrawPath(Pn(A(Red, (int)(220 * t)), 1.5f), path);
             g.FillRectangle(Br(A(Red, (int)(255 * t))), r.X + 22, r.Y, r.Width - 44, 3);
 
-            Txt(g, "INVENTÁRIO", F(40), A(Ink, (int)(255 * t)), new RectangleF(r.X + 26, r.Y + 16, 320, 44));
-            Spaced(g, "EQUIPAMENTO E CONSUMÍVEIS", FTiny, A(Dim, (int)(230 * t)), r.X + 28, r.Y + 66, 3f);
+            Txt(g, "INVENTORY", F(40), A(Ink, (int)(255 * t)), new RectangleF(r.X + 26, r.Y + 16, 320, 44));
+            Spaced(g, "EQUIPMENT AND CONSUMABLES", FTiny, A(Dim, (int)(230 * t)), r.X + 28, r.Y + 66, 3f);
 
             var close = new Rectangle(r.Right - 54, r.Y + 18, 34, 34);
             Reg(close, "invClose");
@@ -53,7 +53,7 @@ namespace Deadzone2D
             Txt(g, p.Weapon.Name, FTitle, A(Ink, (int)(255 * t)), new RectangleF(gunCard.X + 16, gunCard.Y + 30, 290, 46));
             Txt(g, "DANO", FTiny, Dim, new RectangleF(gunCard.X + 16, gunCard.Y + 86, 70, 16));
             Txt(g, p.Weapon.Damage.ToString(), FName, A(Ink, (int)(255 * t)), new RectangleF(gunCard.X + 88, gunCard.Y + 82, 60, 24));
-            Txt(g, "CADÊNCIA", FTiny, Dim, new RectangleF(gunCard.X + 16, gunCard.Y + 114, 80, 16));
+            Txt(g, "FIRE RATE", FTiny, Dim, new RectangleF(gunCard.X + 16, gunCard.Y + 114, 80, 16));
             Txt(g, $"{1f / Math.Max(.01f, p.Weapon.FireInterval):0.0}/s", FSmallB, A(Ink, (int)(255 * t)), new RectangleF(gunCard.X + 96, gunCard.Y + 112, 90, 20));
             Txt(g, "ALCANCE", FTiny, Dim, new RectangleF(gunCard.X + 16, gunCard.Y + 142, 80, 16));
             Txt(g, $"{(int)p.Weapon.Range}m", FSmallB, A(Ink, (int)(255 * t)), new RectangleF(gunCard.X + 96, gunCard.Y + 140, 90, 20));
@@ -72,10 +72,10 @@ namespace Deadzone2D
             var coin = new Rectangle(r.X + 560, r.Y + 96, 174, 100);
             var vest = new Rectangle(r.X + 376, r.Y + 208, 172, 100);
             var ammo = new Rectangle(r.X + 560, r.Y + 208, 174, 100);
-            InvCard(g, med, "KIT MÉDICO", "x" + p.Medkits, p.Medkits > 0 ? HpGreen : Dim, t, "invMed", p.Medkits > 0);
+            InvCard(g, med, "MEDKIT", "x" + p.Medkits, p.Medkits > 0 ? HpGreen : Dim, t, "invMed", p.Medkits > 0);
             InvCard(g, coin, "MOEDAS", p.Coins.ToString(), Amber, t, null, false);
             InvCard(g, vest, "COLETE", ((int)p.Armor).ToString(), Blue, t, null, false);
-            InvCard(g, ammo, "MUNIÇÃO", p.Reserve.ToString(), Ink, t, null, false);
+            InvCard(g, ammo, "AMMO", p.Reserve.ToString(), Ink, t, null, false);
 
             // resumo
             var info = new Rectangle(r.X + 26, r.Y + 324, 708, 104);
@@ -84,7 +84,7 @@ namespace Deadzone2D
             Txt(g, "MORTES  " + p.Deaths, FSmallB, A(Dim, (int)(230 * t)), new RectangleF(info.X + 180, info.Y + 16, 160, 20));
             Txt(g, "MODO  " + (_g.Kind == SessionKind.Royale ? "DEAD ROYALE" : _g.Mode == "SquadBattle" ? "SQUAD BATTLE" : "DEAL DUO"),
                 FSmallB, A(Dim, (int)(230 * t)), new RectangleF(info.X + 18, info.Y + 48, 420, 20));
-            Txt(g, "H  USAR KIT MÉDICO     '  FECHAR", FTiny, A(Dim, (int)(190 * t)),
+            Txt(g, "H  USE MEDKIT     '  CLOSE", FTiny, A(Dim, (int)(190 * t)),
                 new RectangleF(info.X + 18, info.Y + 76, 600, 16));
         }
 
@@ -112,13 +112,13 @@ namespace Deadzone2D
             g.FillRectangle(Br(A(BgDeep, (int)(205 * t))), 0, 0, w, h);
             float y = h / 2f - 180;
             Spaced(g, "PAUSADO", FTitle, A(Ink, (int)(255 * t)), w / 2f, y, 8f, StringAlignment.Center);
-            Txt(g, "A partida está congelada", FBody, A(Dim, (int)(220 * t)),
+            Txt(g, "The match is paused", FBody, A(Dim, (int)(220 * t)),
                 new RectangleF(0, y + 38, w, 24), StringAlignment.Center);
             var b1 = new Rectangle(w / 2 - 190, (int)y + 96, 380, 62);
             var b2 = new Rectangle(w / 2 - 190, (int)y + 174, 380, 54);
             Button(g, b1, "resume", "CONTINUAR", true, FBtn, 4f);
-            Button(g, b2, "lobbyNow", "SAIR PARA O LOBBY", false, FMid, 3f);
-            Txt(g, "ESC para voltar ao jogo", FTiny, A(Dim, (int)(180 * t)),
+            Button(g, b2, "lobbyNow", "LEAVE TO LOBBY", false, FMid, 3f);
+            Txt(g, "ESC to return to the game", FTiny, A(Dim, (int)(180 * t)),
                 new RectangleF(0, y + 246, w, 18), StringAlignment.Center);
         }
 
@@ -137,7 +137,7 @@ namespace Deadzone2D
             var panel = new Rectangle(px, py, pw, ph);
             FillRoundedRect(g, panel, A(Panel, (int)(225 * t)), 10);
             using (var path = RoundRect(panel, 10)) g.DrawPath(Pn(A(HpRed, (int)(180 * t)), 1.2f), path);
-            Spaced(g, "VOCÊ MORREU", FLabel, A(HpRed, (int)(255 * t)), panel.X + 22, panel.Y + 18, 4f);
+            Spaced(g, "YOU DIED", FLabel, A(HpRed, (int)(255 * t)), panel.X + 22, panel.Y + 18, 4f);
             Txt(g, "ESPECTANDO", FTiny, A(Dim, (int)(210 * t)), new RectangleF(panel.Right - 120, panel.Y + 10, 100, 16), StringAlignment.Far);
 
             var list = _g.SpectateList();
@@ -173,7 +173,7 @@ namespace Deadzone2D
                 using (var p = RoundRect(Rectangle.Inflate(lobby, 3, 3), 10))
                     g.DrawPath(Pn(A(Color.White, (int)(120 * lhv)), 2f), p);
             Txt(g, "LOBBY", FName, Color.FromArgb(20, 24, 28), new RectangleF(lobby.X, lobby.Y, lobby.Width, lobby.Height), StringAlignment.Center);
-            Txt(g, "Use as setas para trocar de jogador", FTiny, A(Dim, (int)(190 * t)),
+            Txt(g, "Use arrow keys to switch player", FTiny, A(Dim, (int)(190 * t)),
                 new RectangleF(0, h - 54, w, 16), StringAlignment.Center);
         }
 

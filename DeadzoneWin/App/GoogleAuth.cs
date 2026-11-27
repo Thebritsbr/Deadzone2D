@@ -76,7 +76,7 @@ namespace Deadzone2D
             }
             catch (Exception ex)
             {
-                error = "Não foi possível salvar: " + ex.Message;
+                error = "Could not save: " + ex.Message;
                 return false;
             }
         }
@@ -122,7 +122,7 @@ namespace Deadzone2D
                         int n = stream.Read(buf, 0, buf.Length);
                         raw = Encoding.UTF8.GetString(buf, 0, Math.Max(0, n));
                         string page = "<html><body style='background:#0F1923;color:#ECE8E1;font-family:Arial;text-align:center;padding:60px'>" +
-                                      "<h1>Deadzone2D</h1><p>Você pode fechar esta janela e voltar ao jogo.</p></body></html>";
+                                      "<h1>Deadzone2D</h1><p>You can close this window and return to the game.</p></body></html>";
                         var reply = Encoding.UTF8.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n" +
                                                            "Content-Length: " + Encoding.UTF8.GetByteCount(page) + "\r\n" +
                                                            "Connection: close\r\n\r\n" + page);
@@ -134,12 +134,12 @@ namespace Deadzone2D
 
                 var first = raw.Split('\n')[0];
                 var parts = first.Split(' ');
-                if (parts.Length < 2) { error = "Resposta inválida do Google."; return false; }
+                if (parts.Length < 2) { error = "Invalid response from Google."; return false; }
                 var query = ParseQuery(parts[1].Contains('?') ? parts[1].Split('?')[1] : "");
                 if (!query.TryGetValue("state", out var returnedState) || returnedState != state)
-                { error = "Falha de segurança: estado inválido. Tente novamente."; return false; }
+                { error = "Security error: invalid state. Please try again."; return false; }
                 if (!query.TryGetValue("code", out var code) || string.IsNullOrWhiteSpace(code))
-                { error = "O Google não retornou o código de autorização."; return false; }
+                { error = "Google did not return an authorization code."; return false; }
 
                 using var form = new FormUrlEncodedContent(new[]
                 {
@@ -151,10 +151,10 @@ namespace Deadzone2D
                 });
                 var tokenRes = Http.PostAsync("https://oauth2.googleapis.com/token", form).GetAwaiter().GetResult();
                 var tokenJson = tokenRes.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                if (!tokenRes.IsSuccessStatusCode) { error = "Falha ao trocar o código: " + tokenJson; return false; }
+                if (!tokenRes.IsSuccessStatusCode) { error = "Failed to exchange the code: " + tokenJson; return false; }
                 using var tokenDoc = JsonDocument.Parse(tokenJson);
                 if (!tokenDoc.RootElement.TryGetProperty("access_token", out var tok))
-                { error = "Token do Google não recebido."; return false; }
+                { error = "Google token not received."; return false; }
                 string access = tok.GetString() ?? "";
 
                 using var req = new HttpRequestMessage(HttpMethod.Get, "https://openidconnect.googleapis.com/v1/userinfo");
@@ -167,7 +167,7 @@ namespace Deadzone2D
                 string name = Get(info, "name");
                 string gid = Get(info, "sub");
                 string picture = Get(info, "picture");
-                if (string.IsNullOrWhiteSpace(email)) { error = "O Google não informou o e-mail da conta."; return false; }
+                if (string.IsNullOrWhiteSpace(email)) { error = "Google did not provide the account email."; return false; }
                 profile = new GoogleProfile(email, name, gid, picture);
                 return true;
             }

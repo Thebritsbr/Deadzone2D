@@ -1,5 +1,5 @@
-// AccountStore.cs — contas locais, perfis, loja Dead Royal, anúncios, notificações e admin.
-// Tudo é salvo em %LOCALAPPDATA%\Deadzone2D para sobreviver às atualizações do jogo.
+// AccountStore.cs — contas locais, perfis, loja Dead Royal, announcements, notificações e admin.
+// Tudo é salvo em %LOCALAPPDATA%\Deadzone2D para sobreviver at atualizações do jogo.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -37,7 +37,7 @@ namespace Deadzone2D
         public List<string> SentFriendRequests { get; set; } = new();
         public List<string> ReadNotifications { get; set; } = new();
         public Dictionary<string, string> EquippedSkins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
-        // migração única: contas antigas liberavam todos os ícones/banners para teste
+        // migração única: contas antigas liberavam todos os icons/banners para teste
         public bool OwnershipV2 { get; set; }
         public bool EmailVerified { get; set; }
         public string GoogleId { get; set; } = "";
@@ -126,7 +126,7 @@ namespace Deadzone2D
         public static readonly ProfileIcon[] Icons =
         {
             new("icon_01", "Sentinela", Color.FromArgb(255, 70, 85), "S"),
-            new("icon_02", "Fênix", Color.FromArgb(255, 140, 66), "F"),
+            new("icon_02", "Phoenix", Color.FromArgb(255, 140, 66), "F"),
             new("icon_03", "Espectro", Color.FromArgb(170, 120, 255), "E"),
             new("icon_04", "Calavera", Color.FromArgb(76, 201, 240), "C"),
             new("icon_05", "Lobo", Color.FromArgb(61, 220, 151), "L"),
@@ -139,7 +139,7 @@ namespace Deadzone2D
             new("banner_02", "Lume Studio", Color.FromArgb(245, 197, 66), Color.FromArgb(24, 35, 47), "grid"),
             new("banner_03", "Dead Royal", Color.FromArgb(170, 120, 255), Color.FromArgb(9, 15, 22), "crown"),
             new("banner_04", "Neon Fury", Color.FromArgb(76, 201, 240), Color.FromArgb(255, 45, 190), "diag"),
-            new("banner_05", "Cinza Tático", Color.FromArgb(139, 151, 159), Color.FromArgb(24, 35, 47), "grid"),
+            new("banner_05", "Tactical Gray", Color.FromArgb(139, 151, 159), Color.FromArgb(24, 35, 47), "grid"),
             new("banner_06", "Carmesim", Color.FromArgb(255, 88, 96), Color.FromArgb(30, 8, 14), "crown"),
         };
 
@@ -179,7 +179,7 @@ namespace Deadzone2D
                 {
                     // Conta de desenvolvedor para o painel admin (pode ser usada para testar tudo).
                     var dev = CreateAccountInternal("sr.idev@gmail.com", "sr.idev", "sr.idev", "Sdev@1234",
-                        "icon_06", "Conta de desenvolvimento da Lume Studio INC.", "Brazil", out _);
+                        "icon_06", "Development account for Lume Studio INC.", "Brazil", out _);
                     if (dev != null)
                     {
                         dev.DeadCoins = 5000;
@@ -193,7 +193,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Welcome to Deadzone 3.7",
+                        Title = "Welcome to Deadzone 3.8",
                         Body = "New lobby, real Google sign-in, player profile, Cofre, announcements and the Dead Royal store. " +
                                "Use CTRL + SHIFT + P on an admin account to open the admin panel.",
                         Author = "Lume Studio INC",
@@ -210,12 +210,12 @@ namespace Deadzone2D
                     });
                     dirty = true;
                 }
-                if (!Announcements.Any(a => a.Title == "Deadzone2D 3.7 Release"))
+                if (!Announcements.Any(a => a.Title == "Deadzone2D 3.8 Release"))
                 {
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Deadzone2D 3.7 Release",
+                        Title = "Deadzone2D 3.8 Release",
                         Body = "Friend requests are now sent between accounts and must be accepted. " +
                                "Group invites also send a request. A rank/XP system and a new requirements page are available.",
                         Author = "Lume Studio INC",
@@ -321,7 +321,7 @@ namespace Deadzone2D
             if (a.CreatedAt.Kind == DateTimeKind.Unspecified) a.CreatedAt = DateTime.SpecifyKind(a.CreatedAt, DateTimeKind.Utc);
             if (a.CreatedAt > DateTime.UtcNow) a.CreatedAt = DateTime.UtcNow;
 
-            // Migração: versões de teste liberavam todos os ícones/banners. Agora a conta
+            // Migração: versões de teste liberavam todos os icons/banners. Agora a conta
             // só guarda o que escolheu/comprou; itens já comprados na loja são preservados.
             if (!a.OwnershipV2)
             {
@@ -374,7 +374,7 @@ namespace Deadzone2D
         {
             error = "";
             string gmail = (p.Email ?? "").Trim();
-            if (gmail.Length == 0) { error = "E-mail do Google inválido."; return null; }
+            if (gmail.Length == 0) { error = "Invalid Google email."; return null; }
 
             lock (Gate)
             {
@@ -393,7 +393,7 @@ namespace Deadzone2D
                 int suffix = 1;
                 while (FindByNick(nick) != null) nick = baseNick + (suffix++);
                 var acc = CreateAccountInternal(gmail, nick, Sanitize(p.Name, 20, 3), "GoogleAuth!",
-                    "icon_01", "Conta conectada com Google.", "Brazil", out error);
+                    "icon_01", "Account connected with Google.", "Brazil", out error);
                 if (acc == null) return null;
                 acc.GoogleId = p.Id;
                 acc.EmailVerified = true;
@@ -430,8 +430,8 @@ namespace Deadzone2D
             code = "";
             error = "";
             gmail = (gmail ?? "").Trim();
-            if (!IsGmail(gmail)) { error = "Use um endereço @gmail.com válido."; return false; }
-            if (FindByGmail(gmail) != null) { error = "Este Gmail já está cadastrado."; return false; }
+            if (!IsGmail(gmail)) { error = "Enter a valid @gmail.com address."; return false; }
+            if (FindByGmail(gmail) != null) { error = "This Gmail is already registered."; return false; }
 
             string generated = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
             lock (Pending)
@@ -462,7 +462,7 @@ namespace Deadzone2D
             error = "";
             gmail = (gmail ?? "").Trim();
             if (FindByGmail(gmail) == null && FindByNick(gmail) == null)
-            { error = "Conta não encontrada."; return false; }
+            { error = "Account not found."; return false; }
             string generated = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
             lock (Pending)
                 Pending[gmail] = new PendingCode
@@ -487,18 +487,18 @@ namespace Deadzone2D
             gmail = (gmail ?? "").Trim();
             PendingCode? pending;
             lock (Pending) Pending.TryGetValue(gmail, out pending);
-            if (pending == null) { error = "Clique em ENVIAR CÓDIGO primeiro."; return false; }
+            if (pending == null) { error = "Clique em SEND CODE primeiro."; return false; }
             if (DateTime.UtcNow > pending.Expires)
             {
                 lock (Pending) Pending.Remove(gmail);
-                error = "Código expirado. Envie outro.";
+                error = "Code expired. Send another.";
                 return false;
             }
-            if (pending.Attempts >= 5) { error = "Muitas tentativas. Envie outro código."; return false; }
+            if (pending.Attempts >= 5) { error = "Too many attempts. Send another code."; return false; }
             if ((input ?? "").Trim() != pending.Code)
             {
                 pending.Attempts++;
-                error = "Código incorreto.";
+                error = "Incorrect code.";
                 return false;
             }
             lock (Pending) Pending.Remove(gmail);
@@ -528,13 +528,13 @@ namespace Deadzone2D
             description = (description ?? "").Trim();
             region = string.IsNullOrWhiteSpace(region) ? "Brazil" : region.Trim();
 
-            if (!IsGmail(gmail)) { error = "Use um endereço @gmail.com válido."; return null; }
-            if (!IsNickValid(nick)) { error = "O Nick deve ter 3–24 letras, números, _, . ou -."; return null; }
+            if (!IsGmail(gmail)) { error = "Enter a valid @gmail.com address."; return null; }
+            if (!IsNickValid(nick)) { error = "Nick must be 3-24 letters, numbers, _, . or -."; return null; }
             if (displayName.Length < 3 || displayName.Length > 20) { error = "O DisplayName deve ter 3–20 caracteres."; return null; }
-            if (password == null || password.Length < 6) { error = "A senha deve ter pelo menos 6 caracteres."; return null; }
-            if (FindByGmail(gmail) != null) { error = "Este Gmail já está cadastrado."; return null; }
-            if (FindByNick(nick) != null) { error = "Este Nick já está em uso."; return null; }
-            if (displayName.Contains('|')) { error = "DisplayName não pode conter |."; return null; }
+            if (password == null || password.Length < 6) { error = "Password must be at least 6 characters."; return null; }
+            if (FindByGmail(gmail) != null) { error = "This Gmail is already registered."; return null; }
+            if (FindByNick(nick) != null) { error = "This Nick is already in use."; return null; }
+            if (displayName.Contains('|')) { error = "DisplayName cannot contain |."; return null; }
 
             var (hash, salt) = HashPassword(password);
             string id;
@@ -558,7 +558,7 @@ namespace Deadzone2D
                 OwnershipV2 = true,
                 EmailVerified = true
             };
-            // começa apenas com o ícone escolhido no cadastro e o banner padrão;
+            // começa apenas com o icon escolhido no cadastro e o banner padrão;
             // os demais são desbloqueados ao comprar na Dead Royal.
             acc.OwnedIcons.Add(acc.IconId);
             acc.OwnedBanners.Add(acc.BannerId);
@@ -570,8 +570,8 @@ namespace Deadzone2D
             error = "";
             newName = (newName ?? "").Trim();
             if (newName.Length < 3 || newName.Length > 20) { error = "O DisplayName deve ter 3–20 caracteres."; return false; }
-            if (newName.Contains('|')) { error = "DisplayName não pode conter |."; return false; }
-            if (string.Equals(newName, acc.DisplayName, StringComparison.Ordinal)) { error = "O DisplayName é o mesmo."; return false; }
+            if (newName.Contains('|')) { error = "DisplayName cannot contain |."; return false; }
+            if (string.Equals(newName, acc.DisplayName, StringComparison.Ordinal)) { error = "DisplayName is the same."; return false; }
             if (acc.DisplayNameChanges > 0)
             {
                 const int price = 500;
@@ -594,16 +594,16 @@ namespace Deadzone2D
         public static string AgeText(DateTime createdUtc)
         {
             var span = DateTime.UtcNow - createdUtc;
-            if (span.TotalMinutes < 1) return "agora";
+            if (span.TotalMinutes < 1) return "now";
             if (span.TotalHours < 1) return $"{(int)span.TotalMinutes} min";
             if (span.TotalDays < 1) return $"{(int)span.TotalHours} h";
-            if (span.TotalDays < 30) return $"{(int)span.TotalDays} dias";
-            if (span.TotalDays < 365) return $"{(int)(span.TotalDays / 30)} meses";
-            return $"{(int)(span.TotalDays / 365)} anos";
+            if (span.TotalDays < 30) return $"{(int)span.TotalDays} days";
+            if (span.TotalDays < 365) return $"{(int)(span.TotalDays / 30)} months";
+            return $"{(int)(span.TotalDays / 365)} years";
         }
 
         public static string CreationText(Account acc) =>
-            acc.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy 'às' HH:mm", CultureInfo.InvariantCulture);
+            acc.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy 'at' HH:mm", CultureInfo.InvariantCulture);
 
         // ---------- Amigos ----------
         public static void AddFriend(Account a, Account b)
@@ -626,12 +626,12 @@ namespace Deadzone2D
         public static bool SendFriendRequest(Account from, Account to, out string error)
         {
             error = "";
-            if (from.UserId == to.UserId) { error = "Você não pode adicionar a si mesmo."; return false; }
+            if (from.UserId == to.UserId) { error = "You cannot add yourself."; return false; }
             if (from.Friends.Contains(to.UserId, StringComparer.OrdinalIgnoreCase))
-            { error = "Vocês já são amigos."; return false; }
+            { error = "You are already friends."; return false; }
             if (to.FriendRequests.Contains(from.UserId, StringComparer.OrdinalIgnoreCase) ||
                 from.SentFriendRequests.Contains(to.UserId, StringComparer.OrdinalIgnoreCase))
-            { error = "Pedido já enviado."; return false; }
+            { error = "Request already sent."; return false; }
             to.FriendRequests.Add(from.UserId);
             from.SentFriendRequests.Add(to.UserId);
             SaveAccounts();
@@ -701,7 +701,7 @@ namespace Deadzone2D
                 Author = string.IsNullOrWhiteSpace(author) ? "sr.idev" : author.Trim(),
                 CreatedAt = DateTime.UtcNow
             };
-            if (n.Message.Length == 0) n.Message = "(notificação vazia)";
+            if (n.Message.Length == 0) n.Message = "(empty notification)";
             Notifications.Add(n);
             SaveNotifications();
             return n;
@@ -759,7 +759,7 @@ namespace Deadzone2D
             var ann = new Announcement
             {
                 Category = NormalizeCategory(category),
-                Title = string.IsNullOrWhiteSpace(title) ? "Sem título" : title.Trim(),
+                Title = string.IsNullOrWhiteSpace(title) ? "No title" : title.Trim(),
                 Body = (body ?? "").Trim(),
                 Author = string.IsNullOrWhiteSpace(author) ? "sr.idev" : author.Trim(),
                 CreatedAt = DateTime.UtcNow,
@@ -796,7 +796,7 @@ namespace Deadzone2D
         {
             error = "";
             gmail = (gmail ?? "").Trim();
-            if (!IsGmail(gmail)) { error = "Informe um Gmail válido."; return false; }
+            if (!IsGmail(gmail)) { error = "Enter a valid Gmail."; return false; }
             if (!Admin.Allowed.Any(v => v.Equals(gmail, StringComparison.OrdinalIgnoreCase)))
                 Admin.Allowed.Add(gmail);
             SaveJson(AdminFile, Admin);
@@ -808,7 +808,7 @@ namespace Deadzone2D
             error = "";
             var item = Shop.FirstOrDefault(i => i.Id.Equals(itemId, StringComparison.OrdinalIgnoreCase) ||
                                                 i.Name.Equals(itemId, StringComparison.OrdinalIgnoreCase));
-            if (item == null) { error = "Item não encontrado na loja."; return false; }
+            if (item == null) { error = "Item not found in the store."; return false; }
             if (!target.OwnedShopItems.Contains(item.Id, StringComparer.OrdinalIgnoreCase))
                 target.OwnedShopItems.Add(item.Id);
             if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.IconId) &&
@@ -835,7 +835,7 @@ namespace Deadzone2D
         {
             error = "";
             var t = AdminTags.FirstOrDefault(x => x.Equals(tag, StringComparison.OrdinalIgnoreCase));
-            if (t == null) { error = "Tag inválida. Use Dev, Owner, Tester ou Youtuber."; return false; }
+            if (t == null) { error = "Invalid tag. Use Dev, Owner, Tester or Youtuber."; return false; }
             if (!target.Tags.Contains(t, StringComparer.OrdinalIgnoreCase)) target.Tags.Add(t);
             SaveAccounts();
             return true;
@@ -891,31 +891,31 @@ namespace Deadzone2D
             {
                 Id = "glock_crimson", Name = "Crimson Fang", Type = "WeaponSkin", WeaponId = "glock",
                 SkinId = "crimson_fang", Price = 900, Rarity = "Legendary", Icon = "◆",
-                Description = "Skin lendária para a Glock, com detalhes carmesim e linhas de energia."
+                Description = "Legendary skin for the Glock with crimson details and energy lines."
             },
             new ShopItem
             {
                 Id = "mp40_neon", Name = "Neon Strike", Type = "WeaponSkin", WeaponId = "mp40",
                 SkinId = "neon_strike", Price = 750, Rarity = "Epic", Icon = "▲",
-                Description = "Skin épica para a MP40 com pulsos neon e acabamento fosco."
+                Description = "Epic skin for the MP40 with neon pulses and a matte finish."
             },
             new ShopItem
             {
                 Id = "awm_gold", Name = "Golden Reaper", Type = "WeaponSkin", WeaponId = "sniper_awm",
                 SkinId = "golden_reaper", Price = 1400, Rarity = "Legendary", Icon = "✦",
-                Description = "Skin lendária para a AWM, forjada em ouro e sombras."
+                Description = "Legendary skin for the AWM, forged in gold and shadows."
             },
             new ShopItem
             {
                 Id = "icon_calavera", Name = "Calavera", Type = "Icon", IconId = "icon_04",
                 Price = 400, Rarity = "Rare", Icon = "☠",
-                Description = "Ícone de perfil Calavera para usar no Cofre."
+                Description = "Calavera profile icon for the Vault."
             },
             new ShopItem
             {
                 Id = "banner_royal", Name = "Dead Royal", Type = "Banner", BannerId = "banner_03",
                 Price = 600, Rarity = "Epic", Icon = "♛",
-                Description = "Banner Dead Royal para destacar seu perfil no lobby."
+                Description = "Dead Royal banner to highlight your profile in the lobby."
             },
             };
         }
@@ -926,7 +926,7 @@ namespace Deadzone2D
         public static bool Buy(Account acc, ShopItem item, out string error)
         {
             error = "";
-            if (Owns(acc, item)) { error = "Você já possui este item."; return false; }
+            if (Owns(acc, item)) { error = "You already own this item."; return false; }
             if (acc.DeadCoins < item.Price) { error = "Dead Coins insuficientes."; return false; }
             acc.DeadCoins -= item.Price;
             acc.OwnedShopItems.Add(item.Id);

@@ -230,7 +230,7 @@ namespace Deadzone2D
                     {
                         _royaleBotsAdded = true;
                         AddRoyaleBots(20);
-                        IntroText = "REFORÇOS CHEGARAM";
+                        IntroText = "REINFORCEMENTS ARRIVED";
                         IntroTimer = 2f;
                     }
                 }

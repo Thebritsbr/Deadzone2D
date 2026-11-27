@@ -7,7 +7,7 @@
     "SkinId": "crimson_fang",
     "Price": 900,
     "Rarity": "Legendary",
-    "Description": "Skin lendária para a Glock, com detalhes carmesim e linhas de energia.",
+    "Description": "Legendary skin for the Glock with crimson details and energy lines.",
     "Icon": "◆"
   },
   {
@@ -18,7 +18,7 @@
     "SkinId": "neon_strike",
     "Price": 750,
     "Rarity": "Epic",
-    "Description": "Skin épica para a MP40 com pulsos neon e acabamento fosco.",
+    "Description": "Epic skin for the MP40 with neon pulses and a matte finish.",
     "Icon": "▲"
   },
   {
@@ -29,7 +29,7 @@
     "SkinId": "golden_reaper",
     "Price": 1400,
     "Rarity": "Legendary",
-    "Description": "Skin lendária para a AWM, forjada em ouro e sombras.",
+    "Description": "Legendary skin for the AWM, forged in gold and shadows.",
     "Icon": "✦"
   },
   {
@@ -39,17 +39,17 @@
     "IconId": "icon_01",
     "Price": 400,
     "Rarity": "Rare",
-    "Description": "Ícone de perfil Sentinela para usar no Cofre.",
+    "Description": "Sentinela profile icon for the Vault.",
     "Icon": "S"
   },
   {
     "Id": "icon_fenix",
-    "Name": "Fênix",
+    "Name": "Phoenix",
     "Type": "Icon",
     "IconId": "icon_02",
     "Price": 450,
     "Rarity": "Rare",
-    "Description": "Ícone de perfil Fênix para usar no Cofre.",
+    "Description": "Phoenix profile icon for the Vault.",
     "Icon": "F"
   },
   {
@@ -59,7 +59,7 @@
     "IconId": "icon_03",
     "Price": 500,
     "Rarity": "Epic",
-    "Description": "Ícone de perfil Espectro para usar no Cofre.",
+    "Description": "Specter profile icon for the Vault.",
     "Icon": "E"
   },
   {
@@ -69,7 +69,7 @@
     "IconId": "icon_04",
     "Price": 400,
     "Rarity": "Rare",
-    "Description": "Ícone de perfil Calavera para usar no Cofre.",
+    "Description": "Calavera profile icon for the Vault.",
     "Icon": "☠"
   },
   {
@@ -79,7 +79,7 @@
     "IconId": "icon_05",
     "Price": 550,
     "Rarity": "Epic",
-    "Description": "Ícone de perfil Lobo para usar no Cofre.",
+    "Description": "Lobo profile icon for the Vault.",
     "Icon": "L"
   },
   {
@@ -89,7 +89,7 @@
     "IconId": "icon_06",
     "Price": 600,
     "Rarity": "Legendary",
-    "Description": "Ícone de perfil Corvo para usar no Cofre.",
+    "Description": "Corvo profile icon for the Vault.",
     "Icon": "V"
   },
   {
@@ -99,7 +99,7 @@
     "BannerId": "banner_01",
     "Price": 500,
     "Rarity": "Rare",
-    "Description": "Banner Deadzone para destacar seu perfil no lobby.",
+    "Description": "Deadzone banner to highlight your profile in the lobby.",
     "Icon": "♛"
   },
   {
@@ -109,7 +109,7 @@
     "BannerId": "banner_02",
     "Price": 600,
     "Rarity": "Rare",
-    "Description": "Banner Lume Studio para destacar seu perfil no lobby.",
+    "Description": "Lume Studio banner to highlight your profile in the lobby.",
     "Icon": "♛"
   },
   {
@@ -119,7 +119,7 @@
     "BannerId": "banner_03",
     "Price": 600,
     "Rarity": "Epic",
-    "Description": "Banner Dead Royal para destacar seu perfil no lobby.",
+    "Description": "Dead Royal banner to highlight your profile in the lobby.",
     "Icon": "♛"
   },
   {
@@ -129,17 +129,17 @@
     "BannerId": "banner_04",
     "Price": 750,
     "Rarity": "Epic",
-    "Description": "Banner Neon Fury para destacar seu perfil no lobby.",
+    "Description": "Neon Fury banner to highlight your profile in the lobby.",
     "Icon": "♛"
   },
   {
     "Id": "banner_cinza",
-    "Name": "Cinza Tático",
+    "Name": "Tactical Gray",
     "Type": "Banner",
     "BannerId": "banner_05",
     "Price": 500,
     "Rarity": "Rare",
-    "Description": "Banner Cinza Tático para destacar seu perfil no lobby.",
+    "Description": "Banner Tactical Gray para destacar seu perfil no lobby.",
     "Icon": "♛"
   },
   {
@@ -149,7 +149,7 @@
     "BannerId": "banner_06",
     "Price": 800,
     "Rarity": "Legendary",
-    "Description": "Banner Carmesim para destacar seu perfil no lobby.",
+    "Description": "Carmesim banner to highlight your profile in the lobby.",
     "Icon": "♛"
   }
 ]

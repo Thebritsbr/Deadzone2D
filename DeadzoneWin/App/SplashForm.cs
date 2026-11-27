@@ -153,11 +153,10 @@ namespace Deadzone2D
                 using (var wb = new SolidBrush(Color.White)) g.DrawString("D", _fMark, wb, new RectangleF(lx, ly, ls, ls), sf);
             }
 
-            // nome + subtítulo
+            // nome
             int tx = lx + ls + 36;
             Spaced(g, "DEADZONE", _fHead, Ink, tx, 84, 10f);
-            Spaced(g, "MATA-MATA TÁTICO • DEADTHEME", _fTiny, Dim, tx + 2, 128, 4f);
-            using (var lb = new SolidBrush(Red)) g.FillRectangle(lb, tx + 2, 144, 46, 3);
+            using (var lb = new SolidBrush(Red)) g.FillRectangle(lb, tx + 2, 132, 46, 3);
 
             // barra de carregamento fina
             float p = Math.Clamp(_t, 0f, 1f);
@@ -171,7 +170,7 @@ namespace Deadzone2D
                 using (var fb = new SolidBrush(Red)) g.FillRectangle(fb, bx, by, fill, 3);
                 using (var tip = new SolidBrush(Color.White)) g.FillRectangle(tip, bx + fill - 2, by - 2, 3, 7);
             }
-            string status = p < .35f ? "INICIANDO" : p < .75f ? "CARREGANDO ARQUIVOS" : "QUASE LÁ";
+            string status = p < .35f ? "STARTING" : p < .75f ? "LOADING FILES" : "ALMOST THERE";
             Spaced(g, status, _fTiny, Dim, bx, by + 20, 3f);
             using (var pb = new SolidBrush(Ink))
             using (var sfr = new StringFormat { Alignment = StringAlignment.Far, LineAlignment = StringAlignment.Center })

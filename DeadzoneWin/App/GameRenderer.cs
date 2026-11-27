@@ -597,11 +597,11 @@ namespace Deadzone2D
                 Reg(btn, "buy:" + gun.Id);
                 float bhv = Hv("buy:" + gun.Id);
                 FillRoundedRect(g, btn, Mix(A(Panel, 240), A(Red, 120), bhv), 6);
-                Txt(g, "Comprar", FTiny, A(Color.White, 200 + (int)(55 * bhv)), btn, StringAlignment.Center);
+                Txt(g, "Buy", FTiny, A(Color.White, 200 + (int)(55 * bhv)), btn, StringAlignment.Center);
                 y += 60;
                 if (y > r.Bottom - 90) break;
             }
-                Spaced(g, "MOEDAS DA FURJA — colete as moedas no chão", FBody, Dim, w / 2f, h - 64, 3f, StringAlignment.Center);
+                Spaced(g, "FURJA COINS - collect coins on the ground", FBody, Dim, w / 2f, h - 64, 3f, StringAlignment.Center);
         }
 
                 private void DrawGameVignette(Graphics g, int w, int h)

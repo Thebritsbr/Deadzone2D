@@ -1,35 +1,23 @@
-LOGIN REAL COM GOOGLE
-=====================
+GOOGLE SIGN-IN SETUP
+====================
 
-1. Abra https://console.cloud.google.com/ e crie/selecione um projeto.
+1. Open https://console.cloud.google.com/ and create or select a project.
 
-2. Ative a API "Google People API" (ou People API v1).
+2. Enable the Google People API.
 
-3. Vá em "Credenciais" > "Criar credenciais" > "ID do cliente OAuth".
-   - Tipo da aplicação: "Aplicativo para desktop".
-   - Nome: Deadzone2D.
-   - Copie o "Client ID" e o "Client Secret".
+3. Go to Credentials > Create credentials > OAuth client ID.
+   - Application type: Desktop app.
+   - Name: Deadzone2D.
+   - Copy the Client ID and Client Secret.
 
-   Client - <seu-client-id>.apps.googleusercontent.com
-
-   Secret - <seu-client-secret>
-
-4. Em "URIs de redirecionamento autorizados", adicione exatamente:
+4. Under Authorized redirect URIs, add exactly:
    http://127.0.0.1:53682/
 
-5. Configure no jogo (recomendado, sem precisar de administrador):
-   - Abra Configurações (ícone de engrenagem no topo).
-   - Preencha CLIENT ID e CLIENT SECRET e clique em SALVAR GOOGLE.
-   - Os dados ficam em %LOCALAPPDATA%\Deadzone2D\Google.json.
-
-   Alternativa manual: edite Config/Google.json na pasta do jogo:
+5. Configure the game on this PC (the setting is stored in
+   %LOCALAPPDATA%\Deadzone2D\Google.json):
    - Enabled: true
-   - ClientId: o Client ID copiado
-   - ClientSecret: o Client Secret copiado
+   - ClientId: your Client ID
+   - ClientSecret: your Client Secret
 
-6. Reinicie o Deadzone2D e clique em "ENTRAR COM GOOGLE".
-   O navegador abre a página real do Google; após autorizar, a conta
-   do usuário (e-mail real verificado pelo Google) entra automaticamente.
-
-Sem essa configuração o botão avisa que é preciso configurar o Google.
-O e-mail usado é o e-mail real da pessoa, e não um registro local.
+6. Restart Deadzone2D and click SIGN IN WITH GOOGLE.
+   Your real Google account email is used to identify your profile.

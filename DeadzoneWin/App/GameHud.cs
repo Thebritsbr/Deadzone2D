@@ -35,7 +35,7 @@ namespace Deadzone2D
             using (var path = RoundRect(r, 10)) g.DrawPath(Pn(A(Line, 190), 1f), path);
             g.FillRectangle(Br(Red), r.X + 12, r.Y, 3, 18);
 
-            Txt(g, "VOCÊ", FTiny, Red, new RectangleF(r.X + 22, r.Y + 8, 80, 14));
+            Txt(g, "YOU", FTiny, Red, new RectangleF(r.X + 22, r.Y + 8, 80, 14));
             Txt(g, ((int)Math.Round(_hpAnim)).ToString("00"), F(32),
                 p.Health > 50 ? Ink : p.Health > 25 ? Amber : HpRed,
                 new RectangleF(r.X + 20, r.Y + 24, 66, 42));
@@ -62,7 +62,7 @@ namespace Deadzone2D
             if (p.Backpacks > 0)
             {
                 int bhX = bx + 160, bhY = ay + 2;
-                Txt(g, $"MOCHILA ×{p.Backpacks}", FTiny, Amber, new RectangleF(bhX, bhY, 130, 12), StringAlignment.Far);
+                Txt(g, $"BACKPACK ×{p.Backpacks}", FTiny, Amber, new RectangleF(bhX, bhY, 130, 12), StringAlignment.Far);
             }
         }
 
@@ -81,7 +81,7 @@ namespace Deadzone2D
                 using var b = new SolidBrush(c);
                 g.FillRectangle(b, r.X + 13 + (i % 2) * 9, r.Y + 10 + (i / 2) * 9, 7, 7);
             }
-            Txt(g, "INVENTÁRIO", FLabel, _inventoryOpen ? Color.White : Ink, new RectangleF(r.X + 42, r.Y + 8, 92, 20));
+            Txt(g, "INVENTORY", FLabel, _inventoryOpen ? Color.White : Ink, new RectangleF(r.X + 42, r.Y + 8, 92, 20));
             Txt(g, "[']", FTiny, _inventoryOpen ? A(Color.White, 190) : Dim, new RectangleF(r.X + 120, r.Y + 10, 44, 16));
         }
 
@@ -245,7 +245,7 @@ namespace Deadzone2D
                 {
                     var ts = TimeSpan.FromSeconds(Math.Max(0, _g.Countdown));
                     Txt(g, ts.ToString(@"mm\:ss"), FTitle, Ink, new RectangleF(r.X + 18, r.Y + 24, 150, 48));
-                    Spaced(g, "PREPARAÇÃO", FLabel, Amber, r.X + 178, r.Y + 40, 3f);
+                    Spaced(g, "PREPARATION", FLabel, Amber, r.X + 178, r.Y + 40, 3f);
                     var skip = new Rectangle(r.Right - 92, r.Y + 46, 78, 24);
                     Reg(skip, "skipCountdown");
                     float hv = Hv("skipCountdown");
@@ -292,7 +292,7 @@ namespace Deadzone2D
             Txt(g, wd.Name, FName, Ink, new RectangleF(r.X + 20, r.Y + 20, 150, 26));
             Txt(g, p.Mag + " / " + p.Reserve, FName, p.Mag <= wd.MagSize * .25f ? HpRed : Ink,
                 new RectangleF(r.Right - 106, r.Y + 18, 90, 26), StringAlignment.Far);
-            Txt(g, p.ReloadLeft > 0 ? "RECARREGANDO..." : "R  RECARREGAR", FTiny, Dim,
+            Txt(g, p.ReloadLeft > 0 ? "RELOADING..." : "R  RELOAD", FTiny, Dim,
                 new RectangleF(r.X + 20, r.Y + 48, 150, 16));
             DrawCoinIcon(g, r.Right - 72, r.Y + 56, 10);
             Txt(g, p.Coins.ToString(), FTiny, Amber, new RectangleF(r.Right - 60, r.Y + 47, 40, 16));
@@ -350,11 +350,11 @@ namespace Deadzone2D
 
         private void DrawHints(Graphics g, int w, int h)
         {
-            string hint = "WASD MOVER   •   MOUSE MIRAR   •   CLIQUE ATIRAR   •   R RECARREGAR   •   E PEGAR   •   ' INVENTÁRIO   •   TAB DETALHES   •   ESC PAUSA";
+            string hint = "WASD MOVER   •   MOUSE MIRAR   •   CLIQUE ATIRAR   •   R RECARREGAR   •   E PEGAR   •   ' INVENTORY   •   TAB DETALHES   •   ESC PAUSA";
             Txt(g, hint, FTiny, A(Dim, 160), new RectangleF(0, h - 26, w, 16), StringAlignment.Center);
         }
 
-        // ---------- Ícones ----------
+        // ---------- Icons ----------
         private static void PersonIcon(Graphics g, float x, float y, float s, Color c)
         {
             using var b = new SolidBrush(c);

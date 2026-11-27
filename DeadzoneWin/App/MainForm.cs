@@ -110,7 +110,7 @@ namespace Deadzone2D
         private readonly Customize _custom;
         private readonly string _appDir = Path.GetDirectoryName(Application.ExecutablePath)!;
         private readonly GunData[] _guns;
-        private string[] _players = { "JOGADOR 1", "JOGADOR 2", "JOGADOR 3", "JOGADOR 4" };
+        private string[] _players = { "PLAYER 1", "PLAYER 2", "PLAYER 3", "PLAYER 4" };
 
         // ---------- Login / conta ----------
         private TextBox _tbUser = new();
@@ -133,7 +133,7 @@ namespace Deadzone2D
         private float _loadingLeft, _loadingTotal;
         private Action? _loadingDone;
         private bool _allowGuest;
-        private string _cofreTab = "Perfil";
+        private string _cofreTab = "Profile";
         private string _annCategory = "Updates";
         private float _annScroll, _shopScroll;
         private string _regIcon = "icon_01";
@@ -311,7 +311,7 @@ namespace Deadzone2D
             }
             if (args.Contains("--update"))
             {
-                UpdateService.Available = new UpdateService.UpdateInfo("1.2.0", "https://example.com/DeadzoneSetup_v1.2.0.exe", "Notas de teste: correção de renderer.");
+                UpdateService.Available = new UpdateService.UpdateInfo("1.2.0", "https://example.com/DeadzoneSetup_v1.2.0.exe", "Test notes: renderer fix.");
                 if (page == "Partida") page = "Update";
             }
             if (!string.IsNullOrEmpty(mapId))
@@ -432,7 +432,7 @@ namespace Deadzone2D
                 else if (UpdateService.DownloadFailed)
                 {
                     _updInstallRequested = false;
-                    ShowToast("Falha na atualização: " + (UpdateService.LastError ?? "tente de novo"));
+                    ShowToast("Update failed: " + (UpdateService.LastError ?? "try again"));
                 }
             }
             _fade = Math.Max(0f, _fade - dt * 3.2f);
@@ -591,7 +591,7 @@ namespace Deadzone2D
                 DisplayName = "Convidado",
                 IconId = "icon_01",
                 BannerId = "banner_01",
-                Description = "Sessão de convidado (modo de teste).",
+                Description = "Guest session (test mode).",
                 Region = "Brazil",
                 CreatedAt = DateTime.UtcNow,
                 DeadCoins = 0,
@@ -640,7 +640,7 @@ namespace Deadzone2D
         private void BackToLobby()
         {
             if (_loading) return;
-            StartLoading("VOLTANDO AO LOBBY", 1.6f, () =>
+            StartLoading("RETURNING TO LOBBY", 1.6f, () =>
             {
                 _inGame = false;
                 _g = null;
@@ -677,7 +677,7 @@ namespace Deadzone2D
         {
             if (!GoogleAuth.IsConfigured)
             {
-                ShowToast("Configure Config/Google.json (Client ID e Client Secret) para entrar com Google.");
+                ShowToast("Configure Config/Google.json (Client ID and Client Secret) to sign in with Google.");
                 return;
             }
             ShowToast("Abrindo o Google...");
@@ -700,7 +700,7 @@ namespace Deadzone2D
                         LoadEquippedFromAccount();
                         ResetGroup();
                         ShowToast("Bem-vindo, " + acc.DisplayName + ".");
-                        StartLoading("ENTRANDO COM GOOGLE", 1.8f, () => ShowPage("Lobby"));
+                        StartLoading("SIGNING IN WITH GOOGLE", 1.8f, () => ShowPage("Lobby"));
                     }));
                 }
                 catch { }
@@ -710,7 +710,7 @@ namespace Deadzone2D
         private void ResetGroup()
         {
             _groupMembers.Clear();
-            _groupMembers.Add(_account?.Nick ?? "JOGADOR 1");
+            _groupMembers.Add(_account?.Nick ?? "PLAYER 1");
         }
 
         // tela cheia de verdade (cobre a barra de tarefas); F11 alterna
@@ -775,9 +775,9 @@ namespace Deadzone2D
                 {
                     _account.IconId = AccountStore.Icon(iid).Id;
                     AccountStore.SaveAccounts();
-                    ShowToast("Ícone equipado.");
+                    ShowToast("Icon equipped.");
                 }
-                else ShowToast("Você ainda não possui este ícone.");
+                else ShowToast("You do not own this icon yet.");
                 return;
             }
             if (id.StartsWith("equipBanner:", StringComparison.OrdinalIgnoreCase) && _account != null)
@@ -789,7 +789,7 @@ namespace Deadzone2D
                     AccountStore.SaveAccounts();
                     ShowToast("Banner equipado.");
                 }
-                else ShowToast("Você ainda não possui este banner.");
+                else ShowToast("You do not own this banner yet.");
                 return;
             }
             if (id.StartsWith("giveTab:", StringComparison.OrdinalIgnoreCase))
@@ -822,7 +822,7 @@ namespace Deadzone2D
             if (id.StartsWith("shopHint:", StringComparison.OrdinalIgnoreCase))
             {
                 string kind = id.Substring(9);
-                ShowToast("Compre este " + (kind.StartsWith("Banner", StringComparison.OrdinalIgnoreCase) ? "banner" : "ícone") + " na Dead Royal.");
+                ShowToast("Compre este " + (kind.StartsWith("Banner", StringComparison.OrdinalIgnoreCase) ? "banner" : "icon") + " na Dead Royal.");
                 return;
             }
             if (id.StartsWith("shopBuy:", StringComparison.OrdinalIgnoreCase)) { BuyShopItem(id.Substring(8)); return; }
@@ -840,7 +840,7 @@ namespace Deadzone2D
             if (id.StartsWith("friend:"))
             {
                 var f = _friendList[int.Parse(id.Substring(7))];
-                ShowToast(f.St == FStatus.Offline ? $"{f.Name} está offline" : $"Convite enviado para {f.Name}");
+                ShowToast(f.St == FStatus.Offline ? $"{f.Name} is offline" : $"Invite sent to {f.Name}");
                 return;
             }
             if (id.StartsWith("gun:")) { _gun = int.Parse(id.Substring(4)); return; }
@@ -859,7 +859,7 @@ namespace Deadzone2D
                     p.Coins -= price;
                     ShowToast("Comprado: " + gun.Name);
                 }
-                else ShowToast("Sem moedas suficientes");
+                else ShowToast("Not enough coins");
                 return;
             }
 
@@ -884,9 +884,9 @@ namespace Deadzone2D
                 {
                     string user = _tbUser.Text.Trim();
                     if (string.IsNullOrEmpty(user)) { ShowToast("Digite seu Gmail."); return; }
-                    if (_tbPass.Text.Length == 0) { ShowToast("Digite sua senha."); return; }
+                    if (_tbPass.Text.Length == 0) { ShowToast("Enter your password."); return; }
                     var acc = AccountStore.Login(user, _tbPass.Text);
-                    if (acc == null) { ShowToast("Gmail/nick ou senha inválidos."); return; }
+                    if (acc == null) { ShowToast("Invalid Gmail/nick or password."); return; }
                     if (!AccountStore.VerifyCode(acc.Gmail, _tbLoginCode.Text, out var loginCodeErr))
                     { ShowToast(loginCodeErr); return; }
                     _account = acc;
@@ -901,20 +901,20 @@ namespace Deadzone2D
                     _loginCodeHint = "";
                     ResetGroup();
                     ShowToast("Bem-vindo, " + acc.DisplayName + ".");
-                    StartLoading("ENTRANDO NO JOGO", 1.8f, () => ShowPage("Lobby"));
+                    StartLoading("ENTERING GAME", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
                 case "loginSendCode":
                 {
                     string user = _tbUser.Text.Trim();
                     var acc = AccountStore.FindByGmail(user) ?? AccountStore.FindByNick(user);
-                    if (acc == null) { ShowToast("Conta não encontrada."); return; }
+                    if (acc == null) { ShowToast("Account not found."); return; }
                     if (!AccountStore.SendLoginCode(acc.Gmail, out var code, out var sendErr))
                     { ShowToast(sendErr); return; }
                     _loginCodeHint = MailService.IsConfigured
-                        ? "Código enviado para " + acc.Gmail + "."
-                        : "MODO LOCAL — código de teste: " + code;
-                    ShowToast(MailService.IsConfigured ? "Código enviado ao seu Gmail." : "Código local: " + code);
+                        ? "Code sent to " + acc.Gmail + "."
+                        : "LOCAL MODE - test code: " + code;
+                    ShowToast(MailService.IsConfigured ? "Code sent to your Gmail." : "Local code: " + code);
                     BeginInvoke((Action)(() => { if (_page == 1) _tbLoginCode.Focus(); }));
                     break;
                 }
@@ -945,15 +945,15 @@ namespace Deadzone2D
                         return;
                     }
                     _regCodeHint = MailService.IsConfigured
-                        ? "Código enviado para " + _tbRegGmail.Text.Trim() + "."
-                        : "MODO LOCAL — código de teste: " + code + " (configure Config/Mail.json para envio real)";
-                    ShowToast(MailService.IsConfigured ? "Código enviado ao seu Gmail." : "Código gerado localmente: " + code);
+                        ? "Code sent to " + _tbRegGmail.Text.Trim() + "."
+                        : "LOCAL MODE - test code: " + code + " (configure Config/Mail.json para envio real)";
+                    ShowToast(MailService.IsConfigured ? "Code sent to your Gmail." : "Locally generated code: " + code);
                     BeginInvoke((Action)(() => { if (_page == 6) _tbRegCode.Focus(); }));
                     break;
                 }
                 case "registerCreate":
                 {
-                    if (_tbRegPass.Text != _tbRegPass2.Text) { _regError = "As senhas não coincidem."; return; }
+                    if (_tbRegPass.Text != _tbRegPass2.Text) { _regError = "Passwords do not match."; return; }
                     if (!AccountStore.VerifyCode(_tbRegGmail.Text, _tbRegCode.Text, out var codeErr))
                     {
                         _regError = codeErr;
@@ -968,8 +968,8 @@ namespace Deadzone2D
                     LoadFriendsFromAccount();
                     LoadEquippedFromAccount();
                     ResetGroup();
-                    ShowToast("Conta criada. Bem-vindo, " + acc.DisplayName + ".");
-                    StartLoading("ENTRANDO NO JOGO", 1.8f, () => ShowPage("Lobby"));
+                    ShowToast("Account created. Welcome, " + acc.DisplayName + ".");
+                    StartLoading("ENTERING GAME", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
                 case "rankInfo":
@@ -993,9 +993,9 @@ namespace Deadzone2D
                     _loadingDone = null;
                     _friendList.Clear();
                     _equipped.Clear();
-                    _players[0] = "JOGADOR 1";
+                    _players[0] = "PLAYER 1";
                     ShowPage("Login");
-                    ShowToast("Você saiu da conta.");
+                    ShowToast("You have been logged out.");
                     break;
                 case "adminOpen":
                     _profileOpen = false;
@@ -1032,25 +1032,25 @@ namespace Deadzone2D
                 case "notifySend":
                 {
                     string msg = _tbNotifyMsg.Text.Trim();
-                    if (msg.Length == 0) { ShowToast("Digite a mensagem."); break; }
+                    if (msg.Length == 0) { ShowToast("Enter a message."); break; }
                     var n = AccountStore.AddNotification(_notifyTarget, msg, _account?.Nick ?? "sr.idev");
-                    _adminLog.Add("Notificação enviada para " + (_notifyTarget == "all" ? "TODOS" : _notifyTarget) + ": " + n.Message);
+                    _adminLog.Add("Notification sent to " + (_notifyTarget == "all" ? "ALL" : _notifyTarget) + ": " + n.Message);
                     _notifyUiOpen = false;
-                    ShowToast("Notificação enviada.");
+                    ShowToast("Notification sent.");
                     break;
                 }
                 case "announcePublish":
                 {
                     string title = _tbAnnTitle.Text.Trim();
-                    if (title.Length == 0) { ShowToast("Digite o título."); break; }
+                    if (title.Length == 0) { ShowToast("Enter a title."); break; }
                     var ann = AccountStore.AddAnnouncement(_annCategory, title, _tbAnnBody.Text,
                         string.IsNullOrWhiteSpace(_tbAnnAuthor.Text) ? (_account?.Nick ?? "sr.idev") : _tbAnnAuthor.Text.Trim(),
                         string.IsNullOrWhiteSpace(_tbAnnFile.Text) ? null : _tbAnnFile.Text.Trim().Trim('"'));
-                    _adminLog.Add("Anúncio publicado em " + ann.Category + ": " + ann.Title);
+                    _adminLog.Add("Announcement published in " + ann.Category + ": " + ann.Title);
                     if (!string.IsNullOrEmpty(ann.AttachmentName)) _adminLog.Add("Anexo: " + ann.AttachmentName);
-                    else if (!string.IsNullOrWhiteSpace(_tbAnnFile.Text)) _adminLog.Add("[erro] arquivo de anexo não encontrado.");
+                    else if (!string.IsNullOrWhiteSpace(_tbAnnFile.Text)) _adminLog.Add("[error] attachment file not found.");
                     _announceUiOpen = false;
-                    ShowToast("Anúncio publicado.");
+                    ShowToast("Announcement published.");
                     break;
                 }
                 case "adminGiveUi":
@@ -1079,7 +1079,7 @@ namespace Deadzone2D
                     if (!AccountStore.AddAdminGmail(_tbAdminGmail.Text, out var aerr)) { ShowToast(aerr); break; }
                     _adminLog.Add("Administrador adicionado: " + _tbAdminGmail.Text.Trim());
                     _adminGmailOpen = false;
-                    ShowToast("Gmail adicionado à lista de administradores.");
+                    ShowToast("Gmail added to the admin list.");
                     break;
                 }
                 case "giveTab":
@@ -1088,7 +1088,7 @@ namespace Deadzone2D
                 case "giveItemGo":
                 {
                     var target = AccountStore.FindByAny(_tbGiveTarget.Text);
-                    if (target == null) { ShowToast("Jogador não encontrado."); break; }
+                    if (target == null) { ShowToast("Player not found."); break; }
                     if (_giveItemSel.Length == 0) { ShowToast("Selecione um item."); break; }
                     if (!AccountStore.GiveItem(target, _giveItemSel, out var gerr)) { ShowToast(gerr); break; }
                     _adminLog.Add("Item dado a " + target.Nick + ": " + _giveItemSel);
@@ -1098,20 +1098,20 @@ namespace Deadzone2D
                 case "giveStatsGo":
                 {
                     var target = AccountStore.FindByAny(_tbGiveTarget.Text);
-                    if (target == null) { ShowToast("Jogador não encontrado."); break; }
+                    if (target == null) { ShowToast("Player not found."); break; }
                     int.TryParse(_tbGiveCoins.Text, out var coins);
                     int.TryParse(_tbGiveLevel.Text, out var level);
                     int.TryParse(_tbGiveWins.Text, out var wins);
                     int.TryParse(_tbGiveKills.Text, out var kills);
                     AccountStore.GiveStats(target, coins, level, wins, kills);
-                    _adminLog.Add($"Status dado a {target.Nick}: {coins} DC, nível {(level > 0 ? level : target.Level)}, {wins} vitórias, {kills} abates.");
+                    _adminLog.Add($"Status dado a {target.Nick}: {coins} DC, level {(level > 0 ? level : target.Level)}, {wins} wins, {kills} kills.");
                     ShowToast("Status aplicado a " + target.Nick + ".");
                     break;
                 }
                 case "giveTagGo":
                 {
                     var target = AccountStore.FindByAny(_tbGiveTarget.Text);
-                    if (target == null) { ShowToast("Jogador não encontrado."); break; }
+                    if (target == null) { ShowToast("Player not found."); break; }
                     if (_tagsToGive.Count == 0) { ShowToast("Selecione uma tag."); break; }
                     foreach (var t in _tagsToGive) AccountStore.GiveTag(target, t, out _);
                     _adminLog.Add("Tags dadas a " + target.Nick + ": " + string.Join(", ", _tagsToGive));
@@ -1131,24 +1131,24 @@ namespace Deadzone2D
                 case "squadCreate":
                     _squadOpen = true;
                     ResetGroup();
-                    ShowToast("Grupo criado. Use CONVIDAR para adicionar amigos.");
+                    ShowToast("Group created. Use INVITE to add friends.");
                     break;
                 case "squadLeave":
                     _squadOpen = false;
                     _groupMembers.Clear();
-                    ShowToast("Você saiu do grupo.");
+                    ShowToast("You left the group.");
                     break;
                 case "shopReload":
                     AccountStore.ReloadShop();
                     InjectShopSkins();
-                    ShowToast("Loja recarregada do JSON.");
+                    ShowToast("Store reloaded from JSON.");
                     break;
                 case "updateInstall":
                     if (!_updInstallRequested)
                     {
                         _updInstallRequested = true;
                         _ = UpdateService.InstallNow();     // baixa (se preciso) e abre o instalador; o Step() fecha o jogo quando ele abrir
-                        ShowToast("Baixando atualização...");
+                        ShowToast("Downloading update...");
                     }
                     break;
                 case "updateLater":
@@ -1161,14 +1161,14 @@ namespace Deadzone2D
                 case "updateSoft":
                     if (UpdateService.StartSoftUpdate())
                     {
-                        ShowToast("Atualização baixada; aplicada no próximo início do Deadzone.");
+                        ShowToast("Update downloaded; it will be applied on the next Deadzone start.");
                         Close();
                     }
-                    else ShowToast(UpdateService.LastError ?? "Esta atualização exige o instalador");
+                    else ShowToast(UpdateService.LastError ?? "This update requires the installer");
                     break;
                 case "start":
                     _queue = false;
-                    if (_page == 2) StartLoading("CARREGANDO PARTIDA", 2.2f, () => ShowPage("Partida"));
+                    if (_page == 2) StartLoading("LOADING MATCH", 2.2f, () => ShowPage("Partida"));
                     else { _queue = !_queue; if (_queue) _queueSw.Restart(); else _queueSw.Reset(); }
                     break;
                 case "mapNext":
@@ -1185,7 +1185,7 @@ namespace Deadzone2D
                 case "invClose": _inventoryOpen = false; break;
                 case "invMed":
                     if (_g != null && _g.UseMedkit(_g.Player)) ShowToast("Vida restaurada");
-                    else ShowToast("Sem kit médico ou vida cheia");
+                    else ShowToast("No medkit or health already full");
                     break;
                 case "storeClose": _storeOpen = false; break;
                 case "pause": if (_inGame) _paused = true; break;
@@ -1203,12 +1203,12 @@ namespace Deadzone2D
                     if (!_squadOpen) { ShowToast("Crie um grupo primeiro."); break; }
                     if (_groupMembers.Count >= 4) { ShowToast("Grupo completo (4 jogadores)."); break; }
                     var cand = _friendList.FirstOrDefault(f => !_groupMembers.Contains(f.Name));
-                    if (cand == null) { ShowToast("Adicione amigos para convidar."); _friendsOpen = true; break; }
+                    if (cand == null) { ShowToast("Add friends to invite."); _friendsOpen = true; break; }
                     var target = AccountStore.FindByUserId(cand.UserId);
                     if (target == null || _account == null) break;
                     AccountStore.SendFriendRequest(_account, target, out _);
                     LoadFriendsFromAccount();
-                    ShowToast("Convite enviado para " + cand.Name + ".");
+                    ShowToast("Invite sent to " + cand.Name + ".");
                     break;
                 }
                 case "friendsOpen": _friendsOpen = true; break;
@@ -1229,7 +1229,7 @@ namespace Deadzone2D
                 case "cfgOpt": _cfgOpt = !_cfgOpt; break;
                 case "viewUpd":
                     if (UpdateService.Available != null) { _cfgOpen = false; ShowPage("Update"); }
-                    else ShowToast("Sem atualizações disponíveis");
+                    else ShowToast("No updates available");
                     break;
                 case "equip":
                     {
@@ -1808,7 +1808,7 @@ namespace Deadzone2D
                 Txt(g, (_account?.Nick ?? "CONVIDADO").ToUpperInvariant(), FMid, Ink,
                     new RectangleF(chipX + 50, 11, 132, 20));
                 g.FillEllipse(Br(_account == null ? OffC : Green), chipX + 51, 35, 7, 7);
-                Txt(g, _account == null ? "Sem conta" : "Online • " + _account.Region, FSmall,
+                Txt(g, _account == null ? "No account" : "Online • " + _account.Region, FSmall,
                     _account == null ? Dim : Green, new RectangleF(chipX + 62, 29, 120, 18));
 
                 UiIconBtn(g, new Rectangle(w - 236, 12, 40, 40), "notif", 0);
@@ -1826,7 +1826,7 @@ namespace Deadzone2D
                 g.DrawLine(Pn(A(Ink, 30), 1f), w - 138, BarH / 2 - 11, w - 138, BarH / 2 + 11);
             }
 
-            // botões da janela: só o ícone fino, afastados da borda
+            // botões da janela: só o icon fino, afastados da borda
             UiIconBtn(g, new Rectangle(w - 120, 12, 40, 40), "min", 2);
             UiIconBtn(g, new Rectangle(w - 72, 12, 40, 40), "close", 3);
         }
@@ -1835,7 +1835,7 @@ namespace Deadzone2D
         // Única navegação do lobby: lateral esquerda, vertical.
         private void DrawSideNav(Graphics g, int w, int h)
         {
-            string[] labels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL" };
+            string[] labels = { "LOBBY", "WEAPONS", "ANNOUNCEMENTS", "VAULT", "DEAD ROYAL" };
             string[] pages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal" };
             int[] indexes = { 2, 3, 7, 8, 9 };
             int bx = 32, by = BarH + 34, bw = 190, bh = 48, gap = 10;
@@ -1855,7 +1855,6 @@ namespace Deadzone2D
             int cx = w / 2;
             UiLogoMark(g, cx, h / 2f - 196, 64);
             Spaced(g, _loadingTitle, VTitle, Ink, cx, h / 2f - 100, 8f, StringAlignment.Center);
-            Txt(g, "PREPARANDO A SESSÃO", FSmall, Dim, new RectangleF(0, h / 2f - 52, w, 20), StringAlignment.Center);
 
             var bar = new Rectangle(cx - 260, h / 2 - 18, 520, 5);
             g.FillRectangle(Br(A(Ink, 28)), bar);
@@ -1863,7 +1862,7 @@ namespace Deadzone2D
             g.FillRectangle(Br(Red), bar.X, bar.Y, (int)(bar.Width * p), bar.Height);
 
             if (_groupMembers.Count == 0) ResetGroup();
-            Spaced(g, "MEMBROS DA EQUIPE", FLabel, Red, cx, h / 2f + 36, 4f, StringAlignment.Center);
+            Spaced(g, "TEAM MEMBERS", FLabel, Red, cx, h / 2f + 36, 4f, StringAlignment.Center);
             int n = Math.Clamp(_groupMembers.Count, 1, 4);
             int cw = 176, gap = 12;
             int total = n * cw + (n - 1) * gap;
@@ -1880,8 +1879,8 @@ namespace Deadzone2D
                     AccountStore.Icon(i == 0 ? _account?.IconId : null));
                 Txt(g, _groupMembers[i].ToUpperInvariant(), FMid, Ink,
                     new RectangleF(r.X + 68, r.Y + 18, r.Width - 78, 20));
-                Spaced(g, i == 0 ? "LÍDER" : "MEMBRO", FTiny, i == 0 ? Red : Green, r.X + 68, r.Y + 42, 2f);
-                Spaced(g, "PRONTO", FTiny, A(Dim, 190), r.X + 68, r.Y + 58, 2f);
+                Spaced(g, i == 0 ? "LEADER" : "MEMBER", FTiny, i == 0 ? Red : Green, r.X + 68, r.Y + 42, 2f);
+                Spaced(g, "READY", FTiny, A(Dim, 190), r.X + 68, r.Y + 58, 2f);
             }
             Txt(g, "Deadzone v" + AppInfo.Versao, FSmall, A(Dim, 170),
                 new RectangleF(0, h - 54, w, 20), StringAlignment.Center);
@@ -1953,8 +1952,8 @@ namespace Deadzone2D
                 g.FillRectangle(Br(A(Red, 50)), bx, by - 3, fw, 10);
                 g.FillRectangle(Br(Red), bx, by, fw, 4);
             }
-            string status = _progress < 30 ? "Iniciando serviços" : _progress < 60 ? "Carregando armas"
-                          : _progress < 90 ? "Sincronizando perfil" : "Quase lá";
+            string status = _progress < 30 ? "Starting services" : _progress < 60 ? "Loading weapons"
+                          : _progress < 90 ? "Syncing profile" : "Almost there";
             Spaced(g, status.ToUpperInvariant(), FLabel, Dim, bx, by + 24, 2f);
             Txt(g, $"{(int)_progress}%", FSmallB, Ink, new RectangleF(bx, by + 14, bw, 20), StringAlignment.Far);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
@@ -2025,17 +2024,17 @@ namespace Deadzone2D
             int top = Math.Max(BarH + 20, (h - 600) / 2);
 
             UiLogoMark(g, cx, top, 56);
-            Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 96, 8f, StringAlignment.Center);
-            Txt(g, "Use sua conta Google ou confirme seu Gmail com o código enviado.", FSmall, Dim,
+            Spaced(g, "SIGN IN", VTitle, Ink, cx, top + 96, 8f, StringAlignment.Center);
+            Txt(g, "Use your Google account or confirm your Gmail with the code sent.", FSmall, Dim,
                 new RectangleF(cx - 280, top + 126, 560, 20), StringAlignment.Center);
 
             var uf = new Rectangle(cx - 190, top + 150, 380, 50);
             var pf = new Rectangle(cx - 190, top + 210, 380, 50);
             UiField(g, uf, "GMAIL (@GMAIL.COM)", _tbUser);
-            UiField(g, pf, "SENHA", _tbPass);
+            UiField(g, pf, "PASSWORD", _tbPass);
 
-            UiField(g, new Rectangle(cx - 190, top + 270, 240, 46), "CÓDIGO DO GMAIL", _tbLoginCode);
-            Button(g, new Rectangle(cx - 190 + 252, top + 270, 128, 46), "loginSendCode", "ENVIAR CÓDIGO", false, FTiny, 1.5f);
+            UiField(g, new Rectangle(cx - 190, top + 270, 240, 46), "GMAIL CODE", _tbLoginCode);
+            Button(g, new Rectangle(cx - 190 + 252, top + 270, 128, 46), "loginSendCode", "SEND CODE", false, FTiny, 1.5f);
             if (!string.IsNullOrEmpty(_loginCodeHint))
                 Txt(g, _loginCodeHint, FTiny, MailService.IsConfigured ? Green : Amber,
                     new RectangleF(cx - 190, top + 320, 380, 16));
@@ -2052,10 +2051,10 @@ namespace Deadzone2D
             g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
             g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
 
-            Button(g, new Rectangle(cx - 170, top + 408, 340, 40), "googleSignIn", "ENTRAR COM GOOGLE", false, FLabel, 2.5f);
-            Button(g, new Rectangle(cx - 170, top + 456, 340, 40), "register", "CRIAR CONTA LOCAL", false, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 408, 340, 40), "googleSignIn", "SIGN IN WITH GOOGLE", false, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 456, 340, 40), "register", "CREATE LOCAL ACCOUNT", false, FLabel, 2.5f);
             if (AccountStore.Accounts.Count > 0)
-                Txt(g, $"{AccountStore.Accounts.Count} conta(s) local(is) neste PC", FTiny, A(Dim, 170),
+                Txt(g, $"{AccountStore.Accounts.Count} local account(s) on this PC", FTiny, A(Dim, 170),
                     new RectangleF(0, top + 506, w, 18), StringAlignment.Center);
 
             Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
@@ -2076,8 +2075,8 @@ namespace Deadzone2D
             }
             g.FillRectangle(Br(Red), card.X + 18, card.Y, card.Width - 18, 3);
 
-            Spaced(g, "ATUALIZAÇÃO DISPONÍVEL", FLabel, Red, card.X + 40, card.Y + 36, 4f);
-            Txt(g, "NOVA VERSÃO", VSub, Ink, new RectangleF(card.X + 40, card.Y + 52, card.Width - 80, 52));
+            Spaced(g, "UPDATE AVAILABLE", FLabel, Red, card.X + 40, card.Y + 36, 4f);
+            Txt(g, "NEW VERSION", VSub, Ink, new RectangleF(card.X + 40, card.Y + 52, card.Width - 80, 52));
             Txt(g, "Deadzone " + UpdateService.LocalVersion + "  →  " + version, FMid, Dim,
                 new RectangleF(card.X + 40, card.Y + 106, card.Width - 80, 24));
             if (!string.IsNullOrEmpty(info?.Notes))
@@ -2101,11 +2100,11 @@ namespace Deadzone2D
                 : _updInstallRequested ? $"BAIXANDO {(int)(prog * 100)}%" : "ATUALIZAR AGORA";
             int by = card.Bottom - 92;
             Button(g, new Rectangle(card.X + 40, by, 250, 56), "updateInstall", installLabel, true, VBtn, 3f);
-            Button(g, new Rectangle(card.X + 306, by, 200, 56), "updateSoft", "SEM REINSTALAR", false, FLabel, 2.5f);
+            Button(g, new Rectangle(card.X + 306, by, 200, 56), "updateSoft", "NO REINSTALL", false, FLabel, 2.5f);
             Button(g, new Rectangle(card.X + 522, by, 158, 56), "updateLater", "DEPOIS", false, FLabel, 2.5f);
 
             if (UpdateService.IgnoreVersion == UpdateService.Available?.Version)
-                Spaced(g, "ESTA VERSÃO SERÁ IGNORADA", FTiny, A(Dim, 200), card.X + 40, card.Bottom - 22, 2f);
+                Spaced(g, "THIS VERSION WILL BE IGNORED", FTiny, A(Dim, 200), card.X + 40, card.Bottom - 22, 2f);
             else
             {
                 var ig = new Rectangle(card.X + 40, card.Bottom - 34, 140, 22);
@@ -2131,7 +2130,7 @@ namespace Deadzone2D
             }
             g.FillRectangle(Br(Red), r.X + 18, r.Y, r.Width - 18, 3);
             Spaced(g, "AJUSTES", FLabel, Red, r.X + 40, r.Y + 36, 4f);
-            Txt(g, "CONFIGURAÇÕES", VSub, Ink, new RectangleF(r.X + 40, r.Y + 52, r.Width - 80, 52));
+            Txt(g, "SETTINGS", VSub, Ink, new RectangleF(r.X + 40, r.Y + 52, r.Width - 80, 52));
 
             int rowH = 62, y = r.Y + 120, rx = r.X + 40, rw = r.Width - 80;
 
@@ -2148,18 +2147,18 @@ namespace Deadzone2D
             Button(g, new Rectangle(rx + rw - 42, y + 24, 38, 28), "cfgVolUp", "+", false, FMid, 1f);
             y += rowH;
 
-            UiToggleRow(g, rx, y, rw, "IDIOMA", _cfgLangEn ? "ENGLISH" : "PORTUGUÊS", "cfgLang", _cfgLangEn);
+            UiToggleRow(g, rx, y, rw, "LANGUAGE", _cfgLangEn ? "ENGLISH" : "PORTUGUESE", "cfgLang", _cfgLangEn);
             y += rowH;
-            UiToggleRow(g, rx, y, rw, "MODO OTIMIZADO", _cfgOpt ? "LIGADO" : "DESLIGADO", "cfgOpt", _cfgOpt);
+            UiToggleRow(g, rx, y, rw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "DESON", "cfgOpt", _cfgOpt);
             y += rowH;
 
-            Spaced(g, "VERSÃO", FLabel, Dim, rx, y + 14, 3f);
+            Spaced(g, "VERSION", FLabel, Dim, rx, y + 14, 3f);
             Txt(g, "v" + AppInfo.Versao, FMid, Ink, new RectangleF(rx, y + 26, 200, 24));
-            Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "viewUpd", "VER ATUALIZAÇÃO", false, FLabel, 2.5f);
+            Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "viewUpd", "CHECK UPDATE", false, FLabel, 2.5f);
             y += rowH;
 
-            Spaced(g, "CONTA", FLabel, Dim, rx, y + 14, 3f);
-            Txt(g, _account?.Nick ?? "Sem conta", FMid, Ink, new RectangleF(rx, y + 26, 260, 24));
+            Spaced(g, "ACCOUNT", FLabel, Dim, rx, y + 14, 3f);
+            Txt(g, _account?.Nick ?? "No account", FMid, Ink, new RectangleF(rx, y + 26, 260, 24));
             Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "profileLogout", "LOGOUT", false, FLabel, 2.5f);
             y += rowH;
 
@@ -2167,7 +2166,7 @@ namespace Deadzone2D
             Spaced(g, GoogleAuth.IsConfigured ? "CONFIGURADO" : "NAO CONFIGURADO", FTiny,
                 GoogleAuth.IsConfigured ? Green : Dim, rx, y + 30, 2f);
 
-            Button(g, new Rectangle(r.X + 40, r.Bottom - 62, 150, 42), "cfg", "FECHAR", true, FLabel, 3f);
+            Button(g, new Rectangle(r.X + 40, r.Bottom - 62, 150, 42), "cfg", "CLOSE", true, FLabel, 3f);
         }
 
         private void UiToggleRow(Graphics g, int x, int y, int w, string label, string value, string id, bool on)
@@ -2238,7 +2237,7 @@ namespace Deadzone2D
 
             // INICIAR grande
             var btn = new Rectangle(cx - 170, under + 16, 340, 70);
-            Button(g, btn, "start", "INICIAR", true, VStart, 8f);
+            Button(g, btn, "start", "START", true, VStart, 8f);
 
             // squad só existe depois que o jogador cria uma (nada é criado no login)
             Button(g, new Rectangle(cx - 92, btn.Bottom + 8, 184, 34),
@@ -2274,11 +2273,11 @@ namespace Deadzone2D
             var plate = new Rectangle(rect.X, rect.Bottom - 72, rect.Width, 72);
             g.FillRectangle(Br(A(Color.Black, 130)), plate);
             Txt(g, _players[pi].ToUpperInvariant(), VName, Ink, new RectangleF(plate.X + 18, plate.Y + 8, plate.Width - 36, 30));
-            if (me) Spaced(g, "LÍDER", FTiny, Red, plate.X + 18, plate.Y + 52, 3f);
+            if (me) Spaced(g, "LEADER", FTiny, Red, plate.X + 18, plate.Y + 52, 3f);
             else
             {
                 g.FillEllipse(Br(Green), plate.X + 18, plate.Y + 47, 8, 8);
-                Spaced(g, "PRONTO", FTiny, Green, plate.X + 32, plate.Y + 52, 3f);
+                Spaced(g, "READY", FTiny, Green, plate.X + 32, plate.Y + 52, 3f);
             }
         }
 
@@ -2296,7 +2295,7 @@ namespace Deadzone2D
             var pen = Pn(Mix(Dim, Ink, hv), 2.5f);
             g.DrawLine(pen, cx - 14, cy, cx + 14, cy);
             g.DrawLine(pen, cx, cy - 14, cx, cy + 14);
-            Spaced(g, "CONVIDAR", FTiny, Mix(Dim, Ink, hv), cx, cy + 40, 3f, StringAlignment.Center);
+            Spaced(g, "INVITE", FTiny, Mix(Dim, Ink, hv), cx, cy + 40, 3f, StringAlignment.Center);
         }
 
         // ---------- Armas (Coleção) ----------
@@ -2345,7 +2344,7 @@ namespace Deadzone2D
                 g.DrawPath(Pn(Green, 2f), p);
                 Spaced(g, "EQUIPADA", VNav, Green, eb.X + eb.Width / 2f, eb.Y + eb.Height / 2f, 3f, StringAlignment.Center);
             }
-            else Button(g, eb, "equip", "EQUIPAR", true, VNav, 3f);
+            else Button(g, eb, "equip", "EQUIP", true, VNav, 3f);
 
             // prévia
             int py = BarH + 168, skinH = 112, skinY = h - 100 - skinH;
@@ -2368,7 +2367,7 @@ namespace Deadzone2D
             }
             else
             {
-                Spaced(g, "PRÉVIA DA ARMA", VNav, Dim, prev.X + prev.Width / 2f, prev.Y + prev.Height / 2f - 10, 5f, StringAlignment.Center);
+                Spaced(g, "WEAPON PREVIEW", VNav, Dim, prev.X + prev.Width / 2f, prev.Y + prev.Height / 2f - 10, 5f, StringAlignment.Center);
                 Txt(g, $"Coloque um PNG em Assets/Previews/{gun.GunId}_{skin.SkinId}.png", FSmall, A(Dim, 170),
                     new RectangleF(prev.X, prev.Y + prev.Height / 2f + 6, prev.Width, 22), StringAlignment.Center);
             }
@@ -2423,7 +2422,7 @@ namespace Deadzone2D
                     g.DrawPath(Pn(Mix(Line, Red, hv), 1f), p);
                 }
                 g.FillEllipse(Br(Green), pill.X + 18, pill.Y + 19, 10, 10);
-                Spaced(g, "AMIGOS", FNav, Ink, pill.X + 40, pill.Y + 24, 3f);
+                Spaced(g, "FRIENDS", FNav, Ink, pill.X + 40, pill.Y + 24, 3f);
                 var badge = new RectangleF(pill.Right - 48, pill.Y + 12, 30, 24);
                 using (var bp = RoundRect(badge, 12)) g.FillPath(Br(Red), bp);
                 Txt(g, online.ToString(), FSmallB, Color.White, badge, StringAlignment.Center);
@@ -2445,7 +2444,7 @@ namespace Deadzone2D
             g.FillRectangle(Br(Red), pr.X + 16, pr.Y, pr.Width - 16, 3);
 
             // cabeçalho
-            float hw = Spaced(g, "AMIGOS", FNav, Ink, pr.X + 22, pr.Y + 32, 3f);
+            float hw = Spaced(g, "FRIENDS", FNav, Ink, pr.X + 22, pr.Y + 32, 3f);
             Txt(g, $"{online} online", FSmall, Green, new RectangleF(pr.X + 22 + hw + 14, pr.Y + 22, 120, 20));
             var cb = new Rectangle(pr.Right - 48, pr.Y + 16, 32, 32);
             Reg(cb, "friendsClose"); float chv = Hv("friendsClose");
@@ -2461,8 +2460,8 @@ namespace Deadzone2D
 
             if (_friendList.Count == 0)
             {
-                Spaced(g, "NENHUM AMIGO AINDA", FLabel, Dim, view.X + view.Width / 2f, view.Y + view.Height / 2f - 8, 3f, StringAlignment.Center);
-                Txt(g, "Use ADICIONAR AMIGO para começar", FSmall, A(Dim, 160),
+                Spaced(g, "NO FRIENDS YET", FLabel, Dim, view.X + view.Width / 2f, view.Y + view.Height / 2f - 8, 3f, StringAlignment.Center);
+                Txt(g, "Use ADD FRIEND to get started", FSmall, A(Dim, 160),
                     new RectangleF(view.X, view.Y + view.Height / 2f + 6, view.Width, 20), StringAlignment.Center);
             }
 
@@ -2489,8 +2488,8 @@ namespace Deadzone2D
 
             // rodapé
             g.DrawLine(Pn(Line, 1f), pr.X, view.Bottom, pr.Right, view.Bottom);
-            Button(g, new Rectangle(pr.X + 20, pr.Bottom - 56, 90, 42), "frdMenu", "PEDIDOS", false, FLabel, 2f);
-            Button(g, new Rectangle(pr.X + 118, pr.Bottom - 56, pr.Width - 138, 42), "addFriend", "ADICIONAR AMIGO", false, FLabel, 2.5f);
+            Button(g, new Rectangle(pr.X + 20, pr.Bottom - 56, 90, 42), "frdMenu", "REQUESTS", false, FLabel, 2f);
+            Button(g, new Rectangle(pr.X + 118, pr.Bottom - 56, pr.Width - 138, 42), "addFriend", "ADD FRIEND", false, FLabel, 2.5f);
 
             g.ResetTransform();
             _off = Point.Empty;
@@ -2508,10 +2507,10 @@ namespace Deadzone2D
                 g.DrawPath(Pn(Line, 1f), p);
             }
             g.FillRectangle(Br(Red), r.X + 12, r.Y, r.Width - 12, 3);
-            Spaced(g, "PEDIDOS", FLabel, Ink, r.X + 18, r.Y + 22, 3f);
+            Spaced(g, "REQUESTS", FLabel, Ink, r.X + 18, r.Y + 22, 3f);
             if (_friendRequests.Count == 0)
             {
-                Txt(g, "Nenhum pedido pendente", FSmall, Dim, new RectangleF(r.X + 18, r.Y + 36, r.Width - 36, 20));
+                Txt(g, "No pending requests", FSmall, Dim, new RectangleF(r.X + 18, r.Y + 36, r.Width - 36, 20));
                 return;
             }
             for (int i = 0; i < _friendRequests.Count; i++)
@@ -2525,13 +2524,13 @@ namespace Deadzone2D
                 Reg(accept, "frdAccept:" + i); Reg(rec, "frdReject:" + i);
                 float ah = Hv("frdAccept:" + i), rhv = Hv("frdReject:" + i);
                 using (var ap = Chamfer(accept, 6, true, false, true, false)) g.FillPath(Br(Mix(Red, RedHi, ah)), ap);
-                Spaced(g, "ACEITAR", FTiny, Color.White, accept.X + accept.Width / 2f, accept.Y + 14, 2f, StringAlignment.Center);
+                Spaced(g, "ACCEPT", FTiny, Color.White, accept.X + accept.Width / 2f, accept.Y + 14, 2f, StringAlignment.Center);
                 using (var rp = Chamfer(rec, 6, true, false, true, false))
                 {
                     g.FillPath(Br(A(Ink, (int)(rhv * 22))), rp);
                     g.DrawPath(Pn(Mix(A(Ink, 110), Ink, rhv), 1.5f), rp);
                 }
-                Spaced(g, "RECUSAR", FTiny, Ink, rec.X + rec.Width / 2f, rec.Y + 14, 2f, StringAlignment.Center);
+                Spaced(g, "DECLINE", FTiny, Ink, rec.X + rec.Width / 2f, rec.Y + 14, 2f, StringAlignment.Center);
             }
         }
 
@@ -2552,7 +2551,7 @@ namespace Deadzone2D
             Txt(g, f.Name, FMid, off ? Dim : Ink, new RectangleF(row.X + 76, row.Y + 11, row.Width - 170, 22));
             Txt(g, f.Sub, FSmall, f.St == FStatus.InGame ? Blue : Dim, new RectangleF(row.X + 76, row.Y + 33, row.Width - 100, 18));
             if (!off && hv > 0.02f)
-                Spaced(g, "CONVIDAR", FTiny, A(Red, (int)(255 * hv)), row.Right - 52, row.Y + 21, 2f, StringAlignment.Far);
+                Spaced(g, "INVITE", FTiny, A(Red, (int)(255 * hv)), row.Right - 52, row.Y + 21, 2f, StringAlignment.Far);
 
             // botão remover (X desenhado, sem depender de glifo da fonte)
             var rm = new Rectangle(row.Right - 34, row.Y + 19, 22, 22);

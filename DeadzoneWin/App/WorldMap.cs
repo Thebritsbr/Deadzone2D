@@ -221,7 +221,7 @@ namespace Deadzone2D
             {
                 item.Kind = "medkit";
                 item.Amount = 1;
-                item.Label = "Kit médico";
+                item.Label = "Medkit";
             }
             else if (roll < 92)
             {

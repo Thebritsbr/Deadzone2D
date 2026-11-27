@@ -1,3 +1,3 @@
 // Config files: Maps.json + Gameplay.json
-// O gameplay e os mapas continuam sendo configuráveis no app via LoadMaps()/LoadGameplay().
-// Scripts atuais: MainForm.cs (app WinForms, estilo tático)
+// Gameplay and maps remain configurable in the app via LoadMaps()/LoadGameplay().
+// Current scripts: MainForm.cs (WinForms app, tactical style)

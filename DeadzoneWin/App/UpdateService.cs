@@ -26,7 +26,7 @@ namespace Deadzone2D
         public static bool DownloadStarted;
 
         private static Task? _download;              // download do instalador completo
-        private static Thread? _installThread;       // fluxo "Instalar agora" (thread em 1º plano)
+        private static Thread? _installThread;       // fluxo "Instalar now" (thread em 1º plano)
         private static Thread? _softThread;          // fluxo "Sem reinstalar" (thread em 1º plano)
         private static string? _installerPath;
         private static string? _lastCheckUrl;        // URL do último manifesto consultado com sucesso
@@ -77,7 +77,7 @@ namespace Deadzone2D
                     string[] files = GetFiles(root);
                     if (string.IsNullOrEmpty(v) || string.IsNullOrEmpty(p))
                     {
-                        fail = "Manifesto sem versão ou pacote em " + url;
+                        fail = "Manifest missing version or package at " + url;
                         continue;
                     }
                     if (CompareVersions(v, LocalVersion) <= 0) { _lastError = null; return null; }
@@ -271,9 +271,9 @@ namespace Deadzone2D
         {
             var info = Available;
             if (info == null) return false;
-            if (!CanSoftUpdate) { _lastError = "A pasta do jogo exige administrador. Use 'Instalar agora'."; return false; }
+            if (!CanSoftUpdate) { _lastError = "A pasta do jogo exige administrador. Use 'Instalar now'."; return false; }
             var files = info.Files ?? Array.Empty<string>();
-            if (files.Length == 0) { _lastError = "Manifesto sem lista de arquivos"; return false; }
+            if (files.Length == 0) { _lastError = "Manifest missing file list"; return false; }
             if (_download != null && !_download.IsCompleted) return false; // não atropela o instalador
             if (_softThread != null && _softThread.IsAlive) return false;  // já em andamento
             string baseUrl = ResolveFilesBase(info);
