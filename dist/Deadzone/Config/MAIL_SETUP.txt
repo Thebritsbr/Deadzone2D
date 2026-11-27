@@ -1,0 +1,22 @@
+COMO ATIVAR O GMAIL REAL (código de verificação)
+================================================
+
+1. Ative a verificação em duas etapas na sua conta Google:
+   https://myaccount.google.com/security
+
+2. Gere uma "Senha de app" (App password):
+   https://myaccount.google.com/apppasswords
+   Use o app "Mail" e o dispositivo "Windows Computer". O Google mostra
+   uma senha de 16 caracteres (algo como abcd efgh ijkl mnop).
+
+3. Edite Config/Mail.json:
+   - Enabled: true
+   - User: seu email real @gmail.com (o mesmo que vai receber os códigos)
+   - Password: a senha de app gerada (sem espaços)
+   - Host e Port: deixe como estão (smtp.gmail.com / 587)
+
+4. Reinicie o Deadzone2D. No cadastro, clique em "ENVIAR CÓDIGO" e
+   digite o código de 6 dígitos recebido no seu Gmail.
+
+Quando Enabled estiver false, o jogo roda em modo local: o código aparece
+na própria tela de cadastro, para testes sem envio de e-mail.

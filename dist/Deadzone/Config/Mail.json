@@ -1,0 +1,8 @@
+{
+  "Enabled": false,
+  "Host": "smtp.gmail.com",
+  "Port": 587,
+  "User": "",
+  "Password": "",
+  "FromName": "Deadzone2D"
+}

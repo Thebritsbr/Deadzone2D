@@ -33,6 +33,36 @@
     "Icon": "✦"
   },
   {
+    "Id": "icon_sentinela",
+    "Name": "Sentinela",
+    "Type": "Icon",
+    "IconId": "icon_01",
+    "Price": 400,
+    "Rarity": "Rare",
+    "Description": "Ícone de perfil Sentinela para usar no Cofre.",
+    "Icon": "S"
+  },
+  {
+    "Id": "icon_fenix",
+    "Name": "Fênix",
+    "Type": "Icon",
+    "IconId": "icon_02",
+    "Price": 450,
+    "Rarity": "Rare",
+    "Description": "Ícone de perfil Fênix para usar no Cofre.",
+    "Icon": "F"
+  },
+  {
+    "Id": "icon_espectro",
+    "Name": "Espectro",
+    "Type": "Icon",
+    "IconId": "icon_03",
+    "Price": 500,
+    "Rarity": "Epic",
+    "Description": "Ícone de perfil Espectro para usar no Cofre.",
+    "Icon": "E"
+  },
+  {
     "Id": "icon_calavera",
     "Name": "Calavera",
     "Type": "Icon",
@@ -43,6 +73,46 @@
     "Icon": "☠"
   },
   {
+    "Id": "icon_lobo",
+    "Name": "Lobo",
+    "Type": "Icon",
+    "IconId": "icon_05",
+    "Price": 550,
+    "Rarity": "Epic",
+    "Description": "Ícone de perfil Lobo para usar no Cofre.",
+    "Icon": "L"
+  },
+  {
+    "Id": "icon_corvo",
+    "Name": "Corvo",
+    "Type": "Icon",
+    "IconId": "icon_06",
+    "Price": 600,
+    "Rarity": "Legendary",
+    "Description": "Ícone de perfil Corvo para usar no Cofre.",
+    "Icon": "V"
+  },
+  {
+    "Id": "banner_deadzone",
+    "Name": "Deadzone",
+    "Type": "Banner",
+    "BannerId": "banner_01",
+    "Price": 500,
+    "Rarity": "Rare",
+    "Description": "Banner Deadzone para destacar seu perfil no lobby.",
+    "Icon": "♛"
+  },
+  {
+    "Id": "banner_lume",
+    "Name": "Lume Studio",
+    "Type": "Banner",
+    "BannerId": "banner_02",
+    "Price": 600,
+    "Rarity": "Rare",
+    "Description": "Banner Lume Studio para destacar seu perfil no lobby.",
+    "Icon": "♛"
+  },
+  {
     "Id": "banner_royal",
     "Name": "Dead Royal",
     "Type": "Banner",
@@ -50,6 +120,36 @@
     "Price": 600,
     "Rarity": "Epic",
     "Description": "Banner Dead Royal para destacar seu perfil no lobby.",
+    "Icon": "♛"
+  },
+  {
+    "Id": "banner_neon",
+    "Name": "Neon Fury",
+    "Type": "Banner",
+    "BannerId": "banner_04",
+    "Price": 750,
+    "Rarity": "Epic",
+    "Description": "Banner Neon Fury para destacar seu perfil no lobby.",
+    "Icon": "♛"
+  },
+  {
+    "Id": "banner_cinza",
+    "Name": "Cinza Tático",
+    "Type": "Banner",
+    "BannerId": "banner_05",
+    "Price": 500,
+    "Rarity": "Rare",
+    "Description": "Banner Cinza Tático para destacar seu perfil no lobby.",
+    "Icon": "♛"
+  },
+  {
+    "Id": "banner_carmesim",
+    "Name": "Carmesim",
+    "Type": "Banner",
+    "BannerId": "banner_06",
+    "Price": 800,
+    "Rarity": "Legendary",
+    "Description": "Banner Carmesim para destacar seu perfil no lobby.",
     "Icon": "♛"
   }
 ]

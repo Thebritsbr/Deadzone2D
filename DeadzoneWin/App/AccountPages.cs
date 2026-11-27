@@ -25,8 +25,9 @@ namespace Deadzone2D
             var tf = new Font(Fam, 16f, FontStyle.Regular, GraphicsUnit.Pixel);
             var all = new[]
             {
-                _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegDesc,
-                _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd
+                _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegCode, _tbRegDesc,
+                _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
+                _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor
             };
             foreach (var tb in all)
             {
@@ -42,9 +43,18 @@ namespace Deadzone2D
             _tbRegPass.UseSystemPasswordChar = true;
             _tbRegPass2.UseSystemPasswordChar = true;
             _tbAdminPass.UseSystemPasswordChar = true;
+            _tbNotifyMsg.Multiline = true;
+            _tbAnnBody.Multiline = true;
+            _tbRegCode.MaxLength = 6;
             _tbRegDesc.MaxLength = 140;
             _tbDesc.MaxLength = 140;
             _tbAdminCmd.MaxLength = 600;
+            _tbNotifyMsg.MaxLength = 200;
+            _tbAnnTitle.MaxLength = 80;
+            _tbAnnBody.MaxLength = 600;
+            _tbAnnFile.MaxLength = 260;
+            _tbAnnAuthor.MaxLength = 30;
+            _tbAnnAuthor.Text = "sr.idev";
             _tbAdminUser.Text = "sr.idev";
 
             _tbFriendSearch.TextChanged += (s, e) =>
@@ -76,6 +86,7 @@ namespace Deadzone2D
             ShowInput(_tbRegDisplay, reg);
             ShowInput(_tbRegPass, reg);
             ShowInput(_tbRegPass2, reg);
+            ShowInput(_tbRegCode, reg);
             ShowInput(_tbRegDesc, reg);
 
             bool profile = _profileOpen && _page >= 2 && _page != 4;
@@ -88,7 +99,13 @@ namespace Deadzone2D
             bool adminAuth = _adminOpen && !_adminAuthed && _page != 4;
             ShowInput(_tbAdminUser, adminAuth);
             ShowInput(_tbAdminPass, adminAuth);
-            ShowInput(_tbAdminCmd, _adminOpen && _adminAuthed && _page != 4);
+            bool adminCmd = _adminOpen && _adminAuthed && _page != 4 && !_notifyUiOpen && !_announceUiOpen;
+            ShowInput(_tbAdminCmd, adminCmd);
+            ShowInput(_tbNotifyMsg, _adminOpen && _adminAuthed && _notifyUiOpen && _page != 4);
+            ShowInput(_tbAnnTitle, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
+            ShowInput(_tbAnnBody, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
+            ShowInput(_tbAnnFile, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
+            ShowInput(_tbAnnAuthor, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
         }
 
         private static void ShowInput(TextBox tb, bool visible)
@@ -345,32 +362,40 @@ namespace Deadzone2D
             Txt(g, "Seus dados ficam salvos neste PC. O Nick é permanente; escolha com cuidado.",
                 FSmall, Dim, new RectangleF(x, y + 54, cw - 68, 20));
 
-            int fy = card.Y + 106;
-            var gmailF = new Rectangle(card.X + 34, fy, cw - 68, 54);
-            UiField(g, gmailF, "GMAIL (@GMAIL.COM)", _tbRegGmail);
+            int fy = card.Y + 100;
+            var gmailF = new Rectangle(card.X + 34, fy, cw - 68, 50);
+            UiField(g, gmailF, "GMAIL REAL (@GMAIL.COM)", _tbRegGmail);
 
             int half = (cw - 68 - 16) / 2;
-            var nickF = new Rectangle(card.X + 34, fy + 62, half, 54);
-            var dispF = new Rectangle(card.X + 34 + half + 16, fy + 62, half, 54);
+            var nickF = new Rectangle(card.X + 34, fy + 54, half, 50);
+            var dispF = new Rectangle(card.X + 34 + half + 16, fy + 54, half, 50);
             UiField(g, nickF, "NICK (PERMANENTE)", _tbRegNick);
             UiField(g, dispF, "DISPLAYNAME", _tbRegDisplay);
 
-            var passF = new Rectangle(card.X + 34, fy + 124, half, 54);
-            var pass2F = new Rectangle(card.X + 34 + half + 16, fy + 124, half, 54);
+            var passF = new Rectangle(card.X + 34, fy + 108, half, 50);
+            var pass2F = new Rectangle(card.X + 34 + half + 16, fy + 108, half, 50);
             UiField(g, passF, "SENHA", _tbRegPass);
             UiField(g, pass2F, "CONFIRMAR SENHA", _tbRegPass2);
 
-            var descF = new Rectangle(card.X + 34, fy + 186, cw - 68, 54);
+            var codeF = new Rectangle(card.X + 34, fy + 162, half, 44);
+            UiField(g, codeF, "CÓDIGO ENVIADO POR GMAIL", _tbRegCode);
+            Button(g, new Rectangle(card.X + 34 + half + 16, fy + 162, half, 44),
+                "registerSendCode", "ENVIAR CÓDIGO", false, FLabel, 2.5f);
+            if (!string.IsNullOrEmpty(_regCodeHint))
+                Txt(g, _regCodeHint, FTiny, MailService.IsConfigured ? Green : Amber,
+                    new RectangleF(card.X + 34, fy + 208, cw - 68, 16));
+
+            var descF = new Rectangle(card.X + 34, fy + 228, cw - 68, 44);
             UiField(g, descF, "DESCRIÇÃO (OPCIONAL)", _tbRegDesc);
 
-            Spaced(g, "ESCOLHA SEU ÍCONE", FLabel, Dim, x, fy + 248, 3f);
-            int iconSize = 54, iconGap = 10;
+            Spaced(g, "ESCOLHA SEU ÍCONE", FLabel, Dim, x, fy + 280, 3f);
+            int iconSize = 48, iconGap = 10;
             int totalIcons = AccountStore.Icons.Length * iconSize + (AccountStore.Icons.Length - 1) * iconGap;
             int ix = (w - totalIcons) / 2;
             for (int i = 0; i < AccountStore.Icons.Length; i++)
             {
                 var icon = AccountStore.Icons[i];
-                var rr = new Rectangle(ix + i * (iconSize + iconGap), fy + 264, iconSize, iconSize);
+                var rr = new Rectangle(ix + i * (iconSize + iconGap), fy + 292, iconSize, iconSize);
                 bool sel = string.Equals(icon.Id, _regIcon, StringComparison.OrdinalIgnoreCase);
                 Reg(rr, "regIcon:" + icon.Id);
                 if (sel)
@@ -383,7 +408,7 @@ namespace Deadzone2D
                     new RectangleF(rr.X - 10, rr.Bottom + 2, rr.Width + 20, 14), StringAlignment.Center);
             }
 
-            Spaced(g, "REGIÃO", FLabel, Dim, x, fy + 334, 3f);
+            Spaced(g, "REGIÃO", FLabel, Dim, x, fy + 360, 3f);
             string[] regionLabels = { "BRASIL", "EUA", "ESPANHA", "PORTUGAL", "MÉXICO", "ARGENTINA" };
             int rbw = 96, rgap = 8;
             int totalR = regionLabels.Length * rbw + (regionLabels.Length - 1) * rgap;
@@ -391,12 +416,12 @@ namespace Deadzone2D
             for (int i = 0; i < regionLabels.Length; i++)
             {
                 string reg = AccountStore.Regions[i];
-                SizeBtn(g, new Rectangle(rx + i * (rbw + rgap), fy + 350, rbw, 28), "regRegion:" + reg,
+                SizeBtn(g, new Rectangle(rx + i * (rbw + rgap), fy + 372, rbw, 26), "regRegion:" + reg,
                     regionLabels[i], string.Equals(reg, _regRegion, StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrEmpty(_regError))
-                Txt(g, _regError, FSmall, HpRed, new RectangleF(card.X + 34, card.Bottom - 90, cw - 68, 20));
+                Txt(g, _regError, FSmall, HpRed, new RectangleF(card.X + 34, fy + 406, cw - 68, 20));
 
             Button(g, new Rectangle(card.X + 34, card.Bottom - 58, 150, 42), "registerBack", "VOLTAR", false, FLabel, 2.5f);
             Button(g, new Rectangle(card.Right - 34 - 210, card.Bottom - 58, 210, 42), "registerCreate", "CRIAR CONTA", true, FLabel, 3f);
@@ -431,7 +456,7 @@ namespace Deadzone2D
                 .OrderByDescending(a => a.CreatedAt)
                 .ToList();
 
-            var view = new Rectangle(x, ty + 44, listW, h - (ty + 44) - 26);
+            var view = new Rectangle(x, ty + 44, listW, h - (ty + 44) - 140);
             int cardH = 152, cardGap = 14;
             int total = Math.Max(0, items.Count * (cardH + cardGap) - cardGap);
             float max = Math.Max(0, total - view.Height);
@@ -635,20 +660,23 @@ namespace Deadzone2D
                 int col = i % cols, row = i / cols;
                 var r = new Rectangle(x + col * (cw + gap), y + row * (chh + gap), cw, chh);
                 if (r.Bottom > h - 20) break;
-                string id = "equipBanner:" + b.Id;
-                Reg(r, id);
-                float hv = Hv(id);
+                bool eq = string.Equals(_account!.BannerId, b.Id, StringComparison.OrdinalIgnoreCase);
+                bool owned = _account.OwnedBanners.Contains(b.Id, StringComparer.OrdinalIgnoreCase);
+                if (!owned) continue; // só mostra itens que o jogador conquistou/comprou
+                string id = eq ? "" : "equipBanner:" + b.Id;
+                if (id.Length > 0) Reg(r, id);
+                float hv = id.Length > 0 ? Hv(id) : 0f;
                 using (var p = Chamfer(r, 12, true, false, true, false))
                 {
                     g.FillPath(Br(Mix(A(Panel, 235), A(PanelHi, 245), hv)), p);
-                    g.DrawPath(Pn(Mix(A(Line, 190), Red, hv), 1f), p);
+                    g.DrawPath(Pn(Mix(A(Line, 190), owned ? Red : A(Dim, 200), hv), 1f), p);
                 }
                 var prev = new Rectangle(r.X + 10, r.Y + 10, r.Width - 20, 80);
                 DrawBanner(g, prev, b);
-                Txt(g, b.Name, FMid, Ink, new RectangleF(r.X + 14, r.Y + 98, r.Width - 28, 22));
-                bool eq = string.Equals(_account!.BannerId, b.Id, StringComparison.OrdinalIgnoreCase);
-                Spaced(g, eq ? "EQUIPADO" : "EQUIPAR", FTiny, eq ? Green : A(Ink, 190),
-                    r.X + 14, r.Y + 128, 2f);
+                if (!owned) g.FillRectangle(Br(A(Color.Black, 125)), prev);
+                Txt(g, b.Name, FMid, owned ? Ink : Dim, new RectangleF(r.X + 14, r.Y + 98, r.Width - 28, 22));
+                if (eq) Spaced(g, "EQUIPADO", FTiny, Green, r.X + 14, r.Y + 128, 2f);
+                else Spaced(g, "EQUIPAR", FTiny, A(Ink, 190), r.X + 14, r.Y + 128, 2f);
             }
         }
 
@@ -662,21 +690,21 @@ namespace Deadzone2D
                 int col = i % cols, row = i / cols;
                 var r = new Rectangle(x + col * (cw + gap), y + row * (chh + gap), cw, chh);
                 if (r.Bottom > h - 20) break;
-                string id = "equipIcon:" + icon.Id;
-                Reg(r, id);
-                float hv = Hv(id);
+                bool eq = string.Equals(_account!.IconId, icon.Id, StringComparison.OrdinalIgnoreCase);
+                bool owned = _account.OwnedIcons.Contains(icon.Id, StringComparer.OrdinalIgnoreCase);
+                if (!owned) continue; // só mostra itens que o jogador conquistou/comprou
+                string id = eq ? "" : "equipIcon:" + icon.Id;
+                if (id.Length > 0) Reg(r, id);
+                float hv = id.Length > 0 ? Hv(id) : 0f;
                 using (var p = Chamfer(r, 12, true, false, true, false))
                 {
                     g.FillPath(Br(Mix(A(Panel, 235), A(PanelHi, 245), hv)), p);
-                    g.DrawPath(Pn(Mix(A(Line, 190), Red, hv), 1f), p);
+                    g.DrawPath(Pn(Mix(A(Line, 190), owned ? Red : A(Dim, 200), hv), 1f), p);
                 }
-                DrawAccountIcon(g, new RectangleF(r.X + 22, r.Y + 18, 64, 64), icon);
-                Txt(g, icon.Name, FMid, Ink, new RectangleF(r.X + 100, r.Y + 28, r.Width - 110, 24));
-                bool eq = string.Equals(_account!.IconId, icon.Id, StringComparison.OrdinalIgnoreCase);
-                Spaced(g, eq ? "EQUIPADO" : "EQUIPAR", FTiny, eq ? Green : A(Ink, 190),
-                    r.X + 100, r.Y + 58, 2f);
-                bool owned = _account.OwnedIcons.Contains(icon.Id, StringComparer.OrdinalIgnoreCase);
-                if (!owned) Spaced(g, "BLOQUEADO", FTiny, Amber, r.X + 22, r.Y + 112, 2f);
+                DrawAccountIcon(g, new RectangleF(r.X + 22, r.Y + 18, 64, 64), icon, !owned);
+                Txt(g, icon.Name, FMid, owned ? Ink : Dim, new RectangleF(r.X + 100, r.Y + 28, r.Width - 110, 24));
+                if (eq) Spaced(g, "EQUIPADO", FTiny, Green, r.X + 100, r.Y + 58, 2f);
+                else Spaced(g, "EQUIPAR", FTiny, A(Ink, 190), r.X + 100, r.Y + 58, 2f);
             }
         }
 
@@ -692,16 +720,31 @@ namespace Deadzone2D
                 DrawCoinsChip(g, new Rectangle(w - 48 - 238, y + 8, 238, 46), "shopReload");
 
             var items = AccountStore.Shop;
-            int cols = 3, gap = 18;
+            int cols = 3, gap = 14;
             int cw = (w - 96 - (cols - 1) * gap) / cols;
-            int chh = Math.Min(224, (h - (BarH + 128) - 30 - gap) / 2);
+            int chh = 168;
             int gy = BarH + 116;
+            var view = new Rectangle(x, gy, w - 96, Math.Max(80, h - gy - 136));
+            int rows = (items.Count + cols - 1) / cols;
+            int total = Math.Max(0, rows * (chh + gap) - gap);
+            float max = Math.Max(0f, total - view.Height);
+            _shopScroll = Math.Clamp(_shopScroll, 0f, max);
+
+            g.SetClip(view);
             for (int i = 0; i < items.Count; i++)
             {
                 int col = i % cols, row = i / cols;
-                var r = new Rectangle(x + col * (cw + gap), gy + row * (chh + gap), cw, chh);
-                if (r.Bottom > h - 18) break;
-                DrawShopCard(g, r, items[i], i);
+                var r = new Rectangle(x + col * (cw + gap), gy + row * (chh + gap) - (int)_shopScroll, cw, chh);
+                if (r.Bottom > view.Top && r.Top < view.Bottom) DrawShopCard(g, r, items[i], i);
+            }
+            g.ResetClip();
+
+            if (max > 0)
+            {
+                float th = Math.Max(30f, view.Height * (view.Height / (float)total));
+                float ty = view.Y + (view.Height - th) * (_shopScroll / max);
+                g.FillRectangle(Br(A(Ink, 40)), view.Right - 6, ty, 3, th);
+                Spaced(g, "ROLE PARA VER MAIS", FTiny, A(Dim, 180), view.Right - 150, view.Bottom + 18, 2f);
             }
         }
 
@@ -720,9 +763,9 @@ namespace Deadzone2D
                 g.DrawPath(Pn(A(Line, 210), 1f), p);
             }
             g.FillRectangle(Br(rarity), r.X + 14, r.Y, r.Width - 14, 3);
-            Spaced(g, item.Rarity.ToUpperInvariant(), FTiny, rarity, r.X + 16, r.Y + 18, 2f);
+            Spaced(g, item.Rarity.ToUpperInvariant(), FTiny, rarity, r.X + 16, r.Y + 12, 2f);
 
-            var art = new Rectangle(r.X + 16, r.Y + 30, r.Width - 32, 74);
+            var art = new Rectangle(r.X + 14, r.Y + 26, r.Width - 28, 52);
             using (var p = Chamfer(art, 8, true, false, true, false))
             {
                 using (var lb = new LinearGradientBrush(art, A(rarity, 26), A(Panel, 120), 90f))
@@ -731,29 +774,29 @@ namespace Deadzone2D
             }
             DrawShopArt(g, art, item, rarity);
 
-            Txt(g, item.Name, VName, Ink, new RectangleF(r.X + 16, r.Y + 108, r.Width - 32, 28));
+            Txt(g, item.Name, FMid, Ink, new RectangleF(r.X + 16, r.Y + 80, r.Width - 32, 22));
             string type = item.Type == "WeaponSkin" ? "SKIN DE ARMA" : item.Type == "Icon" ? "ÍCONE" : "BANNER";
-            Spaced(g, type, FTiny, Dim, r.X + 16, r.Y + 134, 2f);
-            g.DrawString(item.Description, FSmall, Br(A(Ink, 170)),
-                new RectangleF(r.X + 16, r.Y + 144, r.Width - 32, 24), SfWrap);
+            Spaced(g, type, FTiny, Dim, r.X + 16, r.Y + 101, 2f);
+            g.DrawString(item.Description, FSmall, Br(A(Ink, 160)),
+                new RectangleF(r.X + 16, r.Y + 113, r.Width - 32, 16), SfWrap);
 
             bool owned = _account != null && AccountStore.Owns(_account, item);
             bool equipped = IsShopItemEquipped(item);
-            int by = r.Bottom - 48;
+            int by = r.Bottom - 40;
             if (equipped)
             {
-                using var p = Chamfer(new Rectangle(r.X + 16, by, r.Width - 32, 36), 8, true, false, true, false);
+                using var p = Chamfer(new Rectangle(r.X + 16, by, r.Width - 32, 32), 8, true, false, true, false);
                 g.FillPath(Br(A(Green, 26)), p);
                 g.DrawPath(Pn(Green, 1.5f), p);
-                Spaced(g, "EQUIPADO", FLabel, Green, r.X + r.Width / 2f, by + 18, 3f, StringAlignment.Center);
+                Spaced(g, "EQUIPADO", FLabel, Green, r.X + r.Width / 2f, by + 16, 3f, StringAlignment.Center);
             }
             else if (owned)
             {
-                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 36), "shopEquip:" + item.Id, "EQUIPAR", true, FLabel, 2.5f);
+                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 32), "shopEquip:" + item.Id, "EQUIPAR", true, FLabel, 2.5f);
             }
             else
             {
-                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 36), "shopBuy:" + item.Id,
+                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 32), "shopBuy:" + item.Id,
                     "COMPRAR  •  " + item.Price.ToString("N0"), false, FLabel, 2f);
             }
         }
@@ -786,13 +829,13 @@ namespace Deadzone2D
             }
             else if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase))
             {
-                DrawAccountIcon(g, new RectangleF(r.X + r.Width / 2f - 27, r.Y + 8, 54, 54),
+                DrawAccountIcon(g, new RectangleF(r.X + r.Width / 2f - 22, r.Y + 4, 44, 44),
                     AccountStore.Icon(item.IconId));
                 return;
             }
             else if (item.Type.Equals("Banner", StringComparison.OrdinalIgnoreCase))
             {
-                DrawBanner(g, new Rectangle(r.X + 18, r.Y + 16, r.Width - 36, 44),
+                DrawBanner(g, new Rectangle(r.X + 12, r.Y + 8, r.Width - 24, 36),
                     AccountStore.Banner(item.BannerId));
                 return;
             }
@@ -1004,6 +1047,8 @@ namespace Deadzone2D
         private void CloseAdmin()
         {
             _adminOpen = false;
+            _notifyUiOpen = false;
+            _announceUiOpen = false;
             _adminAuthed = false;
             _adminError = "";
             _tbAdminPass.Text = "";
@@ -1060,7 +1105,9 @@ namespace Deadzone2D
 
             Spaced(g, "DEADZONE ADMIN // " + _account!.Nick.ToUpperInvariant(), FNav,
                 Color.FromArgb(60, 230, 150), cr.X + 24, cr.Y + 26, 2f);
-            Spaced(g, "CONSOLE DE COMANDOS", FTiny, Color.FromArgb(40, 160, 110), cr.X + 24, cr.Y + 48, 2f);
+            Spaced(g, "PAINEL DE AÇÃO", FTiny, Color.FromArgb(40, 160, 110), cr.X + 24, cr.Y + 48, 2f);
+            Button(g, new Rectangle(cr.Right - 330, cr.Y + 14, 130, 36), "adminNotifyUi", "NOTIFY", false, FLabel, 2f);
+            Button(g, new Rectangle(cr.Right - 188, cr.Y + 14, 140, 36), "adminAnnounceUi", "ANNOUNCE", false, FLabel, 2f);
             var close = new Rectangle(cr.Right - 44, cr.Y + 12, 28, 28);
             Reg(close, "adminClose");
             var xp = Pn(A(Ink, 170), 1.6f);
@@ -1096,6 +1143,91 @@ namespace Deadzone2D
                 cr.X + 24, cr.Bottom - 22, 1.5f);
         }
 
+        // ---------- Telas de ação do admin ----------
+        private void DrawNotifyUi(Graphics g, int w, int h)
+        {
+            if (!_notifyUiOpen || !_adminAuthed) return;
+            g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "notifyUiBackdrop");
+
+            int pw = 640, ph = 430;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 14, (h - ph) / 2), pw, ph);
+            Reg(r, "notifyUiPanel");
+            using (var p = Chamfer(r, 14, true, false, true, false))
+            {
+                g.FillPath(Br(Color.FromArgb(9, 18, 13)), p);
+                g.DrawPath(Pn(Color.FromArgb(40, 190, 120), 1.4f), p);
+            }
+            g.FillRectangle(Br(Color.FromArgb(40, 220, 140)), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, "NOTIFY", FLabel, Color.FromArgb(60, 230, 150), r.X + 28, r.Y + 24, 4f);
+            Txt(g, "ENVIAR NOTIFICAÇÃO", VSub, Ink, new RectangleF(r.X + 28, r.Y + 38, pw - 100, 44));
+            var close = new Rectangle(r.Right - 46, r.Y + 14, 28, 28);
+            Reg(close, "notifyUiClose");
+            var xp = Pn(A(Ink, 180), 1.6f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            Spaced(g, "DESTINO", FTiny, Dim, r.X + 28, r.Y + 96, 3f);
+            string[] targets = { "all", "Brazil", "USA", "Spain", "Portugal", "Mexico", "Argentina" };
+            string[] names = { "TODOS", "BRASIL", "EUA", "ESPANHA", "PORTUGAL", "MÉXICO", "ARGENTINA" };
+            int bw = 82, gap = 8, per = 4;
+            for (int i = 0; i < targets.Length; i++)
+            {
+                int col = i % per, row = i / per;
+                bool sel = string.Equals(_notifyTarget, targets[i], StringComparison.OrdinalIgnoreCase);
+                SizeBtn(g, new Rectangle(r.X + 28 + col * (bw + gap), r.Y + 112 + row * 38, bw, 30),
+                    "notifyRegion:" + targets[i], names[i], sel);
+            }
+
+            var mf = new Rectangle(r.X + 28, r.Y + 198, pw - 56, 112);
+            UiField(g, mf, "MENSAGEM", _tbNotifyMsg);
+            Button(g, new Rectangle(r.X + 28, r.Bottom - 62, 200, 42), "notifySend", "ENVIAR NOTIFICAÇÃO", true, FLabel, 2.5f);
+            Button(g, new Rectangle(r.Right - 28 - 140, r.Bottom - 62, 140, 42), "notifyUiClose", "VOLTAR", false, FLabel, 2.5f);
+        }
+
+        private void DrawAnnounceUi(Graphics g, int w, int h)
+        {
+            if (!_announceUiOpen || !_adminAuthed) return;
+            g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "announceUiBackdrop");
+
+            int pw = 720, ph = 572;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 10, (h - ph) / 2), pw, ph);
+            Reg(r, "announceUiPanel");
+            using (var p = Chamfer(r, 14, true, false, true, false))
+            {
+                g.FillPath(Br(Color.FromArgb(9, 18, 13)), p);
+                g.DrawPath(Pn(Color.FromArgb(40, 190, 120), 1.4f), p);
+            }
+            g.FillRectangle(Br(Color.FromArgb(40, 220, 140)), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, "ANNOUNCE", FLabel, Color.FromArgb(60, 230, 150), r.X + 28, r.Y + 24, 4f);
+            Txt(g, "PUBLICAR ANÚNCIO", VSub, Ink, new RectangleF(r.X + 28, r.Y + 38, pw - 100, 44));
+            var close = new Rectangle(r.Right - 46, r.Y + 14, 28, 28);
+            Reg(close, "announceUiClose");
+            var xp = Pn(A(Ink, 180), 1.6f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            Spaced(g, "CATEGORIA", FTiny, Dim, r.X + 28, r.Y + 92, 3f);
+            string[] cats = { "Updates", "News", "Events", "Patch Notes" };
+            string[] labels = { "UPDATES", "NEWS", "EVENTS", "PATCH NOTES" };
+            int cw2 = 156, gap = 8;
+            for (int i = 0; i < cats.Length; i++)
+            {
+                bool sel = string.Equals(_annCategory, cats[i], StringComparison.OrdinalIgnoreCase);
+                SizeBtn(g, new Rectangle(r.X + 28 + i * (cw2 + gap), r.Y + 108, cw2, 30),
+                    "announceCat:" + cats[i], labels[i], sel);
+            }
+
+            UiField(g, new Rectangle(r.X + 28, r.Y + 150, pw - 56, 48), "TÍTULO", _tbAnnTitle);
+            UiField(g, new Rectangle(r.X + 28, r.Y + 206, pw - 56, 138), "TEXTO", _tbAnnBody);
+            UiField(g, new Rectangle(r.X + 28, r.Y + 352, pw - 56, 46), "ANEXO (CAMINHO DO ARQUIVO, OPCIONAL)", _tbAnnFile);
+            UiField(g, new Rectangle(r.X + 28, r.Y + 406, 280, 46), "AUTOR", _tbAnnAuthor);
+
+            Button(g, new Rectangle(r.X + 28, r.Bottom - 62, 210, 42), "announcePublish", "PUBLICAR ANÚNCIO", true, FLabel, 2.5f);
+            Button(g, new Rectangle(r.Right - 28 - 140, r.Bottom - 62, 140, 42), "announceUiClose", "VOLTAR", false, FLabel, 2.5f);
+        }
+
         private void AdminLogin()
         {
             if (AccountStore.VerifyAdmin(_tbAdminUser.Text, _tbAdminPass.Text))
@@ -1120,6 +1252,32 @@ namespace Deadzone2D
             _adminLog.Add("> " + raw);
             var parts = raw.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
             string cmd = parts[0].ToLowerInvariant();
+
+            // Notify e Announce não executam mais comando: abrem a tela correspondente.
+            if (cmd == "notify" || cmd == "announce")
+            {
+                _adminLog.Add("Abrindo interface de " + (cmd == "notify" ? "notificação" : "anúncio") + ".");
+                if (cmd == "notify")
+                {
+                    _announceUiOpen = false;
+                    _notifyUiOpen = true;
+                    _notifyTarget = parts.Length > 1 ? (AccountStore.NormalizeRegion(parts[1]) ?? "all") : "all";
+                    _tbNotifyMsg.Text = parts.Length > 2 ? parts[2] : "";
+                    BeginInvoke((Action)(() => { if (_notifyUiOpen) _tbNotifyMsg.Focus(); }));
+                }
+                else
+                {
+                    _notifyUiOpen = false;
+                    _announceUiOpen = true;
+                    _annCategory = parts.Length > 1 ? AccountStore.NormalizeCategory(parts[1]) : "Updates";
+                    _tbAnnTitle.Text = "";
+                    _tbAnnBody.Text = "";
+                    _tbAnnFile.Text = "";
+                    _tbAnnAuthor.Text = _account?.Nick ?? "sr.idev";
+                    BeginInvoke((Action)(() => { if (_announceUiOpen) _tbAnnTitle.Focus(); }));
+                }
+                return;
+            }
 
             switch (cmd)
             {

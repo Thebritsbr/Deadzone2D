@@ -35,6 +35,9 @@ namespace Deadzone2D
         public List<string> Friends { get; set; } = new();
         public List<string> ReadNotifications { get; set; } = new();
         public Dictionary<string, string> EquippedSkins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        // migração única: contas antigas liberavam todos os ícones/banners para teste
+        public bool OwnershipV2 { get; set; }
+        public bool EmailVerified { get; set; }
     }
 
     public sealed class Announcement
@@ -152,8 +155,11 @@ namespace Deadzone2D
                 Notifications = ReadJson<List<DzNotification>>(NotificationsFile) ?? new List<DzNotification>();
                 Admin = ReadJson<AdminConfig>(AdminFile) ?? new AdminConfig();
                 Shop = LoadShopInternal();
+                SaveJson(ShopFile, Shop); // grava itens novos vindos do Config da versão
 
-                foreach (var a in Accounts) Normalize(a);
+                bool dirty = false;
+                foreach (var a in Accounts)
+                    if (Normalize(a)) dirty = true;
                 Admin.Allowed ??= new List<string>();
                 if (Admin.Allowed.Count == 0)
                 {
@@ -161,7 +167,6 @@ namespace Deadzone2D
                     Admin.Allowed.Add("sr.idev@gmail.com");
                 }
 
-                bool dirty = false;
                 if (Accounts.Count == 0)
                 {
                     // Conta de desenvolvedor para o painel admin (pode ser usada para testar tudo).
@@ -180,7 +185,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 2.7",
+                        Title = "Bem-vindo ao Deadzone 2.8",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
@@ -276,8 +281,9 @@ namespace Deadzone2D
             catch { }
         }
 
-        private static void Normalize(Account a)
+        private static bool Normalize(Account a)
         {
+            bool changed = false;
             a.OwnedIcons ??= new List<string>();
             a.OwnedBanners ??= new List<string>();
             a.OwnedShopItems ??= new List<string>();
@@ -285,16 +291,34 @@ namespace Deadzone2D
             a.ReadNotifications ??= new List<string>();
             if (a.EquippedSkins == null || a.EquippedSkins.Comparer != StringComparer.OrdinalIgnoreCase)
                 a.EquippedSkins = new Dictionary<string, string>(a.EquippedSkins ?? new(), StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrWhiteSpace(a.IconId)) a.IconId = "icon_01";
-            if (string.IsNullOrWhiteSpace(a.BannerId)) a.BannerId = "banner_01";
-            if (string.IsNullOrWhiteSpace(a.Region) || !Regions.Contains(a.Region)) a.Region = "Brazil";
+            if (string.IsNullOrWhiteSpace(a.IconId)) { a.IconId = "icon_01"; changed = true; }
+            if (string.IsNullOrWhiteSpace(a.BannerId)) { a.BannerId = "banner_01"; changed = true; }
+            if (string.IsNullOrWhiteSpace(a.Region) || !Regions.Contains(a.Region)) { a.Region = "Brazil"; changed = true; }
             if (a.CreatedAt.Kind == DateTimeKind.Unspecified) a.CreatedAt = DateTime.SpecifyKind(a.CreatedAt, DateTimeKind.Utc);
             if (a.CreatedAt > DateTime.UtcNow) a.CreatedAt = DateTime.UtcNow;
-            // Ícones e banners básicos são liberados para todos; itens comprados também entram na lista.
-            foreach (var icon in Icons)
-                if (!a.OwnedIcons.Contains(icon.Id, StringComparer.OrdinalIgnoreCase)) a.OwnedIcons.Add(icon.Id);
-            foreach (var banner in Banners)
-                if (!a.OwnedBanners.Contains(banner.Id, StringComparer.OrdinalIgnoreCase)) a.OwnedBanners.Add(banner.Id);
+
+            // Migração: versões de teste liberavam todos os ícones/banners. Agora a conta
+            // só guarda o que escolheu/comprou; itens já comprados na loja são preservados.
+            if (!a.OwnershipV2)
+            {
+                var icons = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { a.IconId };
+                var banners = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { a.BannerId };
+                foreach (var item in Shop)
+                {
+                    if (!a.OwnedShopItems.Contains(item.Id, StringComparer.OrdinalIgnoreCase)) continue;
+                    if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.IconId))
+                        icons.Add(Icon(item.IconId).Id);
+                    if (item.Type.Equals("Banner", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.BannerId))
+                        banners.Add(Banner(item.BannerId).Id);
+                }
+                a.OwnedIcons = icons.ToList();
+                a.OwnedBanners = banners.ToList();
+                a.OwnershipV2 = true;
+                changed = true;
+            }
+            if (a.OwnedIcons.Count == 0) { a.OwnedIcons.Add(a.IconId); changed = true; }
+            if (a.OwnedBanners.Count == 0) { a.OwnedBanners.Add(a.BannerId); changed = true; }
+            return changed;
         }
 
         // ---------- Contas ----------
@@ -319,6 +343,71 @@ namespace Deadzone2D
             var acc = FindByGmail(gmail) ?? FindByNick(gmail);
             if (acc == null) return null;
             return VerifyPassword(password, acc.PasswordHash, acc.PasswordSalt) ? acc : null;
+        }
+
+        // ---------- Verificação por código no Gmail ----------
+        private sealed class PendingCode
+        {
+            public string Code = "";
+            public DateTime Expires;
+            public int Attempts;
+        }
+
+        private static readonly Dictionary<string, PendingCode> Pending = new(StringComparer.OrdinalIgnoreCase);
+
+        // Retorna true e, em modo local (sem SMTP), devolve o código para exibição na tela.
+        public static bool SendCode(string gmail, out string code, out string error)
+        {
+            code = "";
+            error = "";
+            gmail = (gmail ?? "").Trim();
+            if (!IsGmail(gmail)) { error = "Use um endereço @gmail.com válido."; return false; }
+            if (FindByGmail(gmail) != null) { error = "Este Gmail já está cadastrado."; return false; }
+
+            string generated = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+            lock (Pending)
+                Pending[gmail] = new PendingCode
+                {
+                    Code = generated,
+                    Expires = DateTime.UtcNow.AddMinutes(5),
+                    Attempts = 0
+                };
+
+            if (MailService.IsConfigured)
+            {
+                if (!MailService.SendVerificationCode(gmail, generated, out error))
+                {
+                    lock (Pending) Pending.Remove(gmail);
+                    return false;
+                }
+                return true; // código real foi enviado ao Gmail do usuário
+            }
+            code = generated; // modo de teste: mostra o código na tela
+            return true;
+        }
+
+        public static bool VerifyCode(string gmail, string input, out string error)
+        {
+            error = "";
+            gmail = (gmail ?? "").Trim();
+            PendingCode? pending;
+            lock (Pending) Pending.TryGetValue(gmail, out pending);
+            if (pending == null) { error = "Clique em ENVIAR CÓDIGO primeiro."; return false; }
+            if (DateTime.UtcNow > pending.Expires)
+            {
+                lock (Pending) Pending.Remove(gmail);
+                error = "Código expirado. Envie outro.";
+                return false;
+            }
+            if (pending.Attempts >= 5) { error = "Muitas tentativas. Envie outro código."; return false; }
+            if ((input ?? "").Trim() != pending.Code)
+            {
+                pending.Attempts++;
+                error = "Código incorreto.";
+                return false;
+            }
+            lock (Pending) Pending.Remove(gmail);
+            return true;
         }
 
         public static Account? CreateAccount(string gmail, string nick, string displayName, string password,
@@ -370,10 +459,14 @@ namespace Deadzone2D
                 Region = Regions.Contains(region) ? region : "Brazil",
                 CreatedAt = DateTime.UtcNow,
                 DeadCoins = 1500,
-                DisplayNameChanges = 0
+                DisplayNameChanges = 0,
+                OwnershipV2 = true,
+                EmailVerified = true
             };
-            foreach (var icon in Icons) acc.OwnedIcons.Add(icon.Id);
-            foreach (var banner in Banners) acc.OwnedBanners.Add(banner.Id);
+            // começa apenas com o ícone escolhido no cadastro e o banner padrão;
+            // os demais são desbloqueados ao comprar na Dead Royal.
+            acc.OwnedIcons.Add(acc.IconId);
+            acc.OwnedBanners.Add(acc.BannerId);
             return acc;
         }
 
@@ -563,17 +656,22 @@ namespace Deadzone2D
         // ---------- Loja Dead Royal ----------
         private static List<ShopItem> LoadShopInternal()
         {
-            var list = ReadJson<List<ShopItem>>(ShopFile);
-            if (list == null || list.Count == 0)
+            var list = ReadJson<List<ShopItem>>(ShopFile) ?? new List<ShopItem>();
+            // itens novos do JSON da versão são mesclados na loja salva no PC
+            var cfg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "DeadRoyalShop.json");
+            try
             {
-                try
+                if (File.Exists(cfg))
                 {
-                    var cfg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "DeadRoyalShop.json");
-                    if (File.Exists(cfg)) list = JsonSerializer.Deserialize<List<ShopItem>>(File.ReadAllText(cfg), JsonOpts);
+                    var seed = JsonSerializer.Deserialize<List<ShopItem>>(File.ReadAllText(cfg), JsonOpts);
+                    if (seed != null)
+                        foreach (var item in seed)
+                            if (!list.Any(i => string.Equals(i.Id, item.Id, StringComparison.OrdinalIgnoreCase)))
+                                list.Add(item);
                 }
-                catch { list = null; }
             }
-            if (list == null || list.Count == 0) list = DefaultShop();
+            catch { }
+            if (list.Count == 0) list = DefaultShop();
             foreach (var item in list)
             {
                 if (string.IsNullOrWhiteSpace(item.Id)) item.Id = Guid.NewGuid().ToString("N")[..8];
@@ -583,8 +681,20 @@ namespace Deadzone2D
             return list;
         }
 
-        public static List<ShopItem> DefaultShop() => new()
+        public static List<ShopItem> DefaultShop()
         {
+            try
+            {
+                var cfg = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config", "DeadRoyalShop.json");
+                if (File.Exists(cfg))
+                {
+                    var list = JsonSerializer.Deserialize<List<ShopItem>>(File.ReadAllText(cfg), JsonOpts);
+                    if (list != null && list.Count > 0) return list;
+                }
+            }
+            catch { }
+            return new List<ShopItem>
+            {
             new ShopItem
             {
                 Id = "glock_crimson", Name = "Crimson Fang", Type = "WeaponSkin", WeaponId = "glock",
@@ -615,7 +725,8 @@ namespace Deadzone2D
                 Price = 600, Rarity = "Epic", Icon = "♛",
                 Description = "Banner Dead Royal para destacar seu perfil no lobby."
             },
-        };
+            };
+        }
 
         public static bool Owns(Account acc, ShopItem item) =>
             acc.OwnedShopItems.Contains(item.Id, StringComparer.OrdinalIgnoreCase);
@@ -659,14 +770,7 @@ namespace Deadzone2D
         {
             lock (Gate)
             {
-                var list = ReadJson<List<ShopItem>>(ShopFile);
-                if (list == null || list.Count == 0) list = DefaultShop();
-                foreach (var item in list)
-                {
-                    if (string.IsNullOrWhiteSpace(item.Id)) item.Id = Guid.NewGuid().ToString("N")[..8];
-                    if (string.IsNullOrWhiteSpace(item.Type)) item.Type = "WeaponSkin";
-                }
-                Shop = list;
+                Shop = LoadShopInternal();
                 SaveJson(ShopFile, Shop);
             }
         }
