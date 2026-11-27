@@ -1093,8 +1093,12 @@ namespace Deadzone2D
                     Txt(g, a.DisplayName + "  •  " + a.UserId, FSmall, Dim,
                         new RectangleF(row.X + 56, row.Y + 27, 300, 18));
                     bool already = _account.Friends.Contains(a.UserId, StringComparer.OrdinalIgnoreCase);
+                    bool pending = _account.SentFriendRequests.Contains(a.UserId, StringComparer.OrdinalIgnoreCase) ||
+                                   a.FriendRequests.Contains(_account.UserId, StringComparer.OrdinalIgnoreCase);
                     if (already)
                         Spaced(g, "JÁ É SEU AMIGO", FTiny, Green, row.Right - 20, row.Y + 26, 2f, StringAlignment.Far);
+                    else if (pending)
+                        Spaced(g, "PEDIDO ENVIADO", FTiny, Amber, row.Right - 20, row.Y + 26, 2f, StringAlignment.Far);
                     else
                         Button(g, new Rectangle(row.Right - 108, row.Y + 10, 94, 32), "addFriendResult:" + a.UserId,
                             "ADICIONAR", true, FTiny, 1.5f);
@@ -1578,6 +1582,8 @@ namespace Deadzone2D
                 if (a == null) continue;
                 _friendList.Add(new Friend(a.Nick, a.DisplayName + "  •  " + a.UserId, FStatus.Online, a.UserId));
             }
+            _friendRequests.Clear();
+            _friendRequests.AddRange(_account.FriendRequests);
         }
 
         private void AddFriendByUserId(string userId)
@@ -1585,10 +1591,14 @@ namespace Deadzone2D
             if (_account == null) return;
             var other = AccountStore.FindByUserId(userId);
             if (other == null || other.UserId == _account.UserId) return;
-            AccountStore.AddFriend(_account, other);
+            if (!AccountStore.SendFriendRequest(_account, other, out var err))
+            {
+                ShowToast(err);
+                return;
+            }
             LoadFriendsFromAccount();
             SetFriendResults(AccountStore.SearchAccounts(_tbFriendSearch.Text, _account.UserId));
-            ShowToast("Amigo adicionado: " + other.Nick);
+            ShowToast("Pedido enviado para " + other.Nick + ".");
         }
 
         private void SetFriendResults(List<Account> list)

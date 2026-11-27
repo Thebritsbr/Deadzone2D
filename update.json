@@ -1,6 +1,6 @@
 {
-  "Version": "3.5",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.5.exe",
-  "Notes": "Deadzone2D 3.5 - rank/XP system, fix Give tabs, old group card, logout disconnect and settings cleanup.",
+  "Version": "3.6",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.6.exe",
+  "Notes": "Deadzone2D 3.6 - friend requests between local accounts with accept/decline.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

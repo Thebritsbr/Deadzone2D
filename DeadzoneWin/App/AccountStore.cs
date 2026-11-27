@@ -33,6 +33,8 @@ namespace Deadzone2D
         public List<string> OwnedBanners { get; set; } = new();
         public List<string> OwnedShopItems { get; set; } = new();
         public List<string> Friends { get; set; } = new();
+        public List<string> FriendRequests { get; set; } = new();
+        public List<string> SentFriendRequests { get; set; } = new();
         public List<string> ReadNotifications { get; set; } = new();
         public Dictionary<string, string> EquippedSkins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         // migração única: contas antigas liberavam todos os ícones/banners para teste
@@ -191,7 +193,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 3.5",
+                        Title = "Bem-vindo ao Deadzone 3.6",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
@@ -294,6 +296,8 @@ namespace Deadzone2D
             a.OwnedBanners ??= new List<string>();
             a.OwnedShopItems ??= new List<string>();
             a.Friends ??= new List<string>();
+            a.FriendRequests ??= new List<string>();
+            a.SentFriendRequests ??= new List<string>();
             a.ReadNotifications ??= new List<string>();
             a.Tags ??= new List<string>();
             if (a.EquippedSkins == null || a.EquippedSkins.Comparer != StringComparer.OrdinalIgnoreCase)
@@ -602,6 +606,44 @@ namespace Deadzone2D
             a.Friends.RemoveAll(x => string.Equals(x, userId, StringComparison.OrdinalIgnoreCase));
             var b = FindByUserId(userId);
             b?.Friends.RemoveAll(x => string.Equals(x, a.UserId, StringComparison.OrdinalIgnoreCase));
+            SaveAccounts();
+        }
+
+        // Pedidos de amizade: o destinatário precisa aceitar para virar amigo.
+        public static bool SendFriendRequest(Account from, Account to, out string error)
+        {
+            error = "";
+            if (from.UserId == to.UserId) { error = "Você não pode adicionar a si mesmo."; return false; }
+            if (from.Friends.Contains(to.UserId, StringComparer.OrdinalIgnoreCase))
+            { error = "Vocês já são amigos."; return false; }
+            if (to.FriendRequests.Contains(from.UserId, StringComparer.OrdinalIgnoreCase) ||
+                from.SentFriendRequests.Contains(to.UserId, StringComparer.OrdinalIgnoreCase))
+            { error = "Pedido já enviado."; return false; }
+            to.FriendRequests.Add(from.UserId);
+            from.SentFriendRequests.Add(to.UserId);
+            SaveAccounts();
+            return true;
+        }
+
+        public static void AcceptFriendRequest(Account acc, string userId)
+        {
+            acc.FriendRequests.RemoveAll(x => string.Equals(x, userId, StringComparison.OrdinalIgnoreCase));
+            var other = FindByUserId(userId);
+            other?.SentFriendRequests.RemoveAll(x => string.Equals(x, acc.UserId, StringComparison.OrdinalIgnoreCase));
+            if (other != null && !acc.Friends.Contains(other.UserId, StringComparer.OrdinalIgnoreCase))
+            {
+                acc.Friends.Add(other.UserId);
+                if (!other.Friends.Contains(acc.UserId, StringComparer.OrdinalIgnoreCase))
+                    other.Friends.Add(acc.UserId);
+            }
+            SaveAccounts();
+        }
+
+        public static void DeclineFriendRequest(Account acc, string userId)
+        {
+            acc.FriendRequests.RemoveAll(x => string.Equals(x, userId, StringComparison.OrdinalIgnoreCase));
+            var other = FindByUserId(userId);
+            other?.SentFriendRequests.RemoveAll(x => string.Equals(x, acc.UserId, StringComparison.OrdinalIgnoreCase));
             SaveAccounts();
         }
 

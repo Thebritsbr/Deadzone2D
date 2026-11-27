@@ -724,14 +724,20 @@ namespace Deadzone2D
         {
             if (id.StartsWith("frdAccept:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var fa) && fa >= 0 && fa < _friendRequests.Count)
             {
-                ShowToast("Pedido aceito: " + _friendRequests[fa]);
-                _friendRequests.RemoveAt(fa);
+                string uid = _friendRequests[fa];
+                var who = AccountStore.FindByUserId(uid);
+                if (_account != null) AccountStore.AcceptFriendRequest(_account, uid);
+                LoadFriendsFromAccount();
+                ShowToast("Pedido aceito: " + (who?.Nick ?? uid));
                 return;
             }
             if (id.StartsWith("frdReject:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var frq) && frq >= 0 && frq < _friendRequests.Count)
             {
-                ShowToast("Pedido recusado: " + _friendRequests[frq]);
-                _friendRequests.RemoveAt(frq);
+                string uid = _friendRequests[frq];
+                var who = AccountStore.FindByUserId(uid);
+                if (_account != null) AccountStore.DeclineFriendRequest(_account, uid);
+                LoadFriendsFromAccount();
+                ShowToast("Pedido recusado: " + (who?.Nick ?? uid));
                 return;
             }
             if (id.StartsWith("frdRemove:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var ri))
@@ -1204,7 +1210,10 @@ namespace Deadzone2D
                 }
                 case "friendsOpen": _friendsOpen = true; break;
                 case "friendsClose": _friendsOpen = false; break;
-                case "frdMenu": _requestsOpen = !_requestsOpen; break;
+                case "frdMenu":
+                    LoadFriendsFromAccount();
+                    _requestsOpen = !_requestsOpen;
+                    break;
                 case "cfg": _cfgOpen = !_cfgOpen; break;
                 case "cfgBackdrop": _cfgOpen = false; break;
                 case "cfgVolUp": _cfgVol = Math.Min(100, _cfgVol + 5); break;
@@ -2505,7 +2514,9 @@ namespace Deadzone2D
             for (int i = 0; i < _friendRequests.Count; i++)
             {
                 var row = new Rectangle(r.X + 14, r.Y + 44 + i * 34, r.Width - 28, 28);
-                Txt(g, _friendRequests[i], FMid, Ink, new RectangleF(row.X, row.Y, row.Width - 160, row.Height));
+                var requester = AccountStore.FindByUserId(_friendRequests[i]);
+                Txt(g, requester == null ? _friendRequests[i] : requester.Nick + "  •  " + requester.DisplayName,
+                    FMid, Ink, new RectangleF(row.X, row.Y, row.Width - 160, row.Height));
                 var accept = new Rectangle(row.Right - 150, row.Y, 70, 28);
                 var rec = new Rectangle(row.Right - 74, row.Y, 74, 28);
                 Reg(accept, "frdAccept:" + i); Reg(rec, "frdReject:" + i);
