@@ -1,6 +1,6 @@
 {
-  "Version": "3.1",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.1.exe",
-  "Notes": "Deadzone2D 3.1 - real Google sign-in, single side navigation, settings logout and aligned UI.",
+  "Version": "3.2",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.2.exe",
+  "Notes": "Deadzone2D 3.2 - Google sign-in configuration release.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }
