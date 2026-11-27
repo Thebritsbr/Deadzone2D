@@ -1,2 +1,6 @@
-node_modules/ 
-dist/Deadzone/*.pdb 
+node_modules/
+data/
+.env
+*.log
+dist/Deadzone/*.pdb
+

@@ -195,7 +195,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Welcome to Deadzone 4.0",
+                        Title = "Welcome to Deadzone 4.1",
                         Body = "New lobby, real Google sign-in, player profile, Cofre, announcements and the Dead Royal store. " +
                                "Use CTRL + SHIFT + P on an admin account to open the admin panel.",
                         Author = "Lume Studio INC",
@@ -212,12 +212,12 @@ namespace Deadzone2D
                     });
                     dirty = true;
                 }
-                if (!Announcements.Any(a => a.Title == "Deadzone2D 4.0 Release"))
+                if (!Announcements.Any(a => a.Title == "Deadzone2D 4.1 Release"))
                 {
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Deadzone2D 4.0 Release",
+                        Title = "Deadzone2D 4.1 Release",
                         Body = "Friend requests are now sent between accounts and must be accepted. " +
                                "Group invites also send a request. A rank/XP system and a new requirements page are available.",
                         Author = "Lume Studio INC",

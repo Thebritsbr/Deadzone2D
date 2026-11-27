@@ -171,6 +171,14 @@ namespace Deadzone2D
         private TextBox _tbGiveKills = new();
         private TextBox _tbAdminGmail = new();
         private TextBox _tbChat = new();
+        private TextBox _tbServerUrl = new();
+        private bool _online;
+        private string _onlineNick = "", _onlineId = "";
+        private readonly List<(string Id, string Nick)> _onlineFriends = new();
+        private readonly List<(string Id, string Nick)> _onlineRequests = new();
+        private readonly List<string> _matchPlayers = new();
+        private bool _queueing;
+
         private bool _chatOpen;
         private int _chatScope; // 0 = team, 1 = all
 
@@ -260,6 +268,11 @@ namespace Deadzone2D
             _custom = LoadCustomize();
             Text = _custom.WindowTitle;
             ChatStore.Load();
+            OnlineClient.Load(_appDir);
+            OnlineClient.OnMessage = (type, data) =>
+            {
+                try { BeginInvoke((Action)(() => HandleOnlineMessage(type, data))); } catch { }
+            };
             Loc.Load();
             _langSelected = Array.IndexOf(Loc.Languages, Loc.Language);
             if (_langSelected < 0) _langSelected = 0;
@@ -681,6 +694,14 @@ namespace Deadzone2D
             if (!_chatOpen || _account == null) return;
             string text = (_tbChat.Text ?? "").Trim();
             if (text.Length == 0) return;
+            string scope = _chatScope == 1 ? "all" : "team";
+            if (_online && OnlineClient.Connected)
+            {
+                OnlineClient.Send("chat", new { scope, text });
+                _tbChat.Text = "";
+                ShowToast("Message sent.");
+                return;
+            }
             ChatStore.Add(new ChatMessage
             {
                 UserId = _account.UserId,
@@ -703,6 +724,127 @@ namespace Deadzone2D
             _firing = false;
             _keys.Clear();
             _paused = false;
+        }
+
+        private static string JsonString(JsonElement e, string name) =>
+            e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) ? v.GetString() ?? "" : "";
+
+        private void TryOnlineLogin()
+        {
+            string email = _tbUser.Text.Trim();
+            string password = _tbPass.Text;
+            if (email.Length == 0 || password.Length == 0) { ShowToast("Enter your online Gmail and password."); return; }
+            ShowToast("Connecting to server...");
+            _ = System.Threading.Tasks.Task.Run(async () =>
+            {
+                var result = await OnlineClient.Login(email, password);
+                if (!result.Ok)
+                {
+                    try { BeginInvoke((Action)(() => ShowToast(result.Error))); } catch { }
+                    return;
+                }
+                bool connected = await OnlineClient.Connect();
+                try
+                {
+                    BeginInvoke((Action)(() =>
+                    {
+                        if (!connected) { ShowToast(OnlineClient.LastError ?? "Connection failed."); return; }
+                        _online = true;
+                        _onlineNick = JsonString(result.Profile, "nick");
+                        _onlineId = JsonString(result.Profile, "id");
+                        _players[0] = _onlineNick;
+                        ShowToast("Online: " + _onlineNick);
+                        StartLoading("ENTERING ONLINE LOBBY", 1.5f, () => ShowPage("Lobby"));
+                    }));
+                }
+                catch { }
+            });
+        }
+
+        private void HandleOnlineMessage(string type, JsonElement data)
+        {
+            switch (type)
+            {
+                case "welcome":
+                {
+                    _online = true;
+                    if (data.TryGetProperty("profile", out var p))
+                    {
+                        _onlineNick = JsonString(p, "nick");
+                        _onlineId = JsonString(p, "id");
+                        _players[0] = _onlineNick;
+                    }
+                    _onlineFriends.Clear();
+                    if (data.TryGetProperty("friends", out var fs) && fs.ValueKind == JsonValueKind.Array)
+                        foreach (var f in fs.EnumerateArray())
+                            _onlineFriends.Add((JsonString(f, "id"), JsonString(f, "nick")));
+                    _onlineRequests.Clear();
+                    if (data.TryGetProperty("requests", out var rs) && rs.ValueKind == JsonValueKind.Array)
+                        foreach (var q in rs.EnumerateArray())
+                            _onlineRequests.Add((JsonString(q, "from"), JsonString(q, "nick")));
+                    RebuildOnlineFriends();
+                    if (data.TryGetProperty("chat", out var cs) && cs.ValueKind == JsonValueKind.Array)
+                        foreach (var m in cs.EnumerateArray())
+                        {
+                            string text = JsonString(m, "text");
+                            if (!ChatStore.Messages.Any(x => x.Text == text && x.Author == JsonString(m, "author")))
+                                ChatStore.Messages.Add(new ChatMessage
+                                {
+                                    Author = JsonString(m, "author"), Text = text,
+                                    Scope = JsonString(m, "scope"), UserId = JsonString(m, "from"),
+                                    At = DateTimeOffset.FromUnixTimeMilliseconds(m.TryGetProperty("at", out var at) ? at.GetInt64() : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()).UtcDateTime
+                                });
+                        }
+                    break;
+                }
+                case "chat":
+                {
+                    if (!data.TryGetProperty("message", out var m)) break;
+                    ChatStore.Messages.Add(new ChatMessage
+                    {
+                        Author = JsonString(m, "author"), Text = JsonString(m, "text"),
+                        Scope = JsonString(m, "scope"), UserId = JsonString(m, "from"),
+                        At = DateTime.UtcNow
+                    });
+                    break;
+                }
+                case "info": ShowToast(JsonString(data, "message")); break;
+                case "error": ShowToast(JsonString(data, "message")); break;
+                case "friend:request":
+                    _onlineRequests.Add((JsonString(data, "from"), JsonString(data, "nick")));
+                    ShowToast("Friend request from " + JsonString(data, "nick"));
+                    break;
+                case "friend:list":
+                {
+                    _onlineFriends.Clear();
+                    if (data.TryGetProperty("friends", out var fs) && fs.ValueKind == JsonValueKind.Array)
+                        foreach (var f in fs.EnumerateArray())
+                            _onlineFriends.Add((JsonString(f, "id"), JsonString(f, "nick")));
+                    RebuildOnlineFriends();
+                    break;
+                }
+                case "queue": ShowToast("Looking for players... " + (data.TryGetProperty("count", out var c) ? c.GetInt32().ToString() : "")); break;
+                case "match:start":
+                {
+                    if (!data.TryGetProperty("match", out var m)) break;
+                    _matchPlayers.Clear();
+                    if (m.TryGetProperty("players", out var ps) && ps.ValueKind == JsonValueKind.Array)
+                        foreach (var pl in ps.EnumerateArray())
+                            _matchPlayers.Add(JsonString(pl, "nick"));
+                    for (int i = 0; i < Math.Min(4, _matchPlayers.Count); i++) _players[i] = _matchPlayers[i];
+                    _queueing = false;
+                    ShowToast("Match found!");
+                    StartLoading("LOADING ONLINE MATCH", 2f, () => ShowPage("Partida"));
+                    break;
+                }
+            }
+        }
+
+        private void RebuildOnlineFriends()
+        {
+            _friendList.Clear();
+            foreach (var f in _onlineFriends)
+                _friendList.Add(new Friend(f.Nick, "Online • " + f.Id, FStatus.Online, f.Id));
         }
 
         private void TryGoogleSignIn()
@@ -754,6 +896,15 @@ namespace Deadzone2D
 
         private void Activate(string id)
         {
+            if (id.StartsWith("frdAccept:", StringComparison.OrdinalIgnoreCase) && _online &&
+                int.TryParse(id.Substring(10), out var oa) && oa >= 0 && oa < _onlineRequests.Count)
+            {
+                string oid = _onlineRequests[oa].Id;
+                OnlineClient.Send("friend:accept", new { id = oid });
+                _onlineRequests.RemoveAt(oa);
+                ShowToast("Friend request accepted.");
+                return;
+            }
             if (id.StartsWith("frdAccept:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var fa) && fa >= 0 && fa < _friendRequests.Count)
             {
                 string raw = _friendRequests[fa];
@@ -1001,6 +1152,14 @@ namespace Deadzone2D
                     ShowPage("Login");
                     break;
                 case "googleSignIn": TryGoogleSignIn(); break;
+                case "onlineLogin": TryOnlineLogin(); break;
+                case "matchFind":
+                    if (!_online) { ShowToast("Sign in online first."); break; }
+                    _queueing = !_queueing;
+                    if (_queueing) OnlineClient.Send("queue:join", new { mode = "1v1", teamSize = 1 });
+                    else OnlineClient.Send("queue:leave");
+                    ShowToast(_queueing ? "Searching for a match..." : "Search cancelled.");
+                    break;
                 case "registerSendCode":
                 {
                     _regError = "";
@@ -1045,6 +1204,10 @@ namespace Deadzone2D
                     break;
                 case "chatClose": _chatOpen = false; break;
                 case "chatSend": SendChat(); break;
+                case "serverSave":
+                    OnlineClient.SaveUrl(_tbServerUrl.Text);
+                    ShowToast("Server URL saved: " + OnlineClient.Config.ServerUrl);
+                    break;
                 case "langSave":
                     _langConfirmOpen = true;
                     _langConfirmLeft = 3f;
@@ -1931,8 +2094,9 @@ namespace Deadzone2D
                 Txt(g, (_account?.Nick ?? "CONVIDADO").ToUpperInvariant(), FMid, Ink,
                     new RectangleF(chipX + 50, 11, 132, 20));
                 g.FillEllipse(Br(_account == null ? OffC : Green), chipX + 51, 35, 7, 7);
-                Txt(g, _account == null ? "No account" : "Online • " + _account.Region, FSmall,
-                    _account == null ? Dim : Green, new RectangleF(chipX + 62, 29, 120, 18));
+                Txt(g, _online ? "ONLINE • " + (_onlineNick.Length > 0 ? _onlineNick : _account?.Nick ?? "")
+                        : (_account == null ? "No account" : "Local • " + _account.Region), FSmall,
+                    _account == null ? Dim : (_online ? Blue : Green), new RectangleF(chipX + 62, 29, 120, 18));
 
                 UiIconBtn(g, new Rectangle(w - 236, 12, 40, 40), "notif", 0);
                 if (_account != null)
@@ -2174,11 +2338,12 @@ namespace Deadzone2D
             g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
             g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
 
-            Button(g, new Rectangle(cx - 170, top + 408, 340, 40), "googleSignIn", "SIGN IN WITH GOOGLE", false, FLabel, 2.5f);
-            Button(g, new Rectangle(cx - 170, top + 456, 340, 40), "register", "CREATE LOCAL ACCOUNT", false, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 404, 340, 36), "googleSignIn", "SIGN IN WITH GOOGLE", false, FLabel, 2.2f);
+            Button(g, new Rectangle(cx - 170, top + 446, 340, 36), "onlineLogin", "SIGN IN ONLINE", true, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 488, 340, 36), "register", "CREATE LOCAL ACCOUNT", false, FLabel, 2.2f);
             if (AccountStore.Accounts.Count > 0)
                 Txt(g, $"{AccountStore.Accounts.Count} local account(s) on this PC", FTiny, A(Dim, 170),
-                    new RectangleF(0, top + 506, w, 18), StringAlignment.Center);
+                    new RectangleF(0, top + 534, w, 18), StringAlignment.Center);
 
             Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
@@ -2243,7 +2408,7 @@ namespace Deadzone2D
             g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
             Reg(new Rectangle(0, 0, w, h), "cfgBackdrop");
 
-            int pw = 560, ph = 620;
+            int pw = 560, ph = 682;
             var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 20, (h - ph) / 2), pw, ph);
             Reg(r, "cfgPanel");   // clicar dentro do painel não fecha
             using (var p = Chamfer(r, 18, true, false, true, false))
@@ -2275,6 +2440,10 @@ namespace Deadzone2D
             for (int i = 0; i < langLabels.Length; i++)
                 SizeBtn(g, new Rectangle(rx + i * 106, y + 16, 100, 30), "lang:" + i, langLabels[i], _langSelected == i);
             Button(g, new Rectangle(rx + 326, y + 16, rw - 326, 30), "langSave", "SAVE LANGUAGE", false, FTiny, 1.5f);
+            y += rowH;
+
+            UiField(g, new Rectangle(rx, y + 12, rw - 180, 44), "SERVER URL", _tbServerUrl);
+            Button(g, new Rectangle(rx + rw - 170, y + 14, 170, 36), "serverSave", "SAVE URL", false, FTiny, 1.5f);
             y += rowH;
             UiToggleRow(g, rx, y, rw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "DESON", "cfgOpt", _cfgOpt);
             y += rowH;
@@ -2370,6 +2539,9 @@ namespace Deadzone2D
             Button(g, new Rectangle(cx - 92, btn.Bottom + 8, 184, 34),
                 _squadOpen ? "squadLeave" : "squadCreate",
                 _squadOpen ? "(-) Leave Group" : "(+) Create Group", false, FTiny, 1.8f);
+            if (_online)
+                Button(g, new Rectangle(cx + 100, btn.Bottom + 8, 184, 34), "matchFind",
+                    _queueing ? "CANCEL SEARCH" : "FIND MATCH", true, FTiny, 1.8f);
             DrawSquadRow(g, w, btn.Bottom + 50);
         }
 
@@ -2626,6 +2798,30 @@ namespace Deadzone2D
         // popup de pedidos: aparece acima do painel (antes ficava fora da tela, abaixo dele)
         private void DrawFriendRequests(Graphics g, Rectangle basePr)
         {
+            if (_online)
+            {
+                int onlineRh = _onlineRequests.Count == 0 ? 64 : 44 + _onlineRequests.Count * 34 + 8;
+                var onlineRect = new Rectangle(basePr.Right - 360, basePr.Y - onlineRh - 8, 360, onlineRh);
+                using (var onlinePanel = Chamfer(onlineRect, 12, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Panel, 252)), onlinePanel);
+                    g.DrawPath(Pn(Line, 1f), onlinePanel);
+                }
+                g.FillRectangle(Br(Red), onlineRect.X + 12, onlineRect.Y, onlineRect.Width - 12, 3);
+                Spaced(g, "ONLINE REQUESTS", FLabel, Ink, onlineRect.X + 18, onlineRect.Y + 22, 3f);
+                if (_onlineRequests.Count == 0)
+                    Txt(g, "No pending requests", FSmall, Dim, new RectangleF(onlineRect.X + 18, onlineRect.Y + 36, onlineRect.Width - 36, 20));
+                for (int i = 0; i < _onlineRequests.Count; i++)
+                {
+                    var row = new Rectangle(onlineRect.X + 14, onlineRect.Y + 44 + i * 34, onlineRect.Width - 28, 28);
+                    Txt(g, _onlineRequests[i].Nick, FMid, Ink, new RectangleF(row.X, row.Y, row.Width - 160, row.Height));
+                    var accept = new Rectangle(row.Right - 150, row.Y, 70, 28);
+                    Reg(accept, "frdAccept:" + i);
+                    using (var ap = Chamfer(accept, 6, true, false, true, false)) g.FillPath(Br(Mix(Red, RedHi, Hv("frdAccept:" + i))), ap);
+                    Spaced(g, "ACCEPT", FTiny, Color.White, accept.X + 35, accept.Y + 14, 2f, StringAlignment.Center);
+                }
+                return;
+            }
             int rh = _friendRequests.Count == 0 ? 64 : 44 + _friendRequests.Count * 34 + 8;
             var r = new Rectangle(basePr.Right - 360, basePr.Y - rh - 8, 360, rh);
             using (var p = Chamfer(r, 12, true, false, true, false))

@@ -1,7 +1,19 @@
-PORT=3000
-# DATABASE_URL=postgresql://USUARIO:SENHA@HOST:5432/BANCO
-# SQLITE_PATH=./data/game.sqlite
-# PUBLIC_ORIGIN=https://seu-dominio.onrender.com
-# TRUST_PROXY=1
-SEASON_ID=01
-SEASON_NAME=Opening
+{
+  "name": "deadzone2d-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deadzone2D online backend: accounts, friends, chat and matchmaking.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "ws": "^8.18.0"
+  }
+}

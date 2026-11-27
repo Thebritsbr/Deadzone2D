@@ -9,7 +9,7 @@ namespace Deadzone2D
     {
         public static string Nome = "Deadzone";
         public static string EmpresaFundadora = "Lume Studio";
-        public static string Versao = "4.0";
+        public static string Versao = "4.1";
         public static string Tema = "DeadTheme";
 
         public static void Load(string dir)

@@ -30,7 +30,7 @@ namespace Deadzone2D
                 _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
                 _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor,
                 _tbGiveTarget, _tbGiveQuery, _tbGiveCoins, _tbGiveLevel, _tbGiveWins, _tbGiveKills, _tbAdminGmail,
-                _tbChat
+                _tbChat, _tbServerUrl
             };
             foreach (var tb in all)
             {
@@ -59,6 +59,7 @@ namespace Deadzone2D
             _tbAnnFile.MaxLength = 260;
             _tbAnnAuthor.MaxLength = 30;
             _tbChat.MaxLength = 160;
+            _tbServerUrl.Text = OnlineClient.Config.ServerUrl;
             _tbAnnAuthor.Text = "sr.idev";
             _tbAdminUser.Text = "sr.idev";
 
@@ -87,6 +88,7 @@ namespace Deadzone2D
 
             ShowInput(_tbLoginCode, _page == 1);
             ShowInput(_tbChat, _chatOpen && (_page >= 2) && _page != 5 && _page != 6);
+            ShowInput(_tbServerUrl, _cfgOpen && _page != 4);
             bool reg = _page == 6;
             ShowInput(_tbRegGmail, reg);
             ShowInput(_tbRegNick, reg);
@@ -1682,6 +1684,12 @@ namespace Deadzone2D
         private void AddFriendByUserId(string userId)
         {
             if (_account == null) return;
+            if (_online && OnlineClient.Connected)
+            {
+                OnlineClient.Send("friend:add", new { value = userId });
+                ShowToast("Friend request sent online.");
+                return;
+            }
             var other = AccountStore.FindByUserId(userId);
             if (other == null || other.UserId == _account.UserId) return;
             if (!AccountStore.SendFriendRequest(_account, other, out var err))

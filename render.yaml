@@ -1,145 +1,16 @@
-# Deadzone
-
-**Sua mira decide seu destino.**
-
-FPS 3D para navegador de computador. O cliente usa HTML, CSS, JavaScript e Three.js. O servidor usa Node.js, Express e Socket.IO. O treino é local, com o mesmo motor de movimento, colisão e armas das partidas multiplayer.
-
-## Executar no computador
-
-1. Instale [Node.js 24 LTS](https://nodejs.org/en/download). Extraia o ZIP e entre na pasta `crossfire`.
-2. Abra o Terminal, o Prompt de Comando ou o PowerShell nessa pasta.
-3. Execute:
-
-   ```sh
-   npm ci
-   npm start
-   ```
-
-4. Abra [http://localhost:3000](http://localhost:3000) em um navegador de computador.
-5. Para treinar, escolha **Jogar treino**, mapa, exercício e arma. Clique em **Iniciar treino** e **Entrar na arena**. Use **Esc** para pausar. Se o navegador impedir a captura do ponteiro, **Jogar sem captura** habilita as setas direcionais e permite mirar arrastando com o botão do meio.
-
-O primeiro início cria `data/game.sqlite` automaticamente. A conexão com o jogo roda no mesmo endereço do lobby. Se precisar mudar a porta, copie `.env.example` para `.env` e ajuste `PORT`.
-
-### Aplicativo Windows
-
-Em um PC de 64 bits, abra `dist/Deadzone-Game-1.1-Windows-x64.exe`. O executável é portátil: não instala o jogo nem exige Node.js. Ao abrir, o Electron inicia o servidor local com o Node.js incluído e carrega o lobby. Ao fechar, encerra o servidor. O progresso usa SQLite em `%APPDATA%\Crossfire\data\game.sqlite`, fora do executável.
-
-Para gerar o `.exe` a partir do código, use Node.js 24:
-
-```sh
-npm ci
-npm run dist
-```
-
-Use `npm run desktop` para testar no Electron sem empacotar. O servidor desse aplicativo fica restrito ao próprio PC; para jogar com pessoas em outros computadores, todos precisam acessar o mesmo servidor Node.js compartilhado.
-
-### Duelo com duas pessoas
-
-- Com o servidor aberto, visite o mesmo endereço em dois navegadores ou perfis independentes. Uma janela anônima pode ser usada como a segunda sessão. Cada jogador verá um nome diferente até cadastrar sua conta.
-- Um jogador abre **Salas privadas**, escolhe mapa, formato e armas e clica em **Criar sala privada**. Passe o código ou o link ao segundo jogador.
-- O segundo jogador entra pela opção **Entrar com código**. O anfitrião clica em **Iniciar duelo** quando os dois estiverem conectados.
-- Para fila pública, os dois escolhem o mesmo modo. A fila 2v2 precisa de quatro jogadores. A de Battle Royale inicia com 2 a 10, com uma espera de até 14 segundos após o primeiro jogador elegível.
-- Em uma mesma rede local, use `http://IP_DO_SERVIDOR:3000` no outro computador e permita a porta na rede privada se o sistema solicitar. Para redes diferentes, use o mesmo link HTTPS do Render conforme o guia abaixo.
-
-## Modos
-
-| Modo | Regras |
-| --- | --- |
-| Duelo 1v1 | Dois jogadores, melhor de 5. Primeiro a 3 rodadas. |
-| Ranqueada | Duelo 1v1 para contas cadastradas. Pontuação Elo, pareamento por habilidade e ranking da temporada. |
-| Duelo 2v2 | Quatro jogadores em duas equipes. Use **E** para marcar uma posição para sua equipe. |
-| Duelo de snipers | Mirage M-8, mira telescópica e confronto a longa distância no Vale da Morte. |
-| Battle Royale | Até 10 jogadores no Distrito Zero, armas e suprimentos coletáveis, zona progressiva e último sobrevivente. |
-| Treinamento | Quatro mapas, alvos fixos ou móveis, três dificuldades de bots e estatísticas da sessão. |
-| Salas privadas | Código e convite por link. Mapa, armas permitidas e melhor de 1, 3, 5 ou 7 escolhidos pelo anfitrião. |
-
-Os mapas são **Arena Industrial**, **Base Fantasma**, **Vale da Morte** e **Distrito Zero**. O arsenal inclui Ronin R-37, Mirage M-8, Pulse V-9, Ferror S-6 e Viper K-12. A Viper ocupa o segundo espaço do equipamento comum.
-
-### Controles padrão
-
-| Controle | Ação |
-| --- | --- |
-| WASD / mouse | Mover / olhar |
-| Mouse esquerdo / direito | Disparar / mirar |
-| R | Recarregar |
-| Shift / Ctrl / Espaço | Correr / agachar / pular |
-| 1 / 2 | Trocar de arma |
-| E | Coletar suprimentos ou sinalizar para a equipe |
-| Tab / Esc | Placar / pausa |
-
-Em **Configurações**, personalize teclas, sensibilidades, FOV, resolução, sombras, qualidade, volumes e tela cheia. A pausa interrompe o treino local. Em uma partida online o cronômetro continua.
-
-## Colocar no GitHub
-
-1. Crie um repositório vazio pelo [GitHub](https://github.com/new). Use `crossfire` ou outro nome disponível. Deixe a opção de adicionar README desmarcada para poder enviar o projeto existente.
-2. Na pasta do jogo, execute os comandos abaixo. Substitua `SEU_USUARIO` e o nome do repositório se necessário.
-
-   ```sh
-   git init -b main
-   git add .
-   git commit -m "Versão inicial de Crossfire"
-   git remote add origin https://github.com/SEU_USUARIO/crossfire.git
-   git push -u origin main
-   ```
-
-No Windows, o GitHub Desktop também pode criar o repositório local e enviar a pasta. Mantenha `.env`, arquivos SQLite e credenciais fora do Git. O `.gitignore` já exclui esses arquivos.
-
-## Hospedar no Render
-
-### Banco de dados
-
-1. No [painel do Render](https://dashboard.render.com/), crie um serviço **Postgres** na região onde hospedará o jogo ou use uma instância PostgreSQL compatível.
-2. No Render, use a **Internal Database URL** para um serviço na mesma região. Em um provedor externo, copie a URL de conexão e siga a configuração TLS do provedor. Use a variável `DATABASE_URL` para guardar essa URL.
-3. Na primeira execução, o jogo cria as tabelas de contas, sessões, temporadas, resultados, itens, missões e amigos. Não há script SQL manual obrigatório.
-4. Para manter o progresso a longo prazo, verifique a retenção e os backups do banco escolhido. As instâncias PostgreSQL gratuitas do Render têm prazo de expiração.
-
-Para desenvolvimento local, deixe `DATABASE_URL` vazia para usar SQLite. Se quiser testar Postgres localmente, preencha-a em `.env`. Os dois bancos são independentes. Guarde backups de `data/game.sqlite` com o servidor parado ou através das ferramentas de backup do SQLite.
-
-### Serviço Web
-
-1. No [painel do Render](https://dashboard.render.com/), escolha **New → Blueprint**, conecte o GitHub e selecione o repositório. O arquivo `render.yaml` deve estar na raiz.
-2. Preencha `DATABASE_URL` quando o Render solicitar. Aplique o Blueprint. Para começar manualmente, crie **New → Web Service**, escolha **Node**, use `npm ci --omit=dev` no build e `npm start` para iniciar. Adicione a mesma variável de banco e `/health` como rota de verificação.
-3. O servidor usa o `PORT` fornecido pelo Render e escuta em `0.0.0.0`. Aguarde o deploy ficar ativo e abra o endereço `.onrender.com` criado para o serviço.
-4. Faça uma partida a partir de dois dispositivos. Depois de verificar a conexão e o salvamento no perfil, compartilhe o endereço do serviço com amigos.
-
-O Blueprint usa uma instância de Web Service. Salas, filas e partidas em andamento ficam na memória desse processo. Contas e partidas concluídas ficam no banco. Um reinício do servidor encerra partidas em andamento. Mantenha uma instância enquanto a simulação e o estado das salas estiverem concentrados no processo. A instância gratuita pode suspender quando fica ociosa e demorar para atender o primeiro acesso.
-
-Documentação oficial do Render. [Blueprint](https://render.com/docs/blueprint-spec) · [Express](https://render.com/docs/deploy-node-express-app) · [WebSocket](https://render.com/docs/websocket) · [PostgreSQL](https://render.com/docs/postgresql-creating-connecting) · [Planos gratuitos](https://render.com/docs/free)
-
-## Prévia de treino e testes
-
-- `npm run preview:build` gera a prévia estática em `preview/`. Sirva essa pasta por HTTP em um servidor estático. Ela reúne o cliente 3D, as fontes e as imagens e oferece treinamento, arsenal e configurações. As opções vinculadas ao servidor mostram o requisito de conexão.
-- `npm test` executa testes de física, recarga, regras de rodada, fila ranqueada, reconexão, registro de resultados, zona, suprimentos, SQLite e distribuição dos modelos 3D. A integração abre dois clientes Socket.IO distintos e executa um disparo validado pelo servidor até o resultado.
-
-## Modelos e skins
-
-No **Arsenal**, selecione a arma e use **Skin cosmética** para equipar:
-
-| Arma | Skin 3D gratuita |
-| --- | --- |
-| Viper K-12 | Amber Royal |
-| Ferror S-6 | Rusty Tactical |
-| Ronin R-37 | Neon Fury |
-
-As skins funcionam com WebGL 2 no treino e no multiplayer. A escolha é salva no perfil no servidor; na prévia de treino vale para a sessão atual. Com gráficos simples ou se um GLB não carregar, o jogo usa o modelo procedural. Dano, alcance, cadência e colisões não mudam.
-
-Em **Operador 3D**, as opções **Agachado** e **Deitado** reproduzem os clipes FBX no lobby. As posturas e os controles das partidas não mudaram. Os arquivos GLB usados pelo cliente estão em `public/models/assets/`; os originais continuam em `Weapons/` e `Assets/`.
-
-## Organização e atualizações
-
-| Caminho | Função |
-| --- | --- |
-| `public/index.html`, `style.css`, `game.js` | Lobby e interface de modos, salas, contas e progressão |
-| `public/play.js` | Entrada, HUD, câmera, previsão local, interpolação e efeitos |
-| `public/maps/`, `public/models/` | Cenários, renderização por software e malhas 3D originais |
-| `public/textures/`, `public/audio/` | Arte do lobby, texturas processuais e áudio sintetizado |
-| `shared/maps.js`, `shared/physics.js` | Geometria de colisão, navegação, alcance e obstrução de disparos |
-| `shared/weapons.js`, `shared/match.js` | Balanceamento, inventário de partida, dano, zona e rodadas |
-| `src/auth.js`, `src/database.js`, `src/multiplayer.js` | Sessões, persistência, filas, salas e simulação autoritativa |
-| `server.js`, `render.yaml` | Entrada do servidor e configuração do Render |
-
-Altere valores de dano, recarga e alcance no módulo compartilhado de armas. Atualize colisões e posições no módulo compartilhado de mapas antes de decorar o cenário. Para iniciar uma nova temporada, altere `SEASON_ID` e `SEASON_NAME`. Uma temporada tem pontuação e XP próprios, enquanto a conta mantém o inventário e o histórico.
-
-O servidor valida deslocamento, colisões, cadência, munição e dano, e mantém uma janela curta de posições para compensar latência. Há reconexão dentro de uma janela de 24 segundos. A configuração atual cobre partidas para grupos pequenos em uma instância. As configurações de entrada priorizam teclado e mouse. Um navegador de computador com WebGL 2 exibe as texturas, sombras e modelos completos. Em navegadores sem WebGL 2, a renderização por software mantém as regras de jogo com gráficos simplificados.
-
-O emblema, as malhas e os efeitos sonoros foram criados para este projeto. A arte ilustrativa do lobby e dos cartões foi gerada para o jogo. As fontes Barlow são distribuídas sob a licença SIL Open Font License.
+services:
+  - type: web
+    name: deadzone2d
+    runtime: node
+    plan: free
+    numInstances: 1
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SEASON_ID
+        value: "01"
+      - key: SEASON_NAME
+        value: Opening

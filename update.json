@@ -1,6 +1,6 @@
 {
-  "Version": "4.0",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.0.exe",
-  "Notes": "Deadzone2D 4.0 - local chat with team/all channels and profanity filter, friend IDs without local account, language layout fix.",
+  "Version": "4.1",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.1.exe",
+  "Notes": "Deadzone2D 4.1 - online accounts, friends, chat, matchmaking and server configuration.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }
