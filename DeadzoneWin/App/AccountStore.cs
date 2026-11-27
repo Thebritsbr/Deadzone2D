@@ -193,20 +193,33 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 3.6",
-                        Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
-                               "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
+                        Title = "Welcome to Deadzone 3.7",
+                        Body = "New lobby, real Google sign-in, player profile, Cofre, announcements and the Dead Royal store. " +
+                               "Use CTRL + SHIFT + P on an admin account to open the admin panel.",
                         Author = "Lume Studio INC",
                         CreatedAt = DateTime.UtcNow.AddDays(-1)
                     });
                     Announcements.Add(new Announcement
                     {
                         Category = "News",
-                        Title = "Loja Dead Royal aberta",
-                        Body = "Cinco itens iniciais: skins Crimson Fang (Glock), Neon Strike (MP40), Golden Reaper (AWM), " +
-                               "o ícone Calavera e o banner Dead Royal. Ganhe e gaste Dead Coins no lobby.",
+                        Title = "Dead Royal store is open",
+                        Body = "Starter items: Crimson Fang (Glock), Neon Strike (MP40), Golden Reaper (AWM), " +
+                               "the Calavera icon and the Dead Royal banner. Earn and spend Dead Coins in the lobby.",
                         Author = "Lume Studio INC",
                         CreatedAt = DateTime.UtcNow.AddHours(-6)
+                    });
+                    dirty = true;
+                }
+                if (!Announcements.Any(a => a.Title == "Deadzone2D 3.7 Release"))
+                {
+                    Announcements.Add(new Announcement
+                    {
+                        Category = "Updates",
+                        Title = "Deadzone2D 3.7 Release",
+                        Body = "Friend requests are now sent between accounts and must be accepted. " +
+                               "Group invites also send a request. A rank/XP system and a new requirements page are available.",
+                        Author = "Lume Studio INC",
+                        CreatedAt = DateTime.UtcNow
                     });
                     dirty = true;
                 }
@@ -215,7 +228,7 @@ namespace Deadzone2D
                     Notifications.Add(new DzNotification
                     {
                         Target = "all",
-                        Message = "Bem-vindo ao Deadzone! Confira os anúncios e a loja Dead Royal.",
+                        Message = "Welcome to Deadzone! Check the announcements and the Dead Royal store.",
                         Author = "Lume Studio INC",
                         CreatedAt = DateTime.UtcNow.AddDays(-1)
                     });

@@ -1204,8 +1204,11 @@ namespace Deadzone2D
                     if (_groupMembers.Count >= 4) { ShowToast("Grupo completo (4 jogadores)."); break; }
                     var cand = _friendList.FirstOrDefault(f => !_groupMembers.Contains(f.Name));
                     if (cand == null) { ShowToast("Adicione amigos para convidar."); _friendsOpen = true; break; }
-                    _groupMembers.Add(cand.Name);
-                    ShowToast(cand.Name + " entrou no grupo.");
+                    var target = AccountStore.FindByUserId(cand.UserId);
+                    if (target == null || _account == null) break;
+                    AccountStore.SendFriendRequest(_account, target, out _);
+                    LoadFriendsFromAccount();
+                    ShowToast("Convite enviado para " + cand.Name + ".");
                     break;
                 }
                 case "friendsOpen": _friendsOpen = true; break;
