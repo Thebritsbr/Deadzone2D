@@ -62,6 +62,8 @@ namespace Deadzone2D
         public int AiTarget = -1;
         public float AiMoveX, AiMoveY;
         public bool Sprinting;
+        public string NetId = "";
+        public bool IsRemote;
 
         public WeaponDef Weapon => Arsenal.Get(WeaponId);
         public float HealthPct => MaxHealth <= 0 ? 0 : Math.Clamp(Health / MaxHealth, 0f, 1f);

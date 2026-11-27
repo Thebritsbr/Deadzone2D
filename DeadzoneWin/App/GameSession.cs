@@ -319,21 +319,54 @@ namespace Deadzone2D
             else p.WalkPhase += TimeDelta * 2f;
         }
 
+        // ---------- Rede ----------
+        public void ConfigureOnline(string[] netIds, int[]? teams = null)
+        {
+            for (int i = 1; i < Fighters.Count && i - 1 < netIds.Length; i++)
+            {
+                var f = Fighters[i];
+                f.IsRemote = true;
+                f.NetId = netIds[i - 1];
+                f.Team = teams != null && i - 1 < teams.Length ? teams[i - 1] : (i == 1 ? 1 : (i - 1));
+                f.Medkits = 0;
+            }
+        }
+
+        public Fighter? RemoteByNetId(string netId) =>
+            Fighters.FirstOrDefault(f => f.IsRemote && f.NetId == netId);
+
+        public void ApplyRemoteState(string netId, float x, float y, float angle, string weapon, bool firing)
+        {
+            var f = RemoteByNetId(netId);
+            if (f == null || !f.Alive) return;
+            f.X = x;
+            f.Y = y;
+            f.Angle = angle;
+            if (!string.IsNullOrWhiteSpace(weapon) && Arsenal.Defs.ContainsKey(weapon)) f.WeaponId = weapon;
+            if (firing) Shoot(f, angle);
+        }
+
+        public void ApplyRemoteDamage(float amount, float angle)
+        {
+            if (Phase == SessionPhase.Live) DamageFighter(Player, -1, amount, angle);
+        }
+
         // ---------- Tiro ----------
         public bool Shoot(Fighter f, float angle)
         {
             if (f == null || !f.Alive || f.FireCd > 0f || f.ReloadLeft > 0f || Phase != SessionPhase.Live) return false;
             var w = f.Weapon;
-            if (f.IsPlayer)
+            bool controlled = f.IsPlayer || f.IsRemote;
+            if (controlled)
             {
                 if (f.Mag <= 0) { TryReload(f); return false; }
                 f.Mag--;
             }
-            f.FireCd = w.FireInterval * (f.IsPlayer ? 1f : Kind == SessionKind.Royale ? 2.55f : 2.35f);
+            f.FireCd = w.FireInterval * (controlled ? 1f : Kind == SessionKind.Royale ? 2.55f : 2.35f);
             f.Muzzle = .07f;
             f.Angle = angle;
 
-            float spread = w.Spread * (f.IsPlayer ? (f.Sprinting ? 1.7f : 1f) : Kind == SessionKind.Royale ? 2.35f : 2.1f);
+            float spread = w.Spread * (controlled ? (f.Sprinting ? 1.7f : 1f) : Kind == SessionKind.Royale ? 2.35f : 2.1f);
             float a = angle + (float)((_rng.NextDouble() * 2 - 1) * spread);
             float sx = f.X + (float)Math.Cos(a) * 22f;
             float sy = f.Y + (float)Math.Sin(a) * 22f;
@@ -343,7 +376,7 @@ namespace Deadzone2D
                 X = sx, Y = sy, TrailX = sx, TrailY = sy,
                 VX = (float)Math.Cos(a) * speed, VY = (float)Math.Sin(a) * speed,
                 OwnerId = f.Id, Team = f.Team,
-                Damage = w.Damage * (f.IsPlayer ? 1f : Kind == SessionKind.Royale ? .45f : .62f),
+                Damage = w.Damage * (controlled ? 1f : Kind == SessionKind.Royale ? .45f : .62f),
                 MaxRange = w.Range,
                 Tracer = w.Tracer,
             });
@@ -430,7 +463,7 @@ namespace Deadzone2D
                 DamageAngle = angle;
                 CameraShake = Math.Min(10f, CameraShake + 3.5f);
             }
-            attacker.DamageDealt += Math.Max(1, (int)Math.Round(dmg));
+            if (attacker != null) attacker.DamageDealt += Math.Max(1, (int)Math.Round(dmg));
             DamageNumbers.Add(new DamageNumber
             {
                 X = victim.X + (float)(_rng.NextDouble() * 16 - 8),
@@ -545,7 +578,7 @@ namespace Deadzone2D
         {
             foreach (var f in Fighters)
             {
-                if (!f.Alive || f.IsPlayer) continue;
+                if (!f.Alive || f.IsPlayer || f.IsRemote) continue;
                 if (combat && f.Health < 48f && f.Medkits > 0 && _rng.NextDouble() < dt * .9)
                     UseMedkit(f);
                 f.AiTimer -= dt;

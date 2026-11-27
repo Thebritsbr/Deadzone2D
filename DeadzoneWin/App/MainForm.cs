@@ -177,6 +177,9 @@ namespace Deadzone2D
         private readonly List<(string Id, string Nick)> _onlineFriends = new();
         private readonly List<(string Id, string Nick)> _onlineRequests = new();
         private readonly List<string> _matchPlayers = new();
+        private readonly List<string> _matchNetIds = new();
+        private readonly List<int> _matchTeams = new();
+        private float _netSendTimer;
         private bool _queueing;
 
         private bool _chatOpen;
@@ -510,6 +513,20 @@ namespace Deadzone2D
                     AimY = ScreenToWorldY(_mouse.Y),
                 };
                 _g.Update(dt, input);
+                if (_online && OnlineClient.Connected)
+                {
+                    _netSendTimer -= dt;
+                    if (_netSendTimer <= 0f)
+                    {
+                        _netSendTimer = 0.05f;
+                        var p = _g.Player;
+                        OnlineClient.Send("match:state", new
+                        {
+                            x = p.X, y = p.Y, angle = p.Angle, weapon = p.WeaponId,
+                            firing = _firing && !_inventoryOpen && !_paused && p.Alive
+                        });
+                    }
+                }
             }
 
             if (_g.Score0 != _lastScore0 || _g.Score1 != _lastScore1)
@@ -640,6 +657,8 @@ namespace Deadzone2D
             _map = _maps[Math.Clamp(_mapIndex, 0, _maps.Count - 1)];
             int teamSize = _map.Mode == "SquadBattle" ? 4 : _map.Mode == "DeadRoyale" ? _royaleSquad : _teamSize;
             _g = new GameSession(_map, _rules, teamSize, _players);
+            if (_online && _matchNetIds.Count > 0)
+                _g.ConfigureOnline(_matchNetIds.ToArray(), _matchTeams.ToArray());
             if (_map.Mode == "DealDuo") { _storeOpen = true; _storeTimer = 60f; }
             _inGame = true;
             _inventoryOpen = false;
@@ -824,13 +843,34 @@ namespace Deadzone2D
                     break;
                 }
                 case "queue": ShowToast("Looking for players... " + (data.TryGetProperty("count", out var c) ? c.GetInt32().ToString() : "")); break;
+                case "match:state":
+                {
+                    if (_g == null) break;
+                    _g.ApplyRemoteState(
+                        JsonString(data, "id"),
+                        data.TryGetProperty("x", out var sx) ? (float)sx.GetDouble() : 0f,
+                        data.TryGetProperty("y", out var sy) ? (float)sy.GetDouble() : 0f,
+                        data.TryGetProperty("angle", out var sa) ? (float)sa.GetDouble() : 0f,
+                        JsonString(data, "weapon"),
+                        data.TryGetProperty("firing", out var sf) && sf.GetBoolean());
+                    break;
+                }
                 case "match:start":
                 {
                     if (!data.TryGetProperty("match", out var m)) break;
                     _matchPlayers.Clear();
+                    _matchNetIds.Clear();
+                    _matchTeams.Clear();
                     if (m.TryGetProperty("players", out var ps) && ps.ValueKind == JsonValueKind.Array)
                         foreach (var pl in ps.EnumerateArray())
-                            _matchPlayers.Add(JsonString(pl, "nick"));
+                        {
+                            string nick = JsonString(pl, "nick");
+                            string pid = JsonString(pl, "id");
+                            if (pid == _onlineId) continue; // o jogador local já é o índice 0
+                            _matchPlayers.Add(nick);
+                            _matchNetIds.Add(pid);
+                            _matchTeams.Add(pl.TryGetProperty("team", out var tm) ? tm.GetInt32() : 1);
+                        }
                     for (int i = 0; i < Math.Min(4, _matchPlayers.Count); i++) _players[i] = _matchPlayers[i];
                     _queueing = false;
                     ShowToast("Match found!");

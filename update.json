@@ -1,6 +1,6 @@
 {
-  "Version": "4.1",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.1.exe",
-  "Notes": "Deadzone2D 4.1 - online accounts, friends, chat, matchmaking and server configuration.",
+  "Version": "4.2",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.2.exe",
+  "Notes": "Deadzone2D 4.2 - synchronized online combat between players on different computers.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }
