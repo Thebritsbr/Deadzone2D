@@ -1,6 +1,6 @@
 {
-  "Version": "2.8",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.8.exe",
-  "Notes": "Deadzone2D 2.8 - real Gmail verification code, owned-only inventory, bottom navigation and admin action screens.",
+  "Version": "2.9",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.9.exe",
+  "Notes": "Deadzone2D 2.9 - match loading screen with team members, logout button, top navigation and Dead Royale player/bot rules.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

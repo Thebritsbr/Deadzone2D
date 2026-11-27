@@ -1443,10 +1443,23 @@ namespace Deadzone2D
                     }
                     DrawAccountIcon(g, new RectangleF(r.X + 12, r.Y + 14, 42, 42),
                         AccountStore.Icon(_account?.IconId));
-                    Txt(g, (_account?.Nick ?? "JOGADOR").ToUpperInvariant(), FSmallB, Ink,
+                    Txt(g, (_groupMembers.Count > 0 ? _groupMembers[0] : (_account?.Nick ?? "JOGADOR")).ToUpperInvariant(), FSmallB, Ink,
                         new RectangleF(r.X + 62, r.Y + 14, cw - 70, 18));
                     Spaced(g, "LÍDER", FTiny, Red, r.X + 62, r.Y + 36, 2f);
-                    Spaced(g, "SQUAD CRIADA", FTiny, Dim, r.X + 12, r.Y + 68, 1.5f);
+                    Spaced(g, "GRUPO CRIADO", FTiny, Dim, r.X + 12, r.Y + 68, 1.5f);
+                }
+                else if (_groupMembers.Count > i)
+                {
+                    using (var p = Chamfer(r, 10, true, false, true, false))
+                    {
+                        g.FillPath(Br(A(PanelHi, 215)), p);
+                        g.DrawPath(Pn(A(Line, 220), 1.2f), p);
+                    }
+                    DrawAccountIcon(g, new RectangleF(r.X + 12, r.Y + 14, 42, 42), AccountStore.Icon(null));
+                    Txt(g, _groupMembers[i].ToUpperInvariant(), FSmallB, Ink,
+                        new RectangleF(r.X + 62, r.Y + 14, cw - 70, 18));
+                    Spaced(g, "MEMBRO", FTiny, Green, r.X + 62, r.Y + 36, 2f);
+                    Spaced(g, "PRONTO", FTiny, Dim, r.X + 12, r.Y + 68, 1.5f);
                 }
                 else
                 {

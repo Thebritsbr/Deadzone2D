@@ -121,6 +121,13 @@ namespace Deadzone2D
         private bool _profileOpen, _notifOpen, _adminOpen, _adminAuthed, _addFriendOpen, _squadOpen;
         private bool _notifyUiOpen, _announceUiOpen;
         private string _notifyTarget = "all";
+        private readonly List<string> _groupMembers = new();
+
+        // tela de carregamento ao entrar/sair de partida e ao entrar no jogo
+        private bool _loading;
+        private string _loadingTitle = "";
+        private float _loadingLeft, _loadingTotal;
+        private Action? _loadingDone;
         private string _cofreTab = "Perfil";
         private string _annCategory = "Updates";
         private float _annScroll, _shopScroll;
@@ -385,6 +392,18 @@ namespace Deadzone2D
         private void Step(float dt)
         {
             _clock += dt;
+            if (_loading)
+            {
+                _loadingLeft -= dt;
+                if (_loadingLeft <= 0f)
+                {
+                    _loading = false;
+                    var done = _loadingDone;
+                    _loadingDone = null;
+                    done?.Invoke();
+                }
+                return;
+            }
             SyncAccountInputs();
             if (_page == 0)
             {
@@ -560,6 +579,7 @@ namespace Deadzone2D
             _players[0] = acc.Nick;
             LoadFriendsFromAccount();
             LoadEquippedFromAccount();
+            ResetGroup();
         }
 
         private void StartGame()
@@ -595,18 +615,40 @@ namespace Deadzone2D
 
         private void BackToLobby()
         {
-            _inGame = false;
-            _g = null;
-            _paused = false;
-            _inventoryOpen = false;
-            _storeOpen = false;
-            _firing = false;
-            _keys.Clear();
-            _spectate = -1;
-            ShowPage("Lobby");
+            if (_loading) return;
+            StartLoading("VOLTANDO AO LOBBY", 1.6f, () =>
+            {
+                _inGame = false;
+                _g = null;
+                _paused = false;
+                _inventoryOpen = false;
+                _storeOpen = false;
+                _firing = false;
+                _keys.Clear();
+                _spectate = -1;
+                ShowPage("Lobby");
+            });
         }
 
         private void ShowToast(string msg) { _toast = msg; _toastLeft = 2.6f; }
+
+        private void StartLoading(string title, float seconds, Action done)
+        {
+            _loading = true;
+            _loadingTitle = title;
+            _loadingLeft = seconds;
+            _loadingTotal = seconds;
+            _loadingDone = done;
+            _firing = false;
+            _keys.Clear();
+            _paused = false;
+        }
+
+        private void ResetGroup()
+        {
+            _groupMembers.Clear();
+            _groupMembers.Add(_account?.Nick ?? "JOGADOR 1");
+        }
 
         // tela cheia de verdade (cobre a barra de tarefas); F11 alterna
         private void ToggleMax()
@@ -761,8 +803,9 @@ namespace Deadzone2D
                     LoadFriendsFromAccount();
                     LoadEquippedFromAccount();
                     _tbPass.Text = "";
+                    ResetGroup();
                     ShowToast("Bem-vindo, " + acc.DisplayName + ".");
-                    ShowPage("Lobby");
+                    StartLoading("ENTRANDO NO JOGO", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
                 case "register":
@@ -813,8 +856,9 @@ namespace Deadzone2D
                     SaveLastUser(acc.Gmail);
                     LoadFriendsFromAccount();
                     LoadEquippedFromAccount();
+                    ResetGroup();
                     ShowToast("Conta criada. Bem-vindo, " + acc.DisplayName + ".");
-                    ShowPage("Lobby");
+                    StartLoading("ENTRANDO NO JOGO", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
                 case "accountOpen":
@@ -828,6 +872,9 @@ namespace Deadzone2D
                 case "profileLogout":
                     CloseProfile();
                     _account = null;
+                    _groupMembers.Clear();
+                    _loading = false;
+                    _loadingDone = null;
                     _friendList.Clear();
                     _equipped.Clear();
                     _players[0] = "JOGADOR 1";
@@ -901,11 +948,13 @@ namespace Deadzone2D
                 case "addFriendBackdrop": _addFriendOpen = false; break;
                 case "squadCreate":
                     _squadOpen = true;
-                    ShowToast("Squad criada. Convide seus amigos.");
+                    ResetGroup();
+                    ShowToast("Grupo criado. Use CONVIDAR para adicionar amigos.");
                     break;
                 case "squadLeave":
                     _squadOpen = false;
-                    ShowToast("Você saiu da squad.");
+                    _groupMembers.Clear();
+                    ShowToast("Você saiu do grupo.");
                     break;
                 case "shopReload":
                     AccountStore.ReloadShop();
@@ -937,7 +986,7 @@ namespace Deadzone2D
                     break;
                 case "start":
                     _queue = false;
-                    if (_page == 2) ShowPage("Partida");
+                    if (_page == 2) StartLoading("CARREGANDO PARTIDA", 2.2f, () => ShowPage("Partida"));
                     else { _queue = !_queue; if (_queue) _queueSw.Restart(); else _queueSw.Reset(); }
                     break;
                 case "mapNext":
@@ -967,7 +1016,16 @@ namespace Deadzone2D
                 case "skipCountdown": _g?.SkipCountdown(); break;
                 case "reload": if (_g != null) _g.TryReload(_g.Player); break;
                 case "mode": ShowToast("Use as setas para trocar de mapa"); break;
-                case "invite": _friendsOpen = true; break;
+                case "invite":
+                {
+                    if (!_squadOpen) { ShowToast("Crie um grupo primeiro."); break; }
+                    if (_groupMembers.Count >= 4) { ShowToast("Grupo completo (4 jogadores)."); break; }
+                    var cand = _friendList.FirstOrDefault(f => !_groupMembers.Contains(f.Name));
+                    if (cand == null) { ShowToast("Adicione amigos para convidar."); _friendsOpen = true; break; }
+                    _groupMembers.Add(cand.Name);
+                    ShowToast(cand.Name + " entrou no grupo.");
+                    break;
+                }
                 case "friendsOpen": _friendsOpen = true; break;
                 case "friendsClose": _friendsOpen = false; break;
                 case "frdMenu": _requestsOpen = !_requestsOpen; break;
@@ -1039,6 +1097,12 @@ namespace Deadzone2D
         protected override void OnKeyDown(KeyEventArgs e)
         {
             base.OnKeyDown(e);
+            if (_loading)
+            {
+                e.Handled = true;
+                e.SuppressKeyPress = true;
+                return;
+            }
 
             if (e.Control && e.Shift && e.KeyCode == Keys.P)
             {
@@ -1151,6 +1215,7 @@ namespace Deadzone2D
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
+            if (_loading) return;
             _mouse = e.Location;
             _down = e.Button == MouseButtons.Left ? HitAt(e.Location) : null;
             if (_page == 4 && _g != null && e.Button == MouseButtons.Left && _down == null &&
@@ -1161,6 +1226,7 @@ namespace Deadzone2D
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
+            if (_loading) return;
             _mouse = e.Location;
             if (e.Button == MouseButtons.Left) _firing = false;
             var up = e.Button == MouseButtons.Left ? HitAt(e.Location) : null;
@@ -1515,6 +1581,7 @@ namespace Deadzone2D
             if (_notifyUiOpen) DrawNotifyUi(g, w, h);
             if (_announceUiOpen) DrawAnnounceUi(g, w, h);
             DrawToast(g, w);
+            if (_loading) DrawLoadingOverlay(g, w, h);
         }
 
         private void DrawTopBar(Graphics g, int w)
@@ -1533,6 +1600,26 @@ namespace Deadzone2D
 
             if (_page >= 2 && _page != 5 && _page != 6)
             {
+                // navegação compacta no meio da barra de cima
+                string[] navLabels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL" };
+                string[] navPages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal" };
+                int[] navIdx = { 2, 3, 7, 8, 9 };
+                int navW = 104, navGap = 6;
+                int navTotal = navLabels.Length * navW + (navLabels.Length - 1) * navGap;
+                int navX = Math.Max(230, (w - 560 - navTotal) / 2);
+                for (int i = 0; i < navLabels.Length; i++)
+                {
+                    var nr = new Rectangle(navX + i * (navW + navGap), 0, navW, BarH - 1);
+                    string nid = "nav:" + navPages[i];
+                    Reg(nr, nid);
+                    float nh = Hv(nid);
+                    bool nactive = _page == navIdx[i] || (_page == 3 && navIdx[i] == 2);
+                    Spaced(g, navLabels[i], FSmallB, nactive ? Ink : Mix(Dim, Ink, nh),
+                        nr.X + nr.Width / 2f, BarH / 2f + 2f, 1.8f, StringAlignment.Center);
+                    if (nactive) g.FillRectangle(Br(Red), nr.X + 14, BarH - 3, nr.Width - 28, 3);
+                    else if (nh > 0.02f) g.FillRectangle(Br(A(Red, (int)(150 * nh))), nr.X + 14, BarH - 3, nr.Width - 28, 3);
+                }
+
                 // perfil + notificações + configurações (antes dos botões da janela)
                 int chipX = w - 440;
                 var chip = new Rectangle(chipX, 8, 190, 48);
@@ -1573,9 +1660,9 @@ namespace Deadzone2D
         // Navegação principal: fica só na parte de baixo, presente em todas as telas do lobby.
         private void DrawBottomNav(Graphics g, int w, int h)
         {
-            string[] labels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL" };
-            string[] pages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal" };
-            int[] indexes = { 2, 3, 7, 8, 9 };
+            string[] labels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL", "LOGOUT" };
+            string[] pages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal", "profileLogout" };
+            int[] indexes = { 2, 3, 7, 8, 9, -1 };
             int gap = 8;
             int avail = Math.Max(560, w - 260); // reserva o canto direito para o painel de amigos
             int bw = Math.Clamp((avail - gap * (labels.Length - 1)) / labels.Length, 96, 180);
@@ -1584,9 +1671,49 @@ namespace Deadzone2D
             int y = h - 118; // acima da área da barra de tarefas
             for (int i = 0; i < labels.Length; i++)
             {
-                bool active = _page == indexes[i];
-                Button(g, new Rectangle(x + i * (bw + gap), y, bw, 48), "nav:" + pages[i], labels[i], active, FSmallB, 2.2f);
+                bool active = indexes[i] >= 0 && _page == indexes[i];
+                string id = pages[i] == "profileLogout" ? "profileLogout" : "nav:" + pages[i];
+                Button(g, new Rectangle(x + i * (bw + gap), y, bw, 48), id, labels[i], active, FSmallB, 2.2f);
             }
+        }
+
+        // Carregamento exibido ao entrar no jogo, iniciar partida e voltar ao lobby.
+        private void DrawLoadingOverlay(Graphics g, int w, int h)
+        {
+            g.FillRectangle(Br(A(Color.FromArgb(5, 8, 12), 250)), 0, 0, w, h);
+            int cx = w / 2;
+            UiLogoMark(g, cx, h / 2f - 196, 64);
+            Spaced(g, _loadingTitle, VTitle, Ink, cx, h / 2f - 100, 8f, StringAlignment.Center);
+            Txt(g, "PREPARANDO A SESSÃO", FSmall, Dim, new RectangleF(0, h / 2f - 52, w, 20), StringAlignment.Center);
+
+            var bar = new Rectangle(cx - 260, h / 2 - 18, 520, 5);
+            g.FillRectangle(Br(A(Ink, 28)), bar);
+            float p = _loadingTotal > 0 ? 1f - Math.Clamp(_loadingLeft / _loadingTotal, 0f, 1f) : 1f;
+            g.FillRectangle(Br(Red), bar.X, bar.Y, (int)(bar.Width * p), bar.Height);
+
+            if (_groupMembers.Count == 0) ResetGroup();
+            Spaced(g, "MEMBROS DA EQUIPE", FLabel, Red, cx, h / 2f + 36, 4f, StringAlignment.Center);
+            int n = Math.Clamp(_groupMembers.Count, 1, 4);
+            int cw = 176, gap = 12;
+            int total = n * cw + (n - 1) * gap;
+            int x = (w - total) / 2;
+            for (int i = 0; i < n; i++)
+            {
+                var r = new Rectangle(x + i * (cw + gap), h / 2 + 62, cw, 78);
+                using (var path = Chamfer(r, 10, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Panel, 240)), path);
+                    g.DrawPath(Pn(A(Line, 210), 1f), path);
+                }
+                DrawAccountIcon(g, new RectangleF(r.X + 12, r.Y + 16, 46, 46),
+                    AccountStore.Icon(i == 0 ? _account?.IconId : null));
+                Txt(g, _groupMembers[i].ToUpperInvariant(), FMid, Ink,
+                    new RectangleF(r.X + 68, r.Y + 18, r.Width - 78, 20));
+                Spaced(g, i == 0 ? "LÍDER" : "MEMBRO", FTiny, i == 0 ? Red : Green, r.X + 68, r.Y + 42, 2f);
+                Spaced(g, "PRONTO", FTiny, A(Dim, 190), r.X + 68, r.Y + 58, 2f);
+            }
+            Txt(g, "Deadzone v" + AppInfo.Versao, FSmall, A(Dim, 170),
+                new RectangleF(0, h - 54, w, 20), StringAlignment.Center);
         }
 
         // Compatibilidade com o GameRenderer.cs antigo (DrawGameWindowButtons chama WinBtn com kind 0=min, 1=max, 2=fechar).

@@ -43,6 +43,7 @@ namespace Deadzone2D
 
         private readonly Random _rng = new Random(90210);
         private readonly string[] _names;
+        private bool _royaleBotsAdded;
 
         public Fighter Player => Fighters[0];
         public int AliveCount => Fighters.Count(f => f.Alive);
@@ -81,28 +82,9 @@ namespace Deadzone2D
             int total = Math.Clamp(Rules.DeadRoyaleMaxPlayers > 0 ? Rules.DeadRoyaleMaxPlayers : 30, 2, 30);
             var rsp = Map.RoyaleSpawns;
             var first = rsp.Count > 0 ? rsp[0] : new PointF(Map.W / 2f, Map.H / 2f);
+            // Dead Royale começa só com jogadores reais (o grupo do jogador); sem bots.
             for (int i = 0; i < squadSize && Fighters.Count < total; i++)
                 AddFighter(i == 0 ? _names[0] : NameOf(i), 0, rsp, 0, i == 0, SquadOffset(first, i));
-
-            int spawnIdx = 1, team = 1, bot = 0;
-            while (Fighters.Count < total)
-            {
-                int count = Math.Min(squadSize, total - Fighters.Count);
-                var bsp = rsp.Count > 0 ? rsp[spawnIdx++ % rsp.Count] : new PointF(Map.W / 2f, Map.H / 2f);
-                for (int j = 0; j < count; j++)
-                    AddFighter(BotName(bot++), team, rsp, 0, false, SquadOffset(bsp, j));
-                team++;
-            }
-
-            foreach (var f in Fighters.Where(f => !f.IsPlayer))
-            {
-                f.WeaponId = Arsenal.LootGuns[_rng.Next(Arsenal.LootGuns.Length)];
-                f.Mag = f.Weapon.MagSize;
-                f.Reserve = f.Mag * 3;
-                f.AiSkill = .35f + (float)_rng.NextDouble() * .5f;
-                f.Medkits = 0;
-                f.Armor = 25f;
-            }
 
             Score0 = Score1 = 0;
             Round = 1;
@@ -111,8 +93,26 @@ namespace Deadzone2D
             Prep = true;
             Countdown = Rules.DeadRoyaleCountdown > 0 ? Rules.DeadRoyaleCountdown : MapDef.CountdownSeconds;
             if (Countdown <= 0) Countdown = 180;
+            // Com a sala cheia (30 players) a espera cai para 10 segundos.
+            if (Fighters.Count >= 30) Countdown = 10f;
+            _royaleBotsAdded = false;
             IntroText = "";
             MatchTime = 0;
+        }
+
+        // Reforço automático: com 1 minuto restante e 10 players ou menos, entram 20 bots.
+        private void AddRoyaleBots(int count)
+        {
+            int total = Math.Clamp(Rules.DeadRoyaleMaxPlayers > 0 ? Rules.DeadRoyaleMaxPlayers : 30, 2, 30);
+            var rsp = Map.RoyaleSpawns;
+            int spawnIdx = 1 + Fighters.Count % Math.Max(1, rsp.Count);
+            int team = 100 + Fighters.Count;
+            for (int i = 0; i < count && Fighters.Count < total; i++)
+            {
+                var bsp = rsp.Count > 0 ? rsp[spawnIdx++ % rsp.Count] : new PointF(Map.W / 2f, Map.H / 2f);
+                var f = AddFighter(BotName(i), team + i, rsp, 0, false, SquadOffset(bsp, i % 4));
+                EquipRoyaleBot(f);
+            }
         }
 
         private static PointF SquadOffset(PointF p, int i)
@@ -136,7 +136,7 @@ namespace Deadzone2D
 
         private string BotName(int index) => BotPool[index % BotPool.Length] + (index >= BotPool.Length ? "-" + (index / BotPool.Length + 1) : "");
 
-        private void AddFighter(string name, int team, List<PointF> spawns, int index, bool player, PointF? at = null)
+        private Fighter AddFighter(string name, int team, List<PointF> spawns, int index, bool player, PointF? at = null)
         {
             var sp = at ?? (spawns.Count > 0 ? spawns[index % spawns.Count] : new PointF(Map.W / 2f, Map.H / 2f));
             var free = Map.FindFree(sp.X, sp.Y);
@@ -156,6 +156,17 @@ namespace Deadzone2D
             f.Mag = f.Weapon.MagSize;
             f.Reserve = f.Mag * 4;
             Fighters.Add(f);
+            return f;
+        }
+
+        private void EquipRoyaleBot(Fighter f)
+        {
+            f.WeaponId = Arsenal.LootGuns[_rng.Next(Arsenal.LootGuns.Length)];
+            f.Mag = f.Weapon.MagSize;
+            f.Reserve = f.Mag * 3;
+            f.AiSkill = .35f + (float)_rng.NextDouble() * .5f;
+            f.Medkits = 0;
+            f.Armor = 25f;
         }
 
         private void StartRound()
@@ -210,6 +221,19 @@ namespace Deadzone2D
             if (Phase == SessionPhase.Countdown)
             {
                 Countdown = Math.Max(0f, Countdown - dt);
+                if (Kind == SessionKind.Royale)
+                {
+                    // 30 players na sala: contagem cai automaticamente para 00:10.
+                    if (Fighters.Count >= 30 && Countdown > 10f) Countdown = 10f;
+                    // Último minuto com 10 players ou menos: entram 20 bots de reforço.
+                    if (!_royaleBotsAdded && Countdown <= 60f && AliveCount <= 10)
+                    {
+                        _royaleBotsAdded = true;
+                        AddRoyaleBots(20);
+                        IntroText = "REFORÇOS CHEGARAM";
+                        IntroTimer = 2f;
+                    }
+                }
                 UpdatePlayerMovement(input, false);
                 UpdateBots(dt, false);
                 if (Countdown <= 0f) StartCombat();

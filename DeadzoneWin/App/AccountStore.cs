@@ -185,7 +185,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 2.8",
+                        Title = "Bem-vindo ao Deadzone 2.9",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
