@@ -1,6 +1,6 @@
 {
-  "Version": "3.3",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.3.exe",
-  "Notes": "Deadzone2D 3.3 - Google sign-in can be configured in Settings without administrator access.",
+  "Version": "3.4",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.4.exe",
+  "Notes": "Deadzone2D 3.4 - admin Give item/stats/tags, admin Gmail manager, toast list up to 5 and layout fixes.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

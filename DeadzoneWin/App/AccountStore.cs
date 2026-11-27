@@ -39,6 +39,10 @@ namespace Deadzone2D
         public bool OwnershipV2 { get; set; }
         public bool EmailVerified { get; set; }
         public string GoogleId { get; set; } = "";
+        public List<string> Tags { get; set; } = new();
+        public int Level { get; set; } = 1;
+        public int Wins { get; set; }
+        public int Kills { get; set; }
     }
 
     public sealed class Announcement
@@ -186,7 +190,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 3.3",
+                        Title = "Bem-vindo ao Deadzone 3.4",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
@@ -290,6 +294,7 @@ namespace Deadzone2D
             a.OwnedShopItems ??= new List<string>();
             a.Friends ??= new List<string>();
             a.ReadNotifications ??= new List<string>();
+            a.Tags ??= new List<string>();
             if (a.EquippedSkins == null || a.EquippedSkins.Comparer != StringComparer.OrdinalIgnoreCase)
                 a.EquippedSkins = new Dictionary<string, string>(a.EquippedSkins ?? new(), StringComparer.OrdinalIgnoreCase);
             if (string.IsNullOrWhiteSpace(a.IconId)) { a.IconId = "icon_01"; changed = true; }
@@ -719,6 +724,64 @@ namespace Deadzone2D
                 string.Equals(v, acc.DisplayName, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(v, acc.Gmail, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(v, acc.UserId, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static readonly string[] AdminTags = { "Dev", "Owner", "Tester", "Youtuber" };
+
+        public static Account? FindByAny(string value)
+        {
+            var v = (value ?? "").Trim();
+            if (v.Length == 0) return null;
+            return FindByGmail(v) ?? FindByUserId(v) ?? FindByNick(v) ??
+                   Accounts.FirstOrDefault(a => a.DisplayName.Equals(v, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool AddAdminGmail(string gmail, out string error)
+        {
+            error = "";
+            gmail = (gmail ?? "").Trim();
+            if (!IsGmail(gmail)) { error = "Informe um Gmail válido."; return false; }
+            if (!Admin.Allowed.Any(v => v.Equals(gmail, StringComparison.OrdinalIgnoreCase)))
+                Admin.Allowed.Add(gmail);
+            SaveJson(AdminFile, Admin);
+            return true;
+        }
+
+        public static bool GiveItem(Account target, string itemId, out string error)
+        {
+            error = "";
+            var item = Shop.FirstOrDefault(i => i.Id.Equals(itemId, StringComparison.OrdinalIgnoreCase) ||
+                                                i.Name.Equals(itemId, StringComparison.OrdinalIgnoreCase));
+            if (item == null) { error = "Item não encontrado na loja."; return false; }
+            if (!target.OwnedShopItems.Contains(item.Id, StringComparer.OrdinalIgnoreCase))
+                target.OwnedShopItems.Add(item.Id);
+            if (item.Type.Equals("Icon", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.IconId) &&
+                !target.OwnedIcons.Contains(item.IconId, StringComparer.OrdinalIgnoreCase))
+                target.OwnedIcons.Add(Icon(item.IconId).Id);
+            if (item.Type.Equals("Banner", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(item.BannerId) &&
+                !target.OwnedBanners.Contains(item.BannerId, StringComparer.OrdinalIgnoreCase))
+                target.OwnedBanners.Add(Banner(item.BannerId).Id);
+            SaveAccounts();
+            return true;
+        }
+
+        public static void GiveStats(Account target, int coins, int level, int wins, int kills)
+        {
+            target.DeadCoins = Math.Max(0, target.DeadCoins + coins);
+            if (level > 0) target.Level = Math.Max(1, level);
+            target.Wins = Math.Max(0, target.Wins + wins);
+            target.Kills = Math.Max(0, target.Kills + kills);
+            SaveAccounts();
+        }
+
+        public static bool GiveTag(Account target, string tag, out string error)
+        {
+            error = "";
+            var t = AdminTags.FirstOrDefault(x => x.Equals(tag, StringComparison.OrdinalIgnoreCase));
+            if (t == null) { error = "Tag inválida. Use Dev, Owner, Tester ou Youtuber."; return false; }
+            if (!target.Tags.Contains(t, StringComparer.OrdinalIgnoreCase)) target.Tags.Add(t);
+            SaveAccounts();
+            return true;
         }
 
         public static bool VerifyAdmin(string user, string password) =>

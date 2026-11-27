@@ -29,7 +29,8 @@ namespace Deadzone2D
                 _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegCode, _tbRegDesc,
                 _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
                 _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor,
-                _tbGoogleId, _tbGoogleSecret
+                _tbGoogleId, _tbGoogleSecret,
+                _tbGiveTarget, _tbGiveQuery, _tbGiveCoins, _tbGiveLevel, _tbGiveWins, _tbGiveKills, _tbAdminGmail
             };
             foreach (var tb in all)
             {
@@ -106,7 +107,7 @@ namespace Deadzone2D
             bool adminAuth = _adminOpen && !_adminAuthed && _page != 4;
             ShowInput(_tbAdminUser, adminAuth);
             ShowInput(_tbAdminPass, adminAuth);
-            bool adminCmd = _adminOpen && _adminAuthed && _page != 4 && !_notifyUiOpen && !_announceUiOpen;
+            bool adminCmd = _adminOpen && _adminAuthed && _page != 4 && !_notifyUiOpen && !_announceUiOpen && !_giveOpen && !_adminGmailOpen;
             ShowInput(_tbAdminCmd, adminCmd);
             ShowInput(_tbNotifyMsg, _adminOpen && _adminAuthed && _notifyUiOpen && _page != 4);
             ShowInput(_tbAnnTitle, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
@@ -116,6 +117,14 @@ namespace Deadzone2D
             bool cfgShown = _cfgOpen && _page != 4;
             ShowInput(_tbGoogleId, cfgShown);
             ShowInput(_tbGoogleSecret, cfgShown);
+            bool give = _adminOpen && _adminAuthed && _giveOpen && _page != 4;
+            ShowInput(_tbGiveTarget, give);
+            ShowInput(_tbGiveQuery, give && _giveTab == 0);
+            ShowInput(_tbGiveCoins, give && _giveTab == 1);
+            ShowInput(_tbGiveLevel, give && _giveTab == 1);
+            ShowInput(_tbGiveWins, give && _giveTab == 1);
+            ShowInput(_tbGiveKills, give && _giveTab == 1);
+            ShowInput(_tbAdminGmail, _adminOpen && _adminAuthed && _adminGmailOpen && _page != 4);
         }
 
         private static void ShowInput(TextBox tb, bool visible)
@@ -281,7 +290,7 @@ namespace Deadzone2D
             g.FillRectangle(Br(A(Color.Black, 165)), 0, 0, w, h);
             Reg(new Rectangle(0, 0, w, h), "profileBackdrop");
 
-            int pw = Math.Min(920, w - 60), ph = Math.Min(566, h - BarH - 28);
+            int pw = Math.Min(920, w - 60), ph = Math.Min(630, h - BarH - 28);
             var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 12, (h - ph) / 2), pw, ph);
             Reg(r, "profilePanel");
             using (var p = Chamfer(r, 18, true, false, true, false))
@@ -315,7 +324,12 @@ namespace Deadzone2D
             InfoLine(g, lx, iy, lw, "CONTA CRIADA", AccountStore.CreationText(_account)); iy += 30;
             InfoLine(g, lx, iy, lw, "IDADE DA CONTA", AccountStore.AgeText(_account.CreatedAt)); iy += 30;
             InfoLine(g, lx, iy, lw, "NICK (BLOQUEADO)", _account.Nick); iy += 30;
-            InfoLine(g, lx, iy, lw, "DEAD COINS", _account.DeadCoins.ToString("N0")); iy += 34;
+            InfoLine(g, lx, iy, lw, "DEAD COINS", _account.DeadCoins.ToString("N0")); iy += 30;
+            InfoLine(g, lx, iy, lw, "NÍVEL / VITÓRIAS", _account.Level + "  •  " + _account.Wins); iy += 30;
+            Spaced(g, "TAGS", FTiny, Dim, lx, iy + 6, 2f);
+            Txt(g, _account.Tags.Count == 0 ? "Nenhuma" : string.Join("  •  ", _account.Tags), FSmallB, Amber,
+                new RectangleF(lx + 100, iy, lw - 100, 18), StringAlignment.Far);
+            iy += 34;
 
             int rx = lx + lw + 28, rw = r.Right - 34 - rx;
             Spaced(g, "EDITAR PERFIL", FLabel, Red, rx, r.Y + 112, 3f);
@@ -1076,6 +1090,9 @@ namespace Deadzone2D
             _adminOpen = false;
             _notifyUiOpen = false;
             _announceUiOpen = false;
+            _giveOpen = false;
+            _adminGmailOpen = false;
+            _tagsToGive.Clear();
             _adminAuthed = false;
             _adminError = "";
             _tbAdminPass.Text = "";
@@ -1133,6 +1150,8 @@ namespace Deadzone2D
             Spaced(g, "DEADZONE ADMIN // " + _account!.Nick.ToUpperInvariant(), FNav,
                 Color.FromArgb(60, 230, 150), cr.X + 24, cr.Y + 26, 2f);
             Spaced(g, "PAINEL DE AÇÃO", FTiny, Color.FromArgb(40, 160, 110), cr.X + 24, cr.Y + 48, 2f);
+            Button(g, new Rectangle(cr.Right - 620, cr.Y + 14, 138, 36), "adminGmailUi", "ADMIN GMAIL", false, FTiny, 1.5f);
+            Button(g, new Rectangle(cr.Right - 472, cr.Y + 14, 130, 36), "adminGiveUi", "GIVE", false, FLabel, 2f);
             Button(g, new Rectangle(cr.Right - 330, cr.Y + 14, 130, 36), "adminNotifyUi", "NOTIFY", false, FLabel, 2f);
             Button(g, new Rectangle(cr.Right - 188, cr.Y + 14, 140, 36), "adminAnnounceUi", "ANNOUNCE", false, FLabel, 2f);
             var close = new Rectangle(cr.Right - 44, cr.Y + 12, 28, 28);
@@ -1255,6 +1274,103 @@ namespace Deadzone2D
             Button(g, new Rectangle(r.Right - 28 - 140, r.Bottom - 62, 140, 42), "announceUiClose", "VOLTAR", false, FLabel, 2.5f);
         }
 
+        // ---------- Give: itens, status e tags ----------
+        private void DrawGiveUi(Graphics g, int w, int h)
+        {
+            if (!_giveOpen || !_adminAuthed) return;
+            g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "giveBackdrop");
+
+            int pw = 720, ph = 520;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 10, (h - ph) / 2), pw, ph);
+            Reg(r, "givePanel");
+            using (var p = Chamfer(r, 14, true, false, true, false))
+            {
+                g.FillPath(Br(Color.FromArgb(9, 18, 13)), p);
+                g.DrawPath(Pn(Color.FromArgb(40, 190, 120), 1.4f), p);
+            }
+            g.FillRectangle(Br(Color.FromArgb(40, 220, 140)), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, "GIVE", FLabel, Color.FromArgb(60, 230, 150), r.X + 28, r.Y + 22, 4f);
+            Txt(g, "ITENS • STATUS • TAGS", VSub, Ink, new RectangleF(r.X + 28, r.Y + 36, pw - 100, 42));
+            var close = new Rectangle(r.Right - 46, r.Y + 14, 28, 28);
+            Reg(close, "giveClose");
+            var xp = Pn(A(Ink, 180), 1.6f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            UiField(g, new Rectangle(r.X + 28, r.Y + 88, pw - 56, 48), "GMAIL / USERID / NICK DO JOGADOR", _tbGiveTarget);
+            string[] tabs = { "ITEM", "STATUS", "TAG" };
+            for (int i = 0; i < tabs.Length; i++)
+                SizeBtn(g, new Rectangle(r.X + 28 + i * 118, r.Y + 146, 110, 30),
+                    "giveTab:" + i, tabs[i], _giveTab == i);
+
+            if (_giveTab == 0)
+            {
+                UiField(g, new Rectangle(r.X + 28, r.Y + 188, pw - 56, 46), "BUSCAR ITEM (ID OU NOME)", _tbGiveQuery);
+                string q = (_tbGiveQuery.Text ?? "").Trim();
+                var items = AccountStore.Shop.Where(i => q.Length < 2 ||
+                    i.Id.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                    i.Name.Contains(q, StringComparison.OrdinalIgnoreCase)).Take(5).ToList();
+                int y = r.Y + 246;
+                if (items.Count == 0)
+                    Spaced(g, "NENHUM ITEM ENCONTRADO", FLabel, Dim, r.X + pw / 2f, y + 20, 3f, StringAlignment.Center);
+                foreach (var item in items)
+                {
+                    string id = "giveItem:" + item.Id;
+                    bool sel = string.Equals(_giveItemSel, item.Id, StringComparison.OrdinalIgnoreCase);
+                    SizeBtn(g, new Rectangle(r.X + 28, y, pw - 56, 34), id,
+                        item.Name.ToUpperInvariant() + "  •  " + item.Type.ToUpperInvariant(), sel);
+                    y += 40;
+                }
+                Button(g, new Rectangle(r.X + 28, r.Bottom - 62, 220, 42), "giveItemGo", "DAR ITEM", true, FLabel, 2.5f);
+            }
+            else if (_giveTab == 1)
+            {
+                int fw = (pw - 56 - 16) / 2;
+                UiField(g, new Rectangle(r.X + 28, r.Y + 190, fw, 50), "DEAD COINS (+/-)", _tbGiveCoins);
+                UiField(g, new Rectangle(r.X + 28 + fw + 16, r.Y + 190, fw, 50), "NÍVEL", _tbGiveLevel);
+                UiField(g, new Rectangle(r.X + 28, r.Y + 250, fw, 50), "VITÓRIAS (+/-)", _tbGiveWins);
+                UiField(g, new Rectangle(r.X + 28 + fw + 16, r.Y + 250, fw, 50), "ABATES (+/-)", _tbGiveKills);
+                Button(g, new Rectangle(r.X + 28, r.Bottom - 62, 220, 42), "giveStatsGo", "DAR STATUS", true, FLabel, 2.5f);
+            }
+            else
+            {
+                Spaced(g, "TAGS DISPONÍVEIS", FLabel, Dim, r.X + 28, r.Y + 200, 3f);
+                for (int i = 0; i < AccountStore.AdminTags.Length; i++)
+                {
+                    string tag = AccountStore.AdminTags[i];
+                    SizeBtn(g, new Rectangle(r.X + 28 + i * 162, r.Y + 228, 150, 40),
+                        "giveTag:" + tag, tag.ToUpperInvariant(), false);
+                }
+                Button(g, new Rectangle(r.X + 28, r.Bottom - 62, 220, 42), "giveTagGo", "DAR TAG", true, FLabel, 2.5f);
+            }
+        }
+
+        private void DrawAdminGmailUi(Graphics g, int w, int h)
+        {
+            if (!_adminGmailOpen || !_adminAuthed) return;
+            g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "adminGmailBackdrop");
+            int pw = 520, ph = 300;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 14, (h - ph) / 2), pw, ph);
+            Reg(r, "adminGmailPanel");
+            using (var p = Chamfer(r, 14, true, false, true, false))
+            {
+                g.FillPath(Br(Color.FromArgb(9, 18, 13)), p);
+                g.DrawPath(Pn(Color.FromArgb(40, 190, 120), 1.4f), p);
+            }
+            g.FillRectangle(Br(Color.FromArgb(40, 220, 140)), r.X + 14, r.Y, r.Width - 14, 3);
+            Spaced(g, "ADMIN GMAIL", FLabel, Color.FromArgb(60, 230, 150), r.X + 28, r.Y + 24, 4f);
+            Txt(g, "ADICIONAR ADMINISTRADOR", VSub, Ink, new RectangleF(r.X + 28, r.Y + 38, pw - 80, 42));
+            var close = new Rectangle(r.Right - 46, r.Y + 14, 28, 28);
+            Reg(close, "adminGmailClose");
+            var xp = Pn(A(Ink, 180), 1.6f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+            UiField(g, new Rectangle(r.X + 28, r.Y + 104, pw - 56, 52), "GMAIL QUE PODERÁ ABRIR O ADMIN", _tbAdminGmail);
+            Button(g, new Rectangle(r.X + 28, r.Bottom - 66, pw - 56, 44), "adminGmailAdd", "ADICIONAR", true, FLabel, 3f);
+        }
+
         private void AdminLogin()
         {
             if (AccountStore.VerifyAdmin(_tbAdminUser.Text, _tbAdminPass.Text))
@@ -1333,6 +1449,14 @@ namespace Deadzone2D
                     _tbAdminPass.Text = "";
                     _adminLog.Add("Sessão encerrada.");
                     break;
+
+                case "admin":
+                {
+                    if (parts.Length < 2) { _adminLog.Add("[erro] uso: admin <gmail>"); break; }
+                    if (!AccountStore.AddAdminGmail(parts[1], out var aerr)) { _adminLog.Add("[erro] " + aerr); break; }
+                    _adminLog.Add("Administrador adicionado: " + parts[1]);
+                    break;
+                }
 
                 case "accounts":
                     _adminLog.Add($"{AccountStore.Accounts.Count} conta(s) local(is):");
@@ -1455,9 +1579,11 @@ namespace Deadzone2D
         private void DrawSquadRow(Graphics g, int w, int y)
         {
             if (!_squadOpen) return;
-            int cw = 170, gap = 12;
+            int gap = 12;
+            int avail = Math.Max(480, w - 540 - 48);
+            int cw = Math.Clamp((avail - gap * 3 - 12 - 96) / 4, 110, 170);
             int total = cw * 4 + gap * 3;
-            int x = (w - total) / 2;
+            int x = Math.Max(540, (w - total) / 2);
             for (int i = 0; i < 4; i++)
             {
                 var r = new Rectangle(x + i * (cw + gap), y, cw, 92);

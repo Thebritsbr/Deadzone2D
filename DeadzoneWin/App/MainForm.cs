@@ -120,7 +120,10 @@ namespace Deadzone2D
         private Account? _account;
         private bool _accountInputsReady;
         private bool _profileOpen, _notifOpen, _adminOpen, _adminAuthed, _addFriendOpen, _squadOpen;
-        private bool _notifyUiOpen, _announceUiOpen;
+        private bool _notifyUiOpen, _announceUiOpen, _giveOpen, _adminGmailOpen;
+        private int _giveTab;
+        private string _giveItemSel = "";
+        private readonly List<string> _tagsToGive = new();
         private string _notifyTarget = "all";
         private readonly List<string> _groupMembers = new();
 
@@ -158,6 +161,13 @@ namespace Deadzone2D
         private TextBox _tbAnnAuthor = new();
         private TextBox _tbGoogleId = new();
         private TextBox _tbGoogleSecret = new();
+        private TextBox _tbGiveTarget = new();
+        private TextBox _tbGiveQuery = new();
+        private TextBox _tbGiveCoins = new();
+        private TextBox _tbGiveLevel = new();
+        private TextBox _tbGiveWins = new();
+        private TextBox _tbGiveKills = new();
+        private TextBox _tbAdminGmail = new();
 
         // ---------- Estado ----------
         private readonly System.Windows.Forms.Timer _timer;
@@ -175,8 +185,8 @@ namespace Deadzone2D
         private int _gun;
         private readonly Dictionary<string, int> _skinSel = new();
         private readonly Dictionary<string, string> _equipped = new();
-        private string _toast = "";
-        private float _toastLeft;
+        private sealed class ToastItem { public string Text = ""; public float Left; }
+        private readonly List<ToastItem> _toasts = new();
 
         // ---------- Entrada / hits ----------
         private readonly List<Hit> _hits = new();
@@ -426,7 +436,11 @@ namespace Deadzone2D
             }
             _fade = Math.Max(0f, _fade - dt * 3.2f);
             _fo = Math.Clamp(_fo + (_friendsOpen ? 1f : -1f) * dt * 3.6f, 0f, 1f);
-            if (_toastLeft > 0) _toastLeft -= dt;
+            for (int i = _toasts.Count - 1; i >= 0; i--)
+            {
+                _toasts[i].Left -= dt;
+                if (_toasts[i].Left <= 0f) _toasts.RemoveAt(i);
+            }
 
             _invAnim = Math.Clamp(_invAnim + ((_inventoryOpen ? 1f : 0f) - _invAnim) * Math.Min(1f, dt * 11f), 0f, 1f);
             _pauseAnim = Math.Clamp(_pauseAnim + ((_paused ? 1f : 0f) - _pauseAnim) * Math.Min(1f, dt * 12f), 0f, 1f);
@@ -540,7 +554,8 @@ namespace Deadzone2D
             _fade = 1f;
             _progress = 0f;
             _profileOpen = _notifOpen = _adminOpen = _addFriendOpen = _cfgOpen = _requestsOpen = false;
-            _notifyUiOpen = _announceUiOpen = false;
+            _notifyUiOpen = _announceUiOpen = _giveOpen = _adminGmailOpen = false;
+            _tagsToGive.Clear();
             _adminAuthed = false;
             _profileError = _adminError = _regError = _loginCodeHint = "";
             if (_page < 2) _friendsOpen = false;
@@ -634,7 +649,12 @@ namespace Deadzone2D
             });
         }
 
-        private void ShowToast(string msg) { _toast = msg; _toastLeft = 2.6f; }
+        private void ShowToast(string msg)
+        {
+            if (string.IsNullOrWhiteSpace(msg)) return;
+            _toasts.Insert(0, new ToastItem { Text = msg, Left = 2.6f });
+            while (_toasts.Count > 5) _toasts.RemoveAt(_toasts.Count - 1);
+        }
 
         private void StartLoading(string title, float seconds, Action done)
         {
@@ -759,6 +779,18 @@ namespace Deadzone2D
                     ShowToast("Banner equipado.");
                 }
                 else ShowToast("Você ainda não possui este banner.");
+                return;
+            }
+            if (id.StartsWith("giveItem:", StringComparison.OrdinalIgnoreCase))
+            {
+                _giveItemSel = id.Substring(9);
+                return;
+            }
+            if (id.StartsWith("giveTag:", StringComparison.OrdinalIgnoreCase))
+            {
+                string tag = id.Substring(8);
+                if (_tagsToGive.Contains(tag, StringComparer.OrdinalIgnoreCase)) _tagsToGive.RemoveAll(x => x == tag);
+                else _tagsToGive.Add(tag);
                 return;
             }
             if (id.StartsWith("notifyRegion:", StringComparison.OrdinalIgnoreCase))
@@ -1009,6 +1041,72 @@ namespace Deadzone2D
                     ShowToast("Anúncio publicado.");
                     break;
                 }
+                case "adminGiveUi":
+                    if (!_adminAuthed) break;
+                    _notifyUiOpen = _announceUiOpen = _adminGmailOpen = false;
+                    _giveOpen = true;
+                    _giveTab = 0;
+                    _giveItemSel = "";
+                    _tbGiveTarget.Text = "";
+                    _tbGiveQuery.Text = "";
+                    BeginInvoke((Action)(() => { if (_giveOpen) _tbGiveTarget.Focus(); }));
+                    break;
+                case "giveClose":
+                case "giveBackdrop": _giveOpen = false; break;
+                case "adminGmailUi":
+                    if (!_adminAuthed) break;
+                    _notifyUiOpen = _announceUiOpen = _giveOpen = false;
+                    _adminGmailOpen = true;
+                    _tbAdminGmail.Text = "";
+                    BeginInvoke((Action)(() => { if (_adminGmailOpen) _tbAdminGmail.Focus(); }));
+                    break;
+                case "adminGmailClose":
+                case "adminGmailBackdrop": _adminGmailOpen = false; break;
+                case "adminGmailAdd":
+                {
+                    if (!AccountStore.AddAdminGmail(_tbAdminGmail.Text, out var aerr)) { ShowToast(aerr); break; }
+                    _adminLog.Add("Administrador adicionado: " + _tbAdminGmail.Text.Trim());
+                    _adminGmailOpen = false;
+                    ShowToast("Gmail adicionado à lista de administradores.");
+                    break;
+                }
+                case "giveTab":
+                    if (int.TryParse(id.Substring(8), out var gt) && gt >= 0 && gt <= 2) _giveTab = gt;
+                    break;
+                case "giveItemGo":
+                {
+                    var target = AccountStore.FindByAny(_tbGiveTarget.Text);
+                    if (target == null) { ShowToast("Jogador não encontrado."); break; }
+                    if (_giveItemSel.Length == 0) { ShowToast("Selecione um item."); break; }
+                    if (!AccountStore.GiveItem(target, _giveItemSel, out var gerr)) { ShowToast(gerr); break; }
+                    _adminLog.Add("Item dado a " + target.Nick + ": " + _giveItemSel);
+                    ShowToast("Item entregue a " + target.Nick + ".");
+                    break;
+                }
+                case "giveStatsGo":
+                {
+                    var target = AccountStore.FindByAny(_tbGiveTarget.Text);
+                    if (target == null) { ShowToast("Jogador não encontrado."); break; }
+                    int.TryParse(_tbGiveCoins.Text, out var coins);
+                    int.TryParse(_tbGiveLevel.Text, out var level);
+                    int.TryParse(_tbGiveWins.Text, out var wins);
+                    int.TryParse(_tbGiveKills.Text, out var kills);
+                    AccountStore.GiveStats(target, coins, level, wins, kills);
+                    _adminLog.Add($"Status dado a {target.Nick}: {coins} DC, nível {(level > 0 ? level : target.Level)}, {wins} vitórias, {kills} abates.");
+                    ShowToast("Status aplicado a " + target.Nick + ".");
+                    break;
+                }
+                case "giveTagGo":
+                {
+                    var target = AccountStore.FindByAny(_tbGiveTarget.Text);
+                    if (target == null) { ShowToast("Jogador não encontrado."); break; }
+                    if (_tagsToGive.Count == 0) { ShowToast("Selecione uma tag."); break; }
+                    foreach (var t in _tagsToGive) AccountStore.GiveTag(target, t, out _);
+                    _adminLog.Add("Tags dadas a " + target.Nick + ": " + string.Join(", ", _tagsToGive));
+                    ShowToast("Tags aplicadas.");
+                    _tagsToGive.Clear();
+                    break;
+                }
                 case "addFriend":
                     _notifOpen = false;
                     _addFriendOpen = true;
@@ -1190,6 +1288,8 @@ namespace Deadzone2D
             {
                 if (_notifyUiOpen) { _notifyUiOpen = false; e.Handled = true; return; }
                 if (_announceUiOpen) { _announceUiOpen = false; e.Handled = true; return; }
+                if (_giveOpen) { _giveOpen = false; e.Handled = true; return; }
+                if (_adminGmailOpen) { _adminGmailOpen = false; e.Handled = true; return; }
                 if (_adminOpen) { CloseAdmin(); e.Handled = true; return; }
                 if (_profileOpen) { CloseProfile(); e.Handled = true; return; }
                 if (_addFriendOpen) { _addFriendOpen = false; e.Handled = true; return; }
@@ -1652,6 +1752,8 @@ namespace Deadzone2D
             if (_adminOpen) DrawAdminPanel(g, w, h);
             if (_notifyUiOpen) DrawNotifyUi(g, w, h);
             if (_announceUiOpen) DrawAnnounceUi(g, w, h);
+            if (_giveOpen) DrawGiveUi(g, w, h);
+            if (_adminGmailOpen) DrawAdminGmailUi(g, w, h);
             DrawToast(g, w);
             if (_loading) DrawLoadingOverlay(g, w, h);
         }
@@ -2071,14 +2173,10 @@ namespace Deadzone2D
         {
             bool isRoyale = _map.Mode == "DeadRoyale";
             bool isDeal = _map.Mode == "DealDuo";
-            int cx = 530 + (w - 48 - 530) / 2;
-
-            // cartão de conta do jogador (visual do lobby clássico)
-            int profileH = Math.Min(430, h - BarH - 190);
-            if (profileH > 260) DrawProfileCard(g, new Rectangle(250, BarH + 24, 280, profileH));
+            int cx = w / 2;
 
             // saldo de Dead Coins no topo do lobby
-            DrawCoinsChip(g, new Rectangle(w - 48 - 238, BarH + 100, 238, 46), "nav:DeadRoyal");
+            DrawCoinsChip(g, new Rectangle(w - 48 - 238, BarH + 22, 238, 46), "nav:DeadRoyal");
 
             // seletor de mapa/modo (topo central)
             var mode = new Rectangle(cx - 230, BarH + 22, 460, 64);
@@ -2107,7 +2205,7 @@ namespace Deadzone2D
                 string[] labels = isRoyale ? new[] { "SOLO", "DUPLA", "TRIO", "SQUAD" } : new[] { "1V1", "2V2" };
                 int bw = 84, gap2 = 8;
                 int total = labels.Length * bw + (labels.Length - 1) * gap2;
-                int sx = cx - total / 2, sy = mode.Bottom + 10;
+                int sx = (w - total) / 2, sy = mode.Bottom + 10;
                 for (int i = 0; i < labels.Length; i++)
                 {
                     bool active = isRoyale ? _royaleSquad == i + 1 : _teamSize == i + 1;
@@ -2447,20 +2545,26 @@ namespace Deadzone2D
             g.DrawLine(xp, rm.Right - 7, rm.Y + 7, rm.X + 7, rm.Bottom - 7);
         }
 
-        // ---------- Aviso (canto superior direito, abaixo da barra) ----------
+        // ---------- Avisos: lista de até 5 no canto superior direito ----------
         private void DrawToast(Graphics g, int w)
         {
-            if (_toastLeft <= 0f) return;
-            float a = Math.Min(1f, Math.Min(_toastLeft / 0.4f, (2.6f - _toastLeft) / 0.2f));
-            float tw = g.MeasureString(_toast, FMid).Width + 56;
-            var r = new RectangleF(w - tw - 24, _page == 4 ? 70 : BarH + 16, tw, 44);
-            using (var p = Chamfer(r, 10, true, false, true, false))
+            if (_toasts.Count == 0) return;
+            float top = _page == 4 ? 70 : BarH + 72;
+            int shown = 0;
+            foreach (var toast in _toasts)
             {
-                g.FillPath(Br(A(Panel, (int)(250 * a))), p);
-                g.DrawPath(Pn(A(Line, (int)(255 * a)), 1f), p);
+                if (shown++ >= 5) break;
+                float a = Math.Min(1f, Math.Min(toast.Left / 0.4f, (2.6f - toast.Left) / 0.2f));
+                float tw = Math.Min(420f, g.MeasureString(toast.Text, FMid).Width + 56);
+                var r = new RectangleF(w - tw - 24, top + (shown - 1) * 50, tw, 44);
+                using (var p = Chamfer(r, 10, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Panel, (int)(250 * a))), p);
+                    g.DrawPath(Pn(A(Line, (int)(255 * a)), 1f), p);
+                }
+                g.FillRectangle(Br(A(Red, (int)(255 * a))), r.X + 10, r.Y, 4, r.Height);
+                Txt(g, toast.Text, FMid, A(Ink, (int)(255 * a)), new RectangleF(r.X + 28, r.Y, r.Width - 40, r.Height));
             }
-            g.FillRectangle(Br(A(Red, (int)(255 * a))), r.X + 10, r.Y, 4, r.Height);
-            Txt(g, _toast, FMid, A(Ink, (int)(255 * a)), new RectangleF(r.X + 28, r.Y, r.Width - 40, r.Height));
         }
     }
 
