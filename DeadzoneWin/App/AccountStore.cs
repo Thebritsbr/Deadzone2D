@@ -35,6 +35,7 @@ namespace Deadzone2D
         public List<string> Friends { get; set; } = new();
         public List<string> FriendRequests { get; set; } = new();
         public List<string> SentFriendRequests { get; set; } = new();
+        public List<string> GroupInvites { get; set; } = new();
         public List<string> ReadNotifications { get; set; } = new();
         public Dictionary<string, string> EquippedSkins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         // migração única: contas antigas liberavam todos os icons/banners para teste
@@ -193,7 +194,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Welcome to Deadzone 3.8",
+                        Title = "Welcome to Deadzone 3.9",
                         Body = "New lobby, real Google sign-in, player profile, Cofre, announcements and the Dead Royal store. " +
                                "Use CTRL + SHIFT + P on an admin account to open the admin panel.",
                         Author = "Lume Studio INC",
@@ -210,12 +211,12 @@ namespace Deadzone2D
                     });
                     dirty = true;
                 }
-                if (!Announcements.Any(a => a.Title == "Deadzone2D 3.8 Release"))
+                if (!Announcements.Any(a => a.Title == "Deadzone2D 3.9 Release"))
                 {
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Deadzone2D 3.8 Release",
+                        Title = "Deadzone2D 3.9 Release",
                         Body = "Friend requests are now sent between accounts and must be accepted. " +
                                "Group invites also send a request. A rank/XP system and a new requirements page are available.",
                         Author = "Lume Studio INC",
@@ -311,6 +312,7 @@ namespace Deadzone2D
             a.Friends ??= new List<string>();
             a.FriendRequests ??= new List<string>();
             a.SentFriendRequests ??= new List<string>();
+            a.GroupInvites ??= new List<string>();
             a.ReadNotifications ??= new List<string>();
             a.Tags ??= new List<string>();
             if (a.EquippedSkins == null || a.EquippedSkins.Comparer != StringComparer.OrdinalIgnoreCase)
@@ -652,9 +654,34 @@ namespace Deadzone2D
             SaveAccounts();
         }
 
+        // Group invites are stored in FriendRequests with a "G:" prefix.
+        public static bool SendGroupInvite(Account from, Account to, out string error)
+        {
+            error = "";
+            if (from.UserId == to.UserId) { error = "You cannot invite yourself."; return false; }
+            string key = "G:" + from.UserId;
+            if (to.FriendRequests.Contains(key, StringComparer.OrdinalIgnoreCase))
+            { error = "Group invite already sent."; return false; }
+            to.FriendRequests.Add(key);
+            if (!to.GroupInvites.Contains(from.UserId, StringComparer.OrdinalIgnoreCase))
+                to.GroupInvites.Add(from.UserId);
+            SaveAccounts();
+            return true;
+        }
+
+        public static void AcceptGroupInvite(Account acc, string fromUserId)
+        {
+            acc.FriendRequests.RemoveAll(x => x.Equals("G:" + fromUserId, StringComparison.OrdinalIgnoreCase));
+            acc.GroupInvites.RemoveAll(x => x.Equals(fromUserId, StringComparison.OrdinalIgnoreCase));
+            var from = FindByUserId(fromUserId);
+            from?.SentFriendRequests.RemoveAll(x => x.Equals(acc.UserId, StringComparison.OrdinalIgnoreCase));
+            SaveAccounts();
+        }
+
         public static void DeclineFriendRequest(Account acc, string userId)
         {
-            acc.FriendRequests.RemoveAll(x => string.Equals(x, userId, StringComparison.OrdinalIgnoreCase));
+            acc.FriendRequests.RemoveAll(x => string.Equals(x, userId, StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals(x, "G:" + userId, StringComparison.OrdinalIgnoreCase));
             var other = FindByUserId(userId);
             other?.SentFriendRequests.RemoveAll(x => string.Equals(x, acc.UserId, StringComparison.OrdinalIgnoreCase));
             SaveAccounts();
@@ -668,7 +695,8 @@ namespace Deadzone2D
                 .Where(a => !string.Equals(a.UserId, excludeUserId, StringComparison.OrdinalIgnoreCase))
                 .Where(a => a.UserId.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                             a.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                            a.Nick.Contains(query, StringComparison.OrdinalIgnoreCase))
+                            a.Nick.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                            a.Gmail.Contains(query, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(a => a.Nick)
                 .Take(20)
                 .ToList();

@@ -121,6 +121,9 @@ namespace Deadzone2D
         private bool _accountInputsReady;
         private bool _profileOpen, _notifOpen, _adminOpen, _adminAuthed, _addFriendOpen, _squadOpen;
         private bool _notifyUiOpen, _announceUiOpen, _giveOpen, _adminGmailOpen, _rankInfoOpen;
+        private int _langSelected;
+        private bool _langConfirmOpen;
+        private float _langConfirmLeft;
         private int _giveTab;
         private string _giveItemSel = "";
         private readonly List<string> _tagsToGive = new();
@@ -240,6 +243,7 @@ namespace Deadzone2D
 
         public MainForm()
         {
+            try { Icon = new Icon(Path.Combine(_appDir, "Assets", "DeadzoneIcon.ico")); } catch { }
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             FormBorderStyle = FormBorderStyle.None;
@@ -251,6 +255,9 @@ namespace Deadzone2D
 
             _custom = LoadCustomize();
             Text = _custom.WindowTitle;
+            Loc.Load();
+            _langSelected = Array.IndexOf(Loc.Languages, Loc.Language);
+            if (_langSelected < 0) _langSelected = 0;
             AccountStore.Load();
             MailService.Load(_appDir);
             GoogleAuth.Load(_appDir);
@@ -282,7 +289,7 @@ namespace Deadzone2D
                 catch { }
             });
 
-            _timer = new System.Windows.Forms.Timer { Interval = 15 };
+            _timer = new System.Windows.Forms.Timer { Interval = 33 };
             _timer.Tick += (s, e) =>
             {
                 double now = _sw.Elapsed.TotalSeconds;
@@ -407,6 +414,7 @@ namespace Deadzone2D
         private void Step(float dt)
         {
             _clock += dt;
+            if (_langConfirmOpen && _langConfirmLeft > 0f) _langConfirmLeft = Math.Max(0f, _langConfirmLeft - dt);
             if (_loading)
             {
                 _loadingLeft -= dt;
@@ -554,8 +562,10 @@ namespace Deadzone2D
             };
             _fade = 1f;
             _progress = 0f;
+            if (_timer != null) _timer.Interval = _page == 4 ? 16 : 33;
             _profileOpen = _notifOpen = _adminOpen = _addFriendOpen = _cfgOpen = _requestsOpen = false;
             _notifyUiOpen = _announceUiOpen = _giveOpen = _adminGmailOpen = _rankInfoOpen = false;
+            _langConfirmOpen = false;
             _tagsToGive.Clear();
             _adminAuthed = false;
             _profileError = _adminError = _regError = _loginCodeHint = "";
@@ -612,7 +622,7 @@ namespace Deadzone2D
             _map = _maps[Math.Clamp(_mapIndex, 0, _maps.Count - 1)];
             int teamSize = _map.Mode == "SquadBattle" ? 4 : _map.Mode == "DeadRoyale" ? _royaleSquad : _teamSize;
             _g = new GameSession(_map, _rules, teamSize, _players);
-            if (_map.Mode == "DealDuo") { _storeOpen = true; _storeTimer = 180f; }
+            if (_map.Mode == "DealDuo") { _storeOpen = true; _storeTimer = 60f; }
             _inGame = true;
             _inventoryOpen = false;
             _invAnim = 0f;
@@ -724,20 +734,33 @@ namespace Deadzone2D
         {
             if (id.StartsWith("frdAccept:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var fa) && fa >= 0 && fa < _friendRequests.Count)
             {
-                string uid = _friendRequests[fa];
+                string raw = _friendRequests[fa];
+                if (raw.StartsWith("G:", StringComparison.OrdinalIgnoreCase))
+                {
+                    string inviterId = raw.Substring(2);
+                    var inviter = AccountStore.FindByUserId(inviterId);
+                    if (_account != null) AccountStore.AcceptGroupInvite(_account, inviterId);
+                    if (_squadOpen && _groupMembers.Count < 4 && inviter != null)
+                        _groupMembers.Add(inviter.Nick);
+                    LoadFriendsFromAccount();
+                    ShowToast("Joined " + (inviter?.Nick ?? inviterId) + "'s group.");
+                    return;
+                }
+                string uid = raw;
                 var who = AccountStore.FindByUserId(uid);
                 if (_account != null) AccountStore.AcceptFriendRequest(_account, uid);
                 LoadFriendsFromAccount();
-                ShowToast("Pedido aceito: " + (who?.Nick ?? uid));
+                ShowToast("Request accepted: " + (who?.Nick ?? uid));
                 return;
             }
             if (id.StartsWith("frdReject:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var frq) && frq >= 0 && frq < _friendRequests.Count)
             {
-                string uid = _friendRequests[frq];
+                string raw = _friendRequests[frq];
+                string uid = raw.StartsWith("G:", StringComparison.OrdinalIgnoreCase) ? raw.Substring(2) : raw;
                 var who = AccountStore.FindByUserId(uid);
                 if (_account != null) AccountStore.DeclineFriendRequest(_account, uid);
                 LoadFriendsFromAccount();
-                ShowToast("Pedido recusado: " + (who?.Nick ?? uid));
+                ShowToast("Request declined: " + (who?.Nick ?? uid));
                 return;
             }
             if (id.StartsWith("frdRemove:", StringComparison.OrdinalIgnoreCase) && int.TryParse(id.Substring(10), out var ri))
@@ -790,6 +813,11 @@ namespace Deadzone2D
                     ShowToast("Banner equipado.");
                 }
                 else ShowToast("You do not own this banner yet.");
+                return;
+            }
+            if (id.StartsWith("lang:", StringComparison.OrdinalIgnoreCase))
+            {
+                if (int.TryParse(id.Substring(5), out var li) && li >= 0 && li < Loc.Languages.Length) _langSelected = li;
                 return;
             }
             if (id.StartsWith("giveTab:", StringComparison.OrdinalIgnoreCase))
@@ -972,6 +1000,24 @@ namespace Deadzone2D
                     StartLoading("ENTERING GAME", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
+                case "langSave":
+                    _langConfirmOpen = true;
+                    _langConfirmLeft = 3f;
+                    break;
+                case "langCancel":
+                    _langConfirmOpen = false;
+                    break;
+                case "langRevert":
+                    _langSelected = Array.IndexOf(Loc.Languages, Loc.Language);
+                    if (_langSelected < 0) _langSelected = 0;
+                    _langConfirmOpen = false;
+                    break;
+                case "langConfirm":
+                    if (_langConfirmLeft > 0f) break;
+                    Loc.Save(Loc.Languages[_langSelected]);
+                    _langConfirmOpen = false;
+                    ShowToast("Language saved: " + Loc.Language);
+                    break;
                 case "rankInfo":
                     _rankInfoOpen = true;
                     break;
@@ -1206,9 +1252,10 @@ namespace Deadzone2D
                     if (cand == null) { ShowToast("Add friends to invite."); _friendsOpen = true; break; }
                     var target = AccountStore.FindByUserId(cand.UserId);
                     if (target == null || _account == null) break;
-                    AccountStore.SendFriendRequest(_account, target, out _);
+                    if (!AccountStore.SendGroupInvite(_account, target, out var gerr))
+                    { ShowToast(gerr); break; }
                     LoadFriendsFromAccount();
-                    ShowToast("Invite sent to " + cand.Name + ".");
+                    ShowToast("Group invite sent to " + cand.Name + ".");
                     break;
                 }
                 case "friendsOpen": _friendsOpen = true; break;
@@ -1306,6 +1353,7 @@ namespace Deadzone2D
             {
                 if (_notifyUiOpen) { _notifyUiOpen = false; e.Handled = true; return; }
                 if (_announceUiOpen) { _announceUiOpen = false; e.Handled = true; return; }
+                if (_langConfirmOpen) { _langConfirmOpen = false; e.Handled = true; return; }
                 if (_rankInfoOpen) { _rankInfoOpen = false; e.Handled = true; return; }
                 if (_giveOpen) { _giveOpen = false; e.Handled = true; return; }
                 if (_adminGmailOpen) { _adminGmailOpen = false; e.Handled = true; return; }
@@ -1543,7 +1591,7 @@ namespace Deadzone2D
         }
 
         private void Txt(Graphics g, string s, Font f, Color c, RectangleF r, StringAlignment a = StringAlignment.Near)
-            => g.DrawString(s, f, Br(c), r, a == StringAlignment.Near ? SfL : a == StringAlignment.Center ? SfC : SfR);
+            => g.DrawString(Loc.T(s), f, Br(c), r, a == StringAlignment.Near ? SfL : a == StringAlignment.Center ? SfC : SfR);
 
         private float CharW(Graphics g, char ch, Font f)
         {
@@ -1556,6 +1604,7 @@ namespace Deadzone2D
         // Texto com espaçamento entre letras (cy = centro vertical)
         private float Spaced(Graphics g, string s, Font f, Color c, float x, float cy, float sp, StringAlignment al = StringAlignment.Near)
         {
+            s = Loc.T(s);
             float total = 0;
             var ws = new float[s.Length];
             for (int i = 0; i < s.Length; i++) { ws[i] = CharW(g, s[i], f); total += ws[i] + sp; }
@@ -1768,6 +1817,7 @@ namespace Deadzone2D
             if (_notifOpen) DrawNotifications(g, w, h);
             if (_profileOpen) DrawProfilePanel(g, w, h);
             if (_rankInfoOpen) DrawRankInfo(g, w, h);
+            if (_langConfirmOpen) DrawLangConfirm(g, w, h);
             if (_addFriendOpen) DrawAddFriend(g, w, h);
             if (_adminOpen) DrawAdminPanel(g, w, h);
             if (_notifyUiOpen) DrawNotifyUi(g, w, h);
@@ -2147,7 +2197,11 @@ namespace Deadzone2D
             Button(g, new Rectangle(rx + rw - 42, y + 24, 38, 28), "cfgVolUp", "+", false, FMid, 1f);
             y += rowH;
 
-            UiToggleRow(g, rx, y, rw, "LANGUAGE", _cfgLangEn ? "ENGLISH" : "PORTUGUESE", "cfgLang", _cfgLangEn);
+            Spaced(g, "LANGUAGE", FLabel, Dim, rx, y + 4, 3f);
+            string[] langLabels = { "en-US", "pt-BR", "es-ES" };
+            for (int i = 0; i < langLabels.Length; i++)
+                SizeBtn(g, new Rectangle(rx + i * 126, y + 22, 118, 28), "lang:" + i, langLabels[i], _langSelected == i);
+            Button(g, new Rectangle(rx + rw - 170, y + 4, 170, 36), "langSave", "SAVE LANGUAGE", false, FTiny, 1.5f);
             y += rowH;
             UiToggleRow(g, rx, y, rw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "DESON", "cfgOpt", _cfgOpt);
             y += rowH;
@@ -2516,9 +2570,13 @@ namespace Deadzone2D
             for (int i = 0; i < _friendRequests.Count; i++)
             {
                 var row = new Rectangle(r.X + 14, r.Y + 44 + i * 34, r.Width - 28, 28);
-                var requester = AccountStore.FindByUserId(_friendRequests[i]);
-                Txt(g, requester == null ? _friendRequests[i] : requester.Nick + "  •  " + requester.DisplayName,
-                    FMid, Ink, new RectangleF(row.X, row.Y, row.Width - 160, row.Height));
+                string rawReq = _friendRequests[i];
+                bool groupReq = rawReq.StartsWith("G:", StringComparison.OrdinalIgnoreCase);
+                string reqId = groupReq ? rawReq.Substring(2) : rawReq;
+                var requester = AccountStore.FindByUserId(reqId);
+                string reqText = requester == null ? reqId : requester.Nick + "  •  " + requester.DisplayName;
+                if (groupReq) reqText = "GROUP: " + reqText;
+                Txt(g, reqText, FMid, Ink, new RectangleF(row.X, row.Y, row.Width - 160, row.Height));
                 var accept = new Rectangle(row.Right - 150, row.Y, 70, 28);
                 var rec = new Rectangle(row.Right - 74, row.Y, 74, 28);
                 Reg(accept, "frdAccept:" + i); Reg(rec, "frdReject:" + i);

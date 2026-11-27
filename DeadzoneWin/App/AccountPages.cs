@@ -1414,6 +1414,39 @@ namespace Deadzone2D
             Button(g, new Rectangle(r.X + 28, r.Bottom - 66, pw - 56, 44), "adminGmailAdd", "ADD", true, FLabel, 3f);
         }
 
+        private void DrawLangConfirm(Graphics g, int w, int h)
+        {
+            if (!_langConfirmOpen) return;
+            g.FillRectangle(Br(A(Color.Black, 170)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "langBackdrop");
+            int pw = 520, ph = 300;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 14, (h - ph) / 2), pw, ph);
+            Reg(r, "langPanel");
+            using (var p = Chamfer(r, 16, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 18, r.Y, r.Width - 18, 3);
+            Spaced(g, "CONFIRM LANGUAGE CHANGE", FLabel, Red, r.X + 32, r.Y + 30, 4f);
+            Txt(g, Loc.Languages[_langSelected], VSub, Ink, new RectangleF(r.X + 32, r.Y + 46, pw - 64, 44));
+            Txt(g, _langConfirmLeft > 0f
+                    ? "Confirm available in " + _langConfirmLeft.ToString("0.0") + "s"
+                    : "You can confirm now.",
+                FSmall, _langConfirmLeft > 0f ? Amber : Green,
+                new RectangleF(r.X + 32, r.Y + 108, pw - 64, 22));
+            Button(g, new Rectangle(r.X + 32, r.Bottom - 72, 130, 44), "langCancel", "CANCEL", false, FLabel, 2f);
+            Button(g, new Rectangle(r.X + 174, r.Bottom - 72, 130, 44), "langRevert", "REVERT", false, FLabel, 2f);
+            using (var p = Chamfer(new Rectangle(r.Right - 32 - 150, r.Bottom - 72, 150, 44), 12, true, false, true, false))
+            {
+                bool ready = _langConfirmLeft <= 0f;
+                g.FillPath(Br(ready ? Red : A(Ink, 35)), p);
+                g.DrawPath(Pn(A(Line, 200), 1f), p);
+            }
+            Reg(new Rectangle(r.Right - 32 - 150, r.Bottom - 72, 150, 44), "langConfirm");
+            Spaced(g, "CONFIRM", FLabel, Color.White, r.Right - 32 - 75, r.Bottom - 50, 3f, StringAlignment.Center);
+        }
+
         private void AdminLogin()
         {
             if (AccountStore.VerifyAdmin(_tbAdminUser.Text, _tbAdminPass.Text))

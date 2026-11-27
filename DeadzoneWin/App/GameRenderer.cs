@@ -576,14 +576,20 @@ namespace Deadzone2D
         private void DrawStore(Graphics g, int w, int h)
         {
             if (_g == null) return;
-            float t = _storeTimer <= 0f ? 0f : 1f - _storeTimer / 180f;
+            float t = _storeTimer <= 0f ? 0f : 1f - _storeTimer / 60f;
             g.FillRectangle(NB(A(BgDeep, (int)(190 * (1f - t)))), 0, 0, w, h);
             int rw = 560;
             var r = new Rectangle((w - rw) / 2, (h - 320) / 2, rw, 320);
             FillRoundedRect(g, r, A(PanelHi, 250), 12);
             using (var p = RoundRect(r, 12)) g.DrawPath(NP(A(Red, 240), 3f), p);
             Spaced(g, "GUN SHOP", FTitle, Red, r.X + 30, r.Y + 30, 4f);
-            Spaced(g, $"Abre por {(int)Math.Max(0f, _storeTimer)}s", FMid, Ink, r.X + 30, r.Y + 72, 3f);
+            Spaced(g, $"Open for {(int)Math.Max(0f, _storeTimer)}s", FMid, Ink, r.X + 30, r.Y + 72, 3f);
+            var closeBtn = new Rectangle(r.Right - 58, r.Y + 20, 36, 36);
+            Reg(closeBtn, "storeClose");
+            FillRoundedRect(g, closeBtn, A(Ink, 28), 8);
+            var cp = NP(A(Ink, 200), 1.8f);
+            g.DrawLine(cp, closeBtn.X + 10, closeBtn.Y + 10, closeBtn.Right - 10, closeBtn.Bottom - 10);
+            g.DrawLine(cp, closeBtn.Right - 10, closeBtn.Y + 10, closeBtn.X + 10, closeBtn.Bottom - 10);
             int y = r.Y + 120;
             foreach (var gun in Arsenal.Defs.Values.Take(5))
             {

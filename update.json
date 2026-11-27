@@ -1,6 +1,6 @@
 {
-  "Version": "3.8",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.8.exe",
-  "Notes": "Deadzone2D 3.8 - full English UI, removed loading description and Valorant references.",
+  "Version": "3.9",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.9.exe",
+  "Notes": "Deadzone2D 3.9 - new icon, working languages with confirmation, group invites, 60s gun shop and performance improvements.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }
