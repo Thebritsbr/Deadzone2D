@@ -1,6 +1,6 @@
 {
-  "Version": "2.9",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v2.9.exe",
-  "Notes": "Deadzone2D 2.9 - match loading screen with team members, logout button, top navigation and Dead Royale player/bot rules.",
+  "Version": "3.1",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.1.exe",
+  "Notes": "Deadzone2D 3.1 - real Google sign-in, single side navigation, settings logout and aligned UI.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

@@ -38,6 +38,7 @@ namespace Deadzone2D
         // migração única: contas antigas liberavam todos os ícones/banners para teste
         public bool OwnershipV2 { get; set; }
         public bool EmailVerified { get; set; }
+        public string GoogleId { get; set; } = "";
     }
 
     public sealed class Announcement
@@ -185,7 +186,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 2.9",
+                        Title = "Bem-vindo ao Deadzone 3.1",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
@@ -343,6 +344,51 @@ namespace Deadzone2D
             var acc = FindByGmail(gmail) ?? FindByNick(gmail);
             if (acc == null) return null;
             return VerifyPassword(password, acc.PasswordHash, acc.PasswordSalt) ? acc : null;
+        }
+
+        // Login/cadastro com a conta Google real do usuário.
+        public static Account? LoginOrCreateWithGoogle(GoogleProfile p, out string error)
+        {
+            error = "";
+            string gmail = (p.Email ?? "").Trim();
+            if (gmail.Length == 0) { error = "E-mail do Google inválido."; return null; }
+
+            lock (Gate)
+            {
+                var existing = FindByGmail(gmail);
+                if (existing != null)
+                {
+                    if (string.IsNullOrWhiteSpace(existing.GoogleId)) existing.GoogleId = p.Id;
+                    existing.EmailVerified = true;
+                    SaveAccounts();
+                    return existing;
+                }
+
+                string nick = Sanitize(gmail.Split('@')[0], 24, 3);
+                if (nick.Length < 3) nick = "USER";
+                string baseNick = nick;
+                int suffix = 1;
+                while (FindByNick(nick) != null) nick = baseNick + (suffix++);
+                var acc = CreateAccountInternal(gmail, nick, Sanitize(p.Name, 20, 3), "GoogleAuth!",
+                    "icon_01", "Conta conectada com Google.", "Brazil", out error);
+                if (acc == null) return null;
+                acc.GoogleId = p.Id;
+                acc.EmailVerified = true;
+                Accounts.Add(acc);
+                SaveAccounts();
+                return acc;
+            }
+        }
+
+        private static string Sanitize(string value, int max, int min)
+        {
+            var sb = new StringBuilder();
+            foreach (char c in (value ?? ""))
+                if (char.IsLetterOrDigit(c) || c == '_' || c == '.' || c == '-') sb.Append(c);
+            var s = sb.ToString().Trim('.', '-', '_');
+            if (s.Length > max) s = s[..max];
+            if (s.Length < min) s = s.PadRight(min, 'X');
+            return s;
         }
 
         // ---------- Verificação por código no Gmail ----------

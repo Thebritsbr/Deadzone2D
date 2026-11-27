@@ -241,6 +241,7 @@ namespace Deadzone2D
             Text = _custom.WindowTitle;
             AccountStore.Load();
             MailService.Load(_appDir);
+            GoogleAuth.Load(_appDir);
             UpdateSettings.Load(_appDir);
             AppInfo.Load(_appDir);
             _guns = LoadGuns();
@@ -644,6 +645,40 @@ namespace Deadzone2D
             _paused = false;
         }
 
+        private void TryGoogleSignIn()
+        {
+            if (!GoogleAuth.IsConfigured)
+            {
+                ShowToast("Configure Config/Google.json (Client ID e Client Secret) para entrar com Google.");
+                return;
+            }
+            ShowToast("Abrindo o Google...");
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                bool ok = GoogleAuth.SignIn(out var profile, out var error);
+                try
+                {
+                    BeginInvoke((Action)(() =>
+                    {
+                        if (!ok || profile == null) { ShowToast(error); return; }
+                        var acc = AccountStore.LoginOrCreateWithGoogle(profile, out var accErr);
+                        if (acc == null) { ShowToast(accErr); return; }
+                        _account = acc;
+                        _players[0] = acc.Nick;
+                        SaveLastUser(acc.Gmail);
+                        _royaleSquad = 1;
+                        _teamSize = 1;
+                        LoadFriendsFromAccount();
+                        LoadEquippedFromAccount();
+                        ResetGroup();
+                        ShowToast("Bem-vindo, " + acc.DisplayName + ".");
+                        StartLoading("ENTRANDO COM GOOGLE", 1.8f, () => ShowPage("Lobby"));
+                    }));
+                }
+                catch { }
+            });
+        }
+
         private void ResetGroup()
         {
             _groupMembers.Clear();
@@ -744,6 +779,12 @@ namespace Deadzone2D
             if (id.StartsWith("regIcon:", StringComparison.OrdinalIgnoreCase)) { _regIcon = id.Substring(8); return; }
             if (id.StartsWith("regRegion:", StringComparison.OrdinalIgnoreCase)) { _regRegion = id.Substring(10); return; }
             if (id.StartsWith("addFriendResult:", StringComparison.OrdinalIgnoreCase)) { AddFriendByUserId(id.Substring(16)); return; }
+            if (id == "shopClose" || id == "cofreClose" || id == "annClose")
+            {
+                _shopScroll = 0f;
+                ShowPage("Lobby");
+                return;
+            }
             if (id.StartsWith("nav:")) { ShowPage(id.Substring(4)); return; }
             if (id.StartsWith("friend:"))
             {
@@ -825,6 +866,7 @@ namespace Deadzone2D
                 case "registerBack":
                     ShowPage("Login");
                     break;
+                case "googleSignIn": TryGoogleSignIn(); break;
                 case "registerSendCode":
                 {
                     _regError = "";
@@ -1571,7 +1613,7 @@ namespace Deadzone2D
             if (_fade > 0.003f) g.FillRectangle(Br(A(BgDeep, (int)(255 * _fade))), 0, 0, w, h);
 
             bool hub = _page == 2 || _page == 3 || _page == 7 || _page == 8 || _page == 9;
-            if (hub) DrawBottomNav(g, w, h);
+            if (hub) DrawSideNav(g, w, h);
             if (hub) DrawFriends(g, w, h);
             if (hub) DrawConfigPanel(g, w, h);
             if (_notifOpen) DrawNotifications(g, w, h);
@@ -1600,26 +1642,6 @@ namespace Deadzone2D
 
             if (_page >= 2 && _page != 5 && _page != 6)
             {
-                // navegação compacta no meio da barra de cima
-                string[] navLabels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL" };
-                string[] navPages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal" };
-                int[] navIdx = { 2, 3, 7, 8, 9 };
-                int navW = 104, navGap = 6;
-                int navTotal = navLabels.Length * navW + (navLabels.Length - 1) * navGap;
-                int navX = Math.Max(230, (w - 560 - navTotal) / 2);
-                for (int i = 0; i < navLabels.Length; i++)
-                {
-                    var nr = new Rectangle(navX + i * (navW + navGap), 0, navW, BarH - 1);
-                    string nid = "nav:" + navPages[i];
-                    Reg(nr, nid);
-                    float nh = Hv(nid);
-                    bool nactive = _page == navIdx[i] || (_page == 3 && navIdx[i] == 2);
-                    Spaced(g, navLabels[i], FSmallB, nactive ? Ink : Mix(Dim, Ink, nh),
-                        nr.X + nr.Width / 2f, BarH / 2f + 2f, 1.8f, StringAlignment.Center);
-                    if (nactive) g.FillRectangle(Br(Red), nr.X + 14, BarH - 3, nr.Width - 28, 3);
-                    else if (nh > 0.02f) g.FillRectangle(Br(A(Red, (int)(150 * nh))), nr.X + 14, BarH - 3, nr.Width - 28, 3);
-                }
-
                 // perfil + notificações + configurações (antes dos botões da janela)
                 int chipX = w - 440;
                 var chip = new Rectangle(chipX, 8, 190, 48);
@@ -1658,22 +1680,19 @@ namespace Deadzone2D
         }
 
         // Navegação principal: fica só na parte de baixo, presente em todas as telas do lobby.
-        private void DrawBottomNav(Graphics g, int w, int h)
+        // Única navegação do lobby: lateral esquerda, vertical.
+        private void DrawSideNav(Graphics g, int w, int h)
         {
-            string[] labels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL", "LOGOUT" };
-            string[] pages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal", "profileLogout" };
-            int[] indexes = { 2, 3, 7, 8, 9, -1 };
-            int gap = 8;
-            int avail = Math.Max(560, w - 260); // reserva o canto direito para o painel de amigos
-            int bw = Math.Clamp((avail - gap * (labels.Length - 1)) / labels.Length, 96, 180);
-            int total = bw * labels.Length + gap * (labels.Length - 1);
-            int x = (avail - total) / 2;
-            int y = h - 118; // acima da área da barra de tarefas
+            string[] labels = { "LOBBY", "ARMAS", "ANÚNCIOS", "COFRE", "DEAD ROYAL" };
+            string[] pages = { "Lobby", "Weapons", "Announcements", "Cofre", "DeadRoyal" };
+            int[] indexes = { 2, 3, 7, 8, 9 };
+            int bx = 32, by = BarH + 34, bw = 190, bh = 48, gap = 10;
+            Spaced(g, "MENU", FTiny, Dim, bx + 4, by - 18, 3f);
             for (int i = 0; i < labels.Length; i++)
             {
-                bool active = indexes[i] >= 0 && _page == indexes[i];
-                string id = pages[i] == "profileLogout" ? "profileLogout" : "nav:" + pages[i];
-                Button(g, new Rectangle(x + i * (bw + gap), y, bw, 48), id, labels[i], active, FSmallB, 2.2f);
+                bool active = _page == indexes[i] || (_page == 3 && indexes[i] == 2);
+                Button(g, new Rectangle(bx, by + i * (bh + gap), bw, bh),
+                    "nav:" + pages[i], labels[i], active, FSmallB, 2.2f);
             }
         }
 
@@ -1851,34 +1870,35 @@ namespace Deadzone2D
         private void DrawLogin(Graphics g, int w, int h)
         {
             int cx = w / 2;
-            int top = Math.Max(BarH + 24, (h - 540) / 2);
+            int top = Math.Max(BarH + 20, (h - 600) / 2);
 
             UiLogoMark(g, cx, top, 60);
-            Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 110, 8f, StringAlignment.Center);
-            Txt(g, "Use sua conta local do Deadzone (Gmail + senha).", FSmall, Dim,
-                new RectangleF(cx - 260, top + 140, 520, 20), StringAlignment.Center);
+            Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 104, 8f, StringAlignment.Center);
+            Txt(g, "Use sua conta Google ou crie uma conta local neste PC.", FSmall, Dim,
+                new RectangleF(cx - 270, top + 134, 540, 20), StringAlignment.Center);
 
-            var uf = new Rectangle(cx - 190, top + 176, 380, 62);
-            var pf = new Rectangle(cx - 190, top + 252, 380, 62);
+            var uf = new Rectangle(cx - 190, top + 168, 380, 58);
+            var pf = new Rectangle(cx - 190, top + 238, 380, 58);
             UiField(g, uf, "GMAIL (@GMAIL.COM)", _tbUser);
             UiField(g, pf, "SENHA", _tbPass);
 
             // botão redondo com seta
-            var ab = new Rectangle(cx - 32, top + 344, 64, 64);
+            var ab = new Rectangle(cx - 30, top + 308, 60, 60);
             Reg(ab, "login"); float hv = Hv("login");
             if (hv > 0.01f)
                 for (int i = 3; i >= 1; i--)
                     g.FillEllipse(Br(A(Red, (int)(26 * hv))), ab.X - i * 4, ab.Y - i * 4, ab.Width + i * 8, ab.Height + i * 8);
             g.FillEllipse(Br(Mix(Red, RedHi, hv)), ab);
             var ap = Pn(Color.White, 3f);
-            float ax = cx - 8 + hv * 3, ay = top + 376;
+            float ax = cx - 8 + hv * 3, ay = top + 338;
             g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
             g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
 
-            Button(g, new Rectangle(cx - 150, top + 432, 300, 44), "register", "CRIAR CONTA LOCAL", false, FLabel, 3f);
+            Button(g, new Rectangle(cx - 170, top + 384, 340, 42), "googleSignIn", "ENTRAR COM GOOGLE", false, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 436, 340, 42), "register", "CRIAR CONTA LOCAL", false, FLabel, 2.5f);
             if (AccountStore.Accounts.Count > 0)
                 Txt(g, $"{AccountStore.Accounts.Count} conta(s) local(is) neste PC", FTiny, A(Dim, 170),
-                    new RectangleF(0, top + 486, w, 18), StringAlignment.Center);
+                    new RectangleF(0, top + 490, w, 18), StringAlignment.Center);
 
             Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
@@ -1943,7 +1963,7 @@ namespace Deadzone2D
             g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
             Reg(new Rectangle(0, 0, w, h), "cfgBackdrop");
 
-            int pw = 560, ph = 430;
+            int pw = 560, ph = 500;
             var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 20, (h - ph) / 2), pw, ph);
             Reg(r, "cfgPanel");   // clicar dentro do painel não fecha
             using (var p = Chamfer(r, 18, true, false, true, false))
@@ -1977,9 +1997,14 @@ namespace Deadzone2D
 
             Spaced(g, "VERSÃO", FLabel, Dim, rx, y + 14, 3f);
             Txt(g, "v" + AppInfo.Versao, FMid, Ink, new RectangleF(rx, y + 26, 200, 24));
-            Button(g, new Rectangle(rx + rw - 200, y + 12, 200, 36), "viewUpd", "VER ATUALIZAÇÃO", false, FLabel, 2.5f);
+            Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "viewUpd", "VER ATUALIZAÇÃO", false, FLabel, 2.5f);
+            y += rowH;
 
-            Button(g, new Rectangle(r.Right - 40 - 150, r.Bottom - 70, 150, 44), "cfg", "FECHAR", true, FLabel, 3f);
+            Spaced(g, "CONTA", FLabel, Dim, rx, y + 14, 3f);
+            Txt(g, _account?.Nick ?? "Sem conta", FMid, Ink, new RectangleF(rx, y + 26, 260, 24));
+            Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "profileLogout", "LOGOUT", false, FLabel, 2.5f);
+
+            Button(g, new Rectangle(r.X + 40, r.Bottom - 62, 150, 42), "cfg", "FECHAR", true, FLabel, 3f);
         }
 
         private void UiToggleRow(Graphics g, int x, int y, int w, string label, string value, string id, bool on)
@@ -2116,7 +2141,7 @@ namespace Deadzone2D
         // ---------- Armas (Coleção) ----------
         private void DrawWeapons(Graphics g, int w, int h)
         {
-            int lx = 48, ly = BarH + 48;
+            int lx = 250, ly = BarH + 48;
             Spaced(g, "ARSENAL", FLabel, Red, lx, ly, 4f);
             for (int i = 0; i < _guns.Length; i++)
             {

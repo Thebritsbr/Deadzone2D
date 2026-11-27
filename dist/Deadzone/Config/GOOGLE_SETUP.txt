@@ -1,0 +1,26 @@
+LOGIN REAL COM GOOGLE
+=====================
+
+1. Abra https://console.cloud.google.com/ e crie/selecione um projeto.
+
+2. Ative a API "Google People API" (ou People API v1).
+
+3. Vá em "Credenciais" > "Criar credenciais" > "ID do cliente OAuth".
+   - Tipo da aplicação: "Aplicativo para desktop".
+   - Nome: Deadzone2D.
+   - Copie o "Client ID" e o "Client Secret".
+
+4. Em "URIs de redirecionamento autorizados", adicione exatamente:
+   http://127.0.0.1:53682/
+
+5. Edite Config/Google.json no PC:
+   - Enabled: true
+   - ClientId: o Client ID copiado
+   - ClientSecret: o Client Secret copiado
+
+6. Reinicie o Deadzone2D e clique em "ENTRAR COM GOOGLE".
+   O navegador abre a página real do Google; após autorizar, a conta
+   do usuário (e-mail real verificado pelo Google) entra automaticamente.
+
+Sem essa configuração o botão avisa que é preciso configurar o Google.
+O e-mail usado é o e-mail real da pessoa, e não um registro local.

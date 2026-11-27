@@ -174,6 +174,7 @@ namespace Deadzone2D
         private void DrawBanner(Graphics g, Rectangle r, ProfileBanner b)
         {
             using var path = Chamfer(r, 14, true, false, true, false);
+            var previousClip = g.Clip.Clone();
             g.SetClip(path);
             using (var lb = new LinearGradientBrush(r, b.A, b.B, 0f))
                 g.FillRectangle(lb, r);
@@ -209,7 +210,7 @@ namespace Deadzone2D
             }
             using (var shade = new LinearGradientBrush(r, A(Color.Black, 0), A(Color.Black, 130), 0f))
                 g.FillRectangle(shade, r);
-            g.ResetClip();
+            g.Clip = previousClip;
             g.DrawPath(Pn(A(Color.White, 55), 1f), path);
         }
 
@@ -359,8 +360,10 @@ namespace Deadzone2D
             int x = card.X + 34, y = card.Y + 24;
             Spaced(g, "CRIAR CONTA LOCAL", FLabel, Red, x, y, 4f);
             Txt(g, "NOVO JOGADOR", VSub, Ink, new RectangleF(x, y + 12, cw - 68, 44));
-            Txt(g, "Seus dados ficam salvos neste PC. O Nick é permanente; escolha com cuidado.",
-                FSmall, Dim, new RectangleF(x, y + 54, cw - 68, 20));
+            Txt(g, "Use sua conta Google real ou crie uma conta local neste PC.",
+                FSmall, Dim, new RectangleF(x, y + 54, cw - 260, 20));
+            Button(g, new Rectangle(card.Right - 34 - 180, card.Y + 22, 180, 40),
+                "googleSignIn", "USAR GOOGLE", false, FLabel, 2.5f);
 
             int fy = card.Y + 100;
             var gmailF = new Rectangle(card.X + 34, fy, cw - 68, 50);
@@ -430,8 +433,8 @@ namespace Deadzone2D
         // ---------- Anúncios ----------
         private void DrawAnnouncements(Graphics g, int w, int h)
         {
-            int listW = Math.Min(980, w - 96);
-            int x = (w - listW) / 2;
+            int listW = Math.Min(980, w - 320);
+            int x = 250 + (w - 250 - listW) / 2;
             int y = BarH + 28;
 
             Spaced(g, "MURAL", FLabel, Red, x, y, 4f);
@@ -439,7 +442,8 @@ namespace Deadzone2D
             Txt(g, "Atualizações, notícias e eventos publicados pela equipe.", FSmall, Dim,
                 new RectangleF(x, y + 56, listW - 200, 20));
             if (_account != null && AccountStore.IsAdminAllowed(_account))
-                Button(g, new Rectangle(x + listW - 190, y + 10, 190, 42), "adminOpen", "PAINEL ADMIN", false, FLabel, 2.5f);
+                Button(g, new Rectangle(x + listW - 190 - 48, y + 10, 190, 42), "adminOpen", "PAINEL ADMIN", false, FLabel, 2.5f);
+            DrawPageClose(g, new Rectangle(x + listW - 36, y + 14, 36, 36), "annClose");
 
             string[] cats = { "Updates", "News", "Events", "Patch Notes" };
             string[] labels = { "ATUALIZAÇÕES", "NOTÍCIAS", "EVENTOS", "NOTAS" };
@@ -520,9 +524,10 @@ namespace Deadzone2D
                 {
                     float k = Math.Min(ir.Width / (float)img.Width, ir.Height / (float)img.Height);
                     float dw = img.Width * k, dh = img.Height * k;
+                    var previousClip = g.Clip.Clone();
                     using (var p = RoundRect(ir, 8)) g.SetClip(p);
                     g.DrawImage(img, ir.X + (ir.Width - dw) / 2f, ir.Y + (ir.Height - dh) / 2f, dw, dh);
-                    g.ResetClip();
+                    g.Clip = previousClip;
                 }
                 Reg(ir, "annFile:" + idx);
             }
@@ -587,13 +592,14 @@ namespace Deadzone2D
         // ---------- Cofre ----------
         private void DrawCofre(Graphics g, int w, int h)
         {
-            int x = 48, y = BarH + 28;
+            int x = 250, y = BarH + 28;
             Spaced(g, "INVENTÁRIO DO LOBBY", FLabel, Red, x, y, 4f);
             Txt(g, "COFRE", VSub, Ink, new RectangleF(x, y + 14, 300, 48));
             Txt(g, "Banners, ícones e personalização do seu perfil.", FSmall, Dim,
                 new RectangleF(x, y + 56, 500, 20));
+            DrawPageClose(g, new Rectangle(w - 48 - 36, y + 8, 36, 36), "cofreClose");
             if (_account != null)
-                DrawCoinsChip(g, new Rectangle(w - 48 - 238, y + 8, 238, 46), "nav:DeadRoyal");
+                DrawCoinsChip(g, new Rectangle(w - 48 - 36 - 12 - 238, y + 8, 238, 46), "nav:DeadRoyal");
 
             string[] tabs = { "Perfil", "Banners", "Ícones" };
             string[] labels = { "PERFIL", "BANNERS", "ÍCONES" };
@@ -607,9 +613,9 @@ namespace Deadzone2D
 
             if (_account == null) return;
             int cy = ty + 58;
-            if (_cofreTab.Equals("Banners", StringComparison.OrdinalIgnoreCase)) DrawCofreBanners(g, x, cy, w - 96, h);
-            else if (_cofreTab.Equals("Ícones", StringComparison.OrdinalIgnoreCase)) DrawCofreIcons(g, x, cy, w - 96, h);
-            else DrawCofreProfile(g, x, cy, w - 96, h);
+            if (_cofreTab.Equals("Banners", StringComparison.OrdinalIgnoreCase)) DrawCofreBanners(g, x, cy, w - x - 48, h);
+            else if (_cofreTab.Equals("Ícones", StringComparison.OrdinalIgnoreCase)) DrawCofreIcons(g, x, cy, w - x - 48, h);
+            else DrawCofreProfile(g, x, cy, w - x - 48, h);
         }
 
         private void DrawCofreProfile(Graphics g, int x, int y, int w, int h)
@@ -711,20 +717,23 @@ namespace Deadzone2D
         // ---------- Dead Royal ----------
         private void DrawDeadRoyal(Graphics g, int w, int h)
         {
-            int x = 48, y = BarH + 28;
-            Spaced(g, "LOJA DE ITENS", FLabel, Red, x, y, 4f);
-            Txt(g, "DEAD ROYAL", VSub, Ink, new RectangleF(x, y + 14, 420, 48));
-            Txt(g, "Itens carregados de Config/DeadRoyalShop.json.", FSmall, Dim,
-                new RectangleF(x, y + 56, 520, 20));
+            int x = 250, y = BarH + 28;
+            Spaced(g, "LOJA", FLabel, Red, x, y, 4f);
+            Txt(g, "DEAD ROYAL", VSub, Ink, new RectangleF(x, y + 12, 420, 44));
+            Txt(g, "Personalize seu arsenal e seu perfil.", FSmall, Dim,
+                new RectangleF(x, y + 54, 520, 18));
+
+            // botão de fechar alinhado com o saldo no canto superior direito
+            DrawPageClose(g, new Rectangle(w - 48 - 36, y + 8, 36, 36), "shopClose");
             if (_account != null)
-                DrawCoinsChip(g, new Rectangle(w - 48 - 238, y + 8, 238, 46), "shopReload");
+                DrawCoinsChip(g, new Rectangle(w - 48 - 36 - 12 - 238, y + 8, 238, 46), "shopReload");
 
             var items = AccountStore.Shop;
             int cols = 3, gap = 14;
-            int cw = (w - 96 - (cols - 1) * gap) / cols;
+            int cw = (w - x - 48 - (cols - 1) * gap) / cols;
             int chh = 168;
             int gy = BarH + 116;
-            var view = new Rectangle(x, gy, w - 96, Math.Max(80, h - gy - 136));
+            var view = new Rectangle(x, gy, w - x - 48, Math.Max(80, h - gy - 136));
             int rows = (items.Count + cols - 1) / cols;
             int total = Math.Max(0, rows * (chh + gap) - gap);
             float max = Math.Max(0f, total - view.Height);
@@ -744,8 +753,21 @@ namespace Deadzone2D
                 float th = Math.Max(30f, view.Height * (view.Height / (float)total));
                 float ty = view.Y + (view.Height - th) * (_shopScroll / max);
                 g.FillRectangle(Br(A(Ink, 40)), view.Right - 6, ty, 3, th);
-                Spaced(g, "ROLE PARA VER MAIS", FTiny, A(Dim, 180), view.Right - 150, view.Bottom + 18, 2f);
             }
+        }
+
+        private void DrawPageClose(Graphics g, Rectangle r, string id)
+        {
+            Reg(r, id);
+            float hv = Hv(id);
+            using (var p = RoundRect(r, 8))
+            {
+                g.FillPath(Br(Mix(A(Panel, 220), A(Red, 45), hv)), p);
+                g.DrawPath(Pn(Mix(A(Line, 200), Red, hv), 1.2f), p);
+            }
+            var pen = Pn(Mix(Dim, Ink, hv), 1.8f);
+            g.DrawLine(pen, r.X + 12, r.Y + 12, r.Right - 12, r.Bottom - 12);
+            g.DrawLine(pen, r.Right - 12, r.Y + 12, r.X + 12, r.Bottom - 12);
         }
 
         private void DrawShopCard(Graphics g, Rectangle r, ShopItem item, int idx)
@@ -757,12 +779,12 @@ namespace Deadzone2D
                 "Rare" => Blue,
                 _ => Dim
             };
-            using (var p = Chamfer(r, 12, true, false, true, false))
+            using (var p = Chamfer(r, 10, true, false, true, false))
             {
                 g.FillPath(Br(A(Panel, 238)), p);
                 g.DrawPath(Pn(A(Line, 210), 1f), p);
             }
-            g.FillRectangle(Br(rarity), r.X + 14, r.Y, r.Width - 14, 3);
+            g.FillRectangle(Br(rarity), r.X, r.Y, r.Width, 3);
             Spaced(g, item.Rarity.ToUpperInvariant(), FTiny, rarity, r.X + 16, r.Y + 12, 2f);
 
             var art = new Rectangle(r.X + 14, r.Y + 26, r.Width - 28, 52);
@@ -774,29 +796,27 @@ namespace Deadzone2D
             }
             DrawShopArt(g, art, item, rarity);
 
-            Txt(g, item.Name, FMid, Ink, new RectangleF(r.X + 16, r.Y + 80, r.Width - 32, 22));
+            Txt(g, item.Name.ToUpperInvariant(), FMid, Ink, new RectangleF(r.X + 16, r.Y + 84, r.Width - 32, 22));
             string type = item.Type == "WeaponSkin" ? "SKIN DE ARMA" : item.Type == "Icon" ? "ÍCONE" : "BANNER";
-            Spaced(g, type, FTiny, Dim, r.X + 16, r.Y + 101, 2f);
-            g.DrawString(item.Description, FSmall, Br(A(Ink, 160)),
-                new RectangleF(r.X + 16, r.Y + 113, r.Width - 32, 16), SfWrap);
+            Spaced(g, type, FTiny, Dim, r.X + 16, r.Y + 107, 2f);
 
             bool owned = _account != null && AccountStore.Owns(_account, item);
             bool equipped = IsShopItemEquipped(item);
-            int by = r.Bottom - 40;
+            int by = r.Bottom - 38;
             if (equipped)
             {
-                using var p = Chamfer(new Rectangle(r.X + 16, by, r.Width - 32, 32), 8, true, false, true, false);
+                using var p = Chamfer(new Rectangle(r.X + 14, by, r.Width - 28, 30), 8, true, false, true, false);
                 g.FillPath(Br(A(Green, 26)), p);
                 g.DrawPath(Pn(Green, 1.5f), p);
-                Spaced(g, "EQUIPADO", FLabel, Green, r.X + r.Width / 2f, by + 16, 3f, StringAlignment.Center);
+                Spaced(g, "EQUIPADO", FLabel, Green, r.X + r.Width / 2f, by + 15, 3f, StringAlignment.Center);
             }
             else if (owned)
             {
-                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 32), "shopEquip:" + item.Id, "EQUIPAR", true, FLabel, 2.5f);
+                Button(g, new Rectangle(r.X + 14, by, r.Width - 28, 30), "shopEquip:" + item.Id, "EQUIPAR", true, FLabel, 2.5f);
             }
             else
             {
-                Button(g, new Rectangle(r.X + 16, by, r.Width - 32, 32), "shopBuy:" + item.Id,
+                Button(g, new Rectangle(r.X + 14, by, r.Width - 28, 30), "shopBuy:" + item.Id,
                     "COMPRAR  •  " + item.Price.ToString("N0"), false, FLabel, 2f);
             }
         }
