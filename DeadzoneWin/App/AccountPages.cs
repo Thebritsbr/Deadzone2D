@@ -29,7 +29,6 @@ namespace Deadzone2D
                 _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegCode, _tbRegDesc,
                 _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
                 _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor,
-                _tbGoogleId, _tbGoogleSecret,
                 _tbGiveTarget, _tbGiveQuery, _tbGiveCoins, _tbGiveLevel, _tbGiveWins, _tbGiveKills, _tbAdminGmail
             };
             foreach (var tb in all)
@@ -46,9 +45,6 @@ namespace Deadzone2D
             _tbRegPass.UseSystemPasswordChar = true;
             _tbRegPass2.UseSystemPasswordChar = true;
             _tbAdminPass.UseSystemPasswordChar = true;
-            _tbGoogleSecret.UseSystemPasswordChar = true;
-            _tbGoogleId.Text = GoogleAuth.Config.ClientId;
-            _tbGoogleSecret.Text = GoogleAuth.Config.ClientSecret;
             _tbNotifyMsg.Multiline = true;
             _tbAnnBody.Multiline = true;
             _tbRegCode.MaxLength = 6;
@@ -114,9 +110,6 @@ namespace Deadzone2D
             ShowInput(_tbAnnBody, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
             ShowInput(_tbAnnFile, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
             ShowInput(_tbAnnAuthor, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
-            bool cfgShown = _cfgOpen && _page != 4;
-            ShowInput(_tbGoogleId, cfgShown);
-            ShowInput(_tbGoogleSecret, cfgShown);
             bool give = _adminOpen && _adminAuthed && _giveOpen && _page != 4;
             ShowInput(_tbGiveTarget, give);
             ShowInput(_tbGiveQuery, give && _giveTab == 0);
@@ -325,7 +318,18 @@ namespace Deadzone2D
             InfoLine(g, lx, iy, lw, "IDADE DA CONTA", AccountStore.AgeText(_account.CreatedAt)); iy += 30;
             InfoLine(g, lx, iy, lw, "NICK (BLOQUEADO)", _account.Nick); iy += 30;
             InfoLine(g, lx, iy, lw, "DEAD COINS", _account.DeadCoins.ToString("N0")); iy += 30;
-            InfoLine(g, lx, iy, lw, "NÍVEL / VITÓRIAS", _account.Level + "  •  " + _account.Wins); iy += 30;
+            var rank = RankStore.ForXp(_account.Xp);
+            var rankColor = RankStore.Parse(rank.Color);
+            Spaced(g, "RANK", FTiny, Dim, lx, iy + 6, 2f);
+            Txt(g, rank.Name.ToUpperInvariant(), FSmallB, rankColor,
+                new RectangleF(lx + 100, iy, lw - 100, 18), StringAlignment.Far);
+            var rbar = new Rectangle(lx, iy + 24, lw, 7);
+            Reg(Rectangle.Inflate(rbar, 0, 9), "rankInfo");
+            g.FillRectangle(Br(A(Ink, 30)), rbar);
+            g.FillRectangle(Br(rankColor), rbar.X, rbar.Y, (int)(rbar.Width * RankStore.Progress(_account.Xp)), rbar.Height);
+            Txt(g, _account.Xp + " XP  •  " + _account.Wins + " vitórias", FTiny, A(Dim, 200),
+                new RectangleF(lx, iy + 34, lw, 16));
+            iy += 56;
             Spaced(g, "TAGS", FTiny, Dim, lx, iy + 6, 2f);
             Txt(g, _account.Tags.Count == 0 ? "Nenhuma" : string.Join("  •  ", _account.Tags), FSmallB, Amber,
                 new RectangleF(lx + 100, iy, lw - 100, 18), StringAlignment.Far);
@@ -363,6 +367,41 @@ namespace Deadzone2D
             Spaced(g, label, FTiny, Dim, x, y + 7, 2f);
             Txt(g, value, FSmallB, Ink, new RectangleF(x + 150, y, w - 150, 18), StringAlignment.Far);
             g.DrawLine(Pn(A(Line, 120), 1f), x, y + 21, x + w, y + 21);
+        }
+
+        private void DrawRankInfo(Graphics g, int w, int h)
+        {
+            if (!_rankInfoOpen || _account == null) return;
+            g.FillRectangle(Br(A(Color.Black, 160)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "rankInfoBackdrop");
+            int pw = 520, ph = 380;
+            var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 16, (h - ph) / 2), pw, ph);
+            Reg(r, "rankInfoPanel");
+            using (var p = Chamfer(r, 16, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            var rank = RankStore.ForXp(_account.Xp);
+            var col = RankStore.Parse(rank.Color);
+            g.FillRectangle(Br(col), r.X + 18, r.Y, r.Width - 18, 3);
+            Spaced(g, "RANK", FLabel, col, r.X + 32, r.Y + 28, 4f);
+            Txt(g, rank.Name.ToUpperInvariant(), VSub, Ink, new RectangleF(r.X + 32, r.Y + 42, pw - 90, 48));
+            var close = new Rectangle(r.Right - 48, r.Y + 18, 30, 30);
+            Reg(close, "rankInfoClose");
+            var xp = Pn(Mix(Dim, Ink, Hv("rankInfoClose")), 1.8f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            InfoLine(g, r.X + 32, r.Y + 110, pw - 64, "NÍVEL", rank.Level.ToString());
+            InfoLine(g, r.X + 32, r.Y + 150, pw - 64, "XP ATUAL", _account.Xp.ToString("N0"));
+            var next = RankStore.Next(_account.Xp);
+            InfoLine(g, r.X + 32, r.Y + 190, pw - 64, "PRÓXIMO RANK", next == null ? "MÁXIMO" : next.Name + " • " + next.Xp.ToString("N0") + " XP");
+            InfoLine(g, r.X + 32, r.Y + 230, pw - 64, "VITÓRIAS / ABATES", _account.Wins + " / " + _account.Kills);
+            var bar = new Rectangle(r.X + 32, r.Y + 282, pw - 64, 10);
+            g.FillRectangle(Br(A(Ink, 30)), bar);
+            g.FillRectangle(Br(col), bar.X, bar.Y, (int)(bar.Width * RankStore.Progress(_account.Xp)), bar.Height);
+            Txt(g, rank.Description, FSmall, A(Ink, 190), new RectangleF(r.X + 32, r.Y + 306, pw - 64, 38));
         }
 
         // ---------- Registro ----------
@@ -1579,59 +1618,63 @@ namespace Deadzone2D
         private void DrawSquadRow(Graphics g, int w, int y)
         {
             if (!_squadOpen) return;
-            int gap = 12;
-            int avail = Math.Max(480, w - 540 - 48);
-            int cw = Math.Clamp((avail - gap * 3 - 12 - 96) / 4, 110, 170);
+            int gap = 16, cw = 190, ch = 200;
             int total = cw * 4 + gap * 3;
-            int x = Math.Max(540, (w - total) / 2);
+            int x = (w - total) / 2; // grupo sempre centralizado
             for (int i = 0; i < 4; i++)
             {
-                var r = new Rectangle(x + i * (cw + gap), y, cw, 92);
-                if (i == 0)
+                var r = new Rectangle(x + i * (cw + gap), y, cw, ch);
+                bool filled = _groupMembers.Count > i;
+                using (var p = Chamfer(r, 14, true, false, true, false))
                 {
-                    using (var p = Chamfer(r, 10, true, false, true, false))
+                    if (filled)
                     {
-                        g.FillPath(Br(A(PanelHi, 235)), p);
-                        g.DrawPath(Pn(Red, 1.2f), p);
+                        using var lb = new LinearGradientBrush(r, A(PanelHi, 245), A(Panel, 245), 90f);
+                        g.FillPath(lb, p);
+                        g.DrawPath(Pn(i == 0 ? Red : A(Line, 230), 1.4f), p);
                     }
-                    DrawAccountIcon(g, new RectangleF(r.X + 12, r.Y + 14, 42, 42),
-                        AccountStore.Icon(_account?.IconId));
-                    Txt(g, (_groupMembers.Count > 0 ? _groupMembers[0] : (_account?.Nick ?? "JOGADOR")).ToUpperInvariant(), FSmallB, Ink,
-                        new RectangleF(r.X + 62, r.Y + 14, cw - 70, 18));
-                    Spaced(g, "LÍDER", FTiny, Red, r.X + 62, r.Y + 36, 2f);
-                    Spaced(g, "GRUPO CRIADO", FTiny, Dim, r.X + 12, r.Y + 68, 1.5f);
-                }
-                else if (_groupMembers.Count > i)
-                {
-                    using (var p = Chamfer(r, 10, true, false, true, false))
+                    else
                     {
-                        g.FillPath(Br(A(PanelHi, 215)), p);
-                        g.DrawPath(Pn(A(Line, 220), 1.2f), p);
-                    }
-                    DrawAccountIcon(g, new RectangleF(r.X + 12, r.Y + 14, 42, 42), AccountStore.Icon(null));
-                    Txt(g, _groupMembers[i].ToUpperInvariant(), FSmallB, Ink,
-                        new RectangleF(r.X + 62, r.Y + 14, cw - 70, 18));
-                    Spaced(g, "MEMBRO", FTiny, Green, r.X + 62, r.Y + 36, 2f);
-                    Spaced(g, "PRONTO", FTiny, Dim, r.X + 12, r.Y + 68, 1.5f);
-                }
-                else
-                {
-                    Reg(r, "invite");
-                    float hv = Hv("invite");
-                    using (var p = Chamfer(r, 10, true, false, true, false))
-                    {
+                        Reg(r, "invite");
+                        float hv = Hv("invite");
                         g.FillPath(Br(A(Panel, (int)(130 + 60 * hv))), p);
-                        using var dp = new Pen(Mix(Line, Ink, hv), 1.2f) { DashStyle = DashStyle.Dash };
+                        using var dp = new Pen(Mix(Line, Ink, hv), 1.4f) { DashStyle = DashStyle.Dash };
                         g.DrawPath(dp, p);
                     }
-                    float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f - 6;
-                    var pen = Pn(Mix(Dim, Ink, hv), 2f);
-                    g.DrawLine(pen, cx - 10, cy, cx + 10, cy);
-                    g.DrawLine(pen, cx, cy - 10, cx, cy + 10);
-                    Spaced(g, "CONVIDAR", FTiny, Mix(Dim, Ink, hv), cx, cy + 24, 2f, StringAlignment.Center);
+                }
+                if (!filled)
+                {
+                    float cx = r.X + r.Width / 2f, cy = r.Y + r.Height / 2f - 12;
+                    var pen = Pn(Mix(Dim, Ink, Hv("invite")), 2f);
+                    g.DrawLine(pen, cx - 12, cy, cx + 12, cy);
+                    g.DrawLine(pen, cx, cy - 12, cx, cy + 12);
+                    Spaced(g, "CONVIDAR", FTiny, Dim, cx, cy + 28, 2f, StringAlignment.Center);
+                    continue;
+                }
+
+                // card estilo antigo: silhueta + placa com o nome
+                g.FillRectangle(Br(i == 0 ? Red : Line), r.X + 16, r.Y, r.Width - 16, 3);
+                g.SetClip(new Rectangle(r.X + 1, r.Y + 4, r.Width - 2, r.Height - 8));
+                float hd = r.Width * .34f;
+                var sc = i == 0 ? Red : Ink;
+                g.FillEllipse(Br(A(sc, 95)), r.X + (r.Width - hd) / 2f, r.Y + 34, hd, hd);
+                float sw = r.Width * .84f;
+                g.FillEllipse(Br(A(sc, 75)), r.X + (r.Width - sw) / 2f, r.Y + 34 + hd + 12, sw, sw);
+                g.ResetClip();
+
+                var plate = new Rectangle(r.X, r.Bottom - 62, r.Width, 62);
+                g.FillRectangle(Br(A(Color.Black, 145)), plate);
+                Txt(g, _groupMembers[i].ToUpperInvariant(), VName, Ink,
+                    new RectangleF(plate.X + 16, plate.Y + 8, plate.Width - 32, 28));
+                Spaced(g, i == 0 ? "LÍDER" : "MEMBRO", FTiny, i == 0 ? Red : Green, plate.X + 16, plate.Y + 40, 2f);
+                if (i == 0 && _account != null)
+                {
+                    var rk = RankStore.ForXp(_account.Xp);
+                    Spaced(g, rk.Name.ToUpperInvariant(), FTiny, RankStore.Parse(rk.Color),
+                        plate.Right - 16, plate.Y + 40, 2f, StringAlignment.Far);
                 }
             }
-            Button(g, new Rectangle(x + total + 12, y + 30, 96, 34), "squadLeave", "SAIR", false, FTiny, 1.5f);
+            Button(g, new Rectangle(x + total / 2 - 48, y + ch + 12, 96, 34), "squadLeave", "SAIR", false, FTiny, 1.5f);
         }
     }
 }

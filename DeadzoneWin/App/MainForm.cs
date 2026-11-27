@@ -120,7 +120,7 @@ namespace Deadzone2D
         private Account? _account;
         private bool _accountInputsReady;
         private bool _profileOpen, _notifOpen, _adminOpen, _adminAuthed, _addFriendOpen, _squadOpen;
-        private bool _notifyUiOpen, _announceUiOpen, _giveOpen, _adminGmailOpen;
+        private bool _notifyUiOpen, _announceUiOpen, _giveOpen, _adminGmailOpen, _rankInfoOpen;
         private int _giveTab;
         private string _giveItemSel = "";
         private readonly List<string> _tagsToGive = new();
@@ -132,6 +132,7 @@ namespace Deadzone2D
         private string _loadingTitle = "";
         private float _loadingLeft, _loadingTotal;
         private Action? _loadingDone;
+        private bool _allowGuest;
         private string _cofreTab = "Perfil";
         private string _annCategory = "Updates";
         private float _annScroll, _shopScroll;
@@ -159,8 +160,6 @@ namespace Deadzone2D
         private TextBox _tbAnnBody = new();
         private TextBox _tbAnnFile = new();
         private TextBox _tbAnnAuthor = new();
-        private TextBox _tbGoogleId = new();
-        private TextBox _tbGoogleSecret = new();
         private TextBox _tbGiveTarget = new();
         private TextBox _tbGiveQuery = new();
         private TextBox _tbGiveCoins = new();
@@ -255,6 +254,7 @@ namespace Deadzone2D
             AccountStore.Load();
             MailService.Load(_appDir);
             GoogleAuth.Load(_appDir);
+            RankStore.Load(_appDir);
             UpdateSettings.Load(_appDir);
             AppInfo.Load(_appDir);
             _guns = LoadGuns();
@@ -299,6 +299,7 @@ namespace Deadzone2D
         // ---------- Dados externos ----------
         public void QuickPlay(string[] args)
         {
+            _allowGuest = true;
             string mapId = "";
             string page = "Partida";
             int squad = 0;
@@ -554,7 +555,7 @@ namespace Deadzone2D
             _fade = 1f;
             _progress = 0f;
             _profileOpen = _notifOpen = _adminOpen = _addFriendOpen = _cfgOpen = _requestsOpen = false;
-            _notifyUiOpen = _announceUiOpen = _giveOpen = _adminGmailOpen = false;
+            _notifyUiOpen = _announceUiOpen = _giveOpen = _adminGmailOpen = _rankInfoOpen = false;
             _tagsToGive.Clear();
             _adminAuthed = false;
             _profileError = _adminError = _regError = _loginCodeHint = "";
@@ -566,7 +567,11 @@ namespace Deadzone2D
                 _keys.Clear();
                 _paused = false;
             }
-            if (_page >= 2 && _page != 4 && _page != 5 && _page != 6) EnsureGuestAccount();
+            if (_page >= 2 && _page != 4 && _page != 5 && _page != 6 && _account == null && !_allowGuest)
+            {
+                ShowPage("Login");
+                return;
+            }
             _tbUser.Visible = _page == 1;
             _tbPass.Visible = _page == 1;
             SyncAccountInputs();
@@ -781,6 +786,11 @@ namespace Deadzone2D
                 else ShowToast("Você ainda não possui este banner.");
                 return;
             }
+            if (id.StartsWith("giveTab:", StringComparison.OrdinalIgnoreCase))
+            {
+                if (int.TryParse(id.Substring(8), out var giveIdx) && giveIdx >= 0 && giveIdx <= 2) _giveTab = giveIdx;
+                return;
+            }
             if (id.StartsWith("giveItem:", StringComparison.OrdinalIgnoreCase))
             {
                 _giveItemSel = id.Substring(9);
@@ -919,15 +929,6 @@ namespace Deadzone2D
                 case "registerBack":
                     ShowPage("Login");
                     break;
-                case "googleSave":
-                {
-                    bool enabled = _tbGoogleId.Text.Trim().Length > 0 && _tbGoogleSecret.Text.Trim().Length > 0;
-                    if (!GoogleAuth.SaveUserConfig(_tbGoogleId.Text, _tbGoogleSecret.Text, enabled, out var gerr))
-                        ShowToast(gerr);
-                    else
-                        ShowToast(enabled ? "Google configurado neste PC." : "Configuração do Google removida.");
-                    break;
-                }
                 case "googleSignIn": TryGoogleSignIn(); break;
                 case "registerSendCode":
                 {
@@ -965,6 +966,11 @@ namespace Deadzone2D
                     StartLoading("ENTRANDO NO JOGO", 1.8f, () => ShowPage("Lobby"));
                     break;
                 }
+                case "rankInfo":
+                    _rankInfoOpen = true;
+                    break;
+                case "rankInfoClose":
+                case "rankInfoBackdrop": _rankInfoOpen = false; break;
                 case "accountOpen":
                     _notifOpen = false;
                     _addFriendOpen = false;
@@ -1288,6 +1294,7 @@ namespace Deadzone2D
             {
                 if (_notifyUiOpen) { _notifyUiOpen = false; e.Handled = true; return; }
                 if (_announceUiOpen) { _announceUiOpen = false; e.Handled = true; return; }
+                if (_rankInfoOpen) { _rankInfoOpen = false; e.Handled = true; return; }
                 if (_giveOpen) { _giveOpen = false; e.Handled = true; return; }
                 if (_adminGmailOpen) { _adminGmailOpen = false; e.Handled = true; return; }
                 if (_adminOpen) { CloseAdmin(); e.Handled = true; return; }
@@ -1748,6 +1755,7 @@ namespace Deadzone2D
             if (hub) DrawConfigPanel(g, w, h);
             if (_notifOpen) DrawNotifications(g, w, h);
             if (_profileOpen) DrawProfilePanel(g, w, h);
+            if (_rankInfoOpen) DrawRankInfo(g, w, h);
             if (_addFriendOpen) DrawAddFriend(g, w, h);
             if (_adminOpen) DrawAdminPanel(g, w, h);
             if (_notifyUiOpen) DrawNotifyUi(g, w, h);
@@ -2143,12 +2151,9 @@ namespace Deadzone2D
             Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "profileLogout", "LOGOUT", false, FLabel, 2.5f);
             y += rowH;
 
-            Spaced(g, "GOOGLE OAuth 2.0", FLabel, Dim, rx, y + 4, 3f);
-            Button(g, new Rectangle(rx + rw - 160, y, 160, 30), "googleSave", "SALVAR GOOGLE", false, FTiny, 1.8f);
-            UiField(g, new Rectangle(rx, y + 32, 230, 44), "CLIENT ID", _tbGoogleId);
-            UiField(g, new Rectangle(rx + 238, y + 32, rw - 238, 44), "CLIENT SECRET", _tbGoogleSecret);
-            if (GoogleAuth.IsConfigured)
-                Spaced(g, "CONFIGURADO • LOGIN COM GOOGLE ATIVO", FTiny, Green, rx, y + 90, 2f);
+            Spaced(g, "LOGIN COM GOOGLE", FLabel, Dim, rx, y + 4, 3f);
+            Spaced(g, GoogleAuth.IsConfigured ? "CONFIGURADO" : "NAO CONFIGURADO", FTiny,
+                GoogleAuth.IsConfigured ? Green : Dim, rx, y + 30, 2f);
 
             Button(g, new Rectangle(r.X + 40, r.Bottom - 62, 150, 42), "cfg", "FECHAR", true, FLabel, 3f);
         }

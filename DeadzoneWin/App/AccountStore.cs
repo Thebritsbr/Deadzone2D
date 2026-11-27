@@ -43,6 +43,7 @@ namespace Deadzone2D
         public int Level { get; set; } = 1;
         public int Wins { get; set; }
         public int Kills { get; set; }
+        public int Xp { get; set; }
     }
 
     public sealed class Announcement
@@ -190,7 +191,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 3.4",
+                        Title = "Bem-vindo ao Deadzone 3.5",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
@@ -771,6 +772,7 @@ namespace Deadzone2D
             if (level > 0) target.Level = Math.Max(1, level);
             target.Wins = Math.Max(0, target.Wins + wins);
             target.Kills = Math.Max(0, target.Kills + kills);
+            if (wins != 0 || kills != 0) target.Xp = Math.Max(0, target.Xp + wins * 100 + kills * 10);
             SaveAccounts();
         }
 
