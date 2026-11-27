@@ -10,10 +10,19 @@ LOGIN REAL COM GOOGLE
    - Nome: Deadzone2D.
    - Copie o "Client ID" e o "Client Secret".
 
+   Client - <seu-client-id>.apps.googleusercontent.com
+
+   Secret - <seu-client-secret>
+
 4. Em "URIs de redirecionamento autorizados", adicione exatamente:
    http://127.0.0.1:53682/
 
-5. Edite Config/Google.json no PC:
+5. Configure no jogo (recomendado, sem precisar de administrador):
+   - Abra Configurações (ícone de engrenagem no topo).
+   - Preencha CLIENT ID e CLIENT SECRET e clique em SALVAR GOOGLE.
+   - Os dados ficam em %LOCALAPPDATA%\Deadzone2D\Google.json.
+
+   Alternativa manual: edite Config/Google.json na pasta do jogo:
    - Enabled: true
    - ClientId: o Client ID copiado
    - ClientSecret: o Client Secret copiado

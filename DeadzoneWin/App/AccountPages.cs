@@ -25,9 +25,11 @@ namespace Deadzone2D
             var tf = new Font(Fam, 16f, FontStyle.Regular, GraphicsUnit.Pixel);
             var all = new[]
             {
+                _tbLoginCode,
                 _tbRegGmail, _tbRegNick, _tbRegDisplay, _tbRegPass, _tbRegPass2, _tbRegCode, _tbRegDesc,
                 _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
-                _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor
+                _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor,
+                _tbGoogleId, _tbGoogleSecret
             };
             foreach (var tb in all)
             {
@@ -43,9 +45,13 @@ namespace Deadzone2D
             _tbRegPass.UseSystemPasswordChar = true;
             _tbRegPass2.UseSystemPasswordChar = true;
             _tbAdminPass.UseSystemPasswordChar = true;
+            _tbGoogleSecret.UseSystemPasswordChar = true;
+            _tbGoogleId.Text = GoogleAuth.Config.ClientId;
+            _tbGoogleSecret.Text = GoogleAuth.Config.ClientSecret;
             _tbNotifyMsg.Multiline = true;
             _tbAnnBody.Multiline = true;
             _tbRegCode.MaxLength = 6;
+            _tbLoginCode.MaxLength = 6;
             _tbRegDesc.MaxLength = 140;
             _tbDesc.MaxLength = 140;
             _tbAdminCmd.MaxLength = 600;
@@ -80,6 +86,7 @@ namespace Deadzone2D
         {
             if (!_accountInputsReady) return;
 
+            ShowInput(_tbLoginCode, _page == 1);
             bool reg = _page == 6;
             ShowInput(_tbRegGmail, reg);
             ShowInput(_tbRegNick, reg);
@@ -106,6 +113,9 @@ namespace Deadzone2D
             ShowInput(_tbAnnBody, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
             ShowInput(_tbAnnFile, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
             ShowInput(_tbAnnAuthor, _adminOpen && _adminAuthed && _announceUiOpen && _page != 4);
+            bool cfgShown = _cfgOpen && _page != 4;
+            ShowInput(_tbGoogleId, cfgShown);
+            ShowInput(_tbGoogleSecret, cfgShown);
         }
 
         private static void ShowInput(TextBox tb, bool visible)
@@ -256,10 +266,7 @@ namespace Deadzone2D
                 FSmall, Br(A(Ink, 180)), new RectangleF(r.X + 18, y + 16, r.Width - 36, 48), SfWrap);
 
             int by = r.Bottom - 54;
-            int half = (r.Width - 36 - 8) / 2;
-            Button(g, new Rectangle(r.X + 18, by, half, 40), "accountOpen", "PERFIL", false, FLabel, 2.5f);
-            Button(g, new Rectangle(r.X + 18 + half + 8, by, half, 40), _squadOpen ? "squadLeave" : "squadCreate",
-                _squadOpen ? "SAIR DO SQUAD" : "CRIAR SQUAD", false, FTiny, 1.8f);
+            Button(g, new Rectangle(r.X + 18, by, r.Width - 36, 40), "accountOpen", "CONFIGURAR CONTA", false, FLabel, 2.5f);
         }
 
         private void ProfileLine(Graphics g, int x, int y, string label, string value)

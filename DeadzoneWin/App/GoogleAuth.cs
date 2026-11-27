@@ -27,17 +27,58 @@ namespace Deadzone2D
         private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(20) };
         public static GoogleConfig Config { get; private set; } = new();
 
+        public static string UserConfigPath => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Deadzone2D", "Google.json");
+
         public static void Load(string dir)
         {
+            var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             try
             {
-                var p = Path.Combine(dir, "Config", "Google.json");
-                if (!File.Exists(p)) return;
-                var cfg = JsonSerializer.Deserialize<GoogleConfig>(File.ReadAllText(p),
-                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (cfg != null) Config = cfg;
+                var app = Path.Combine(dir, "Config", "Google.json");
+                if (File.Exists(app))
+                {
+                    var baseCfg = JsonSerializer.Deserialize<GoogleConfig>(File.ReadAllText(app), opts);
+                    if (baseCfg != null) Config = baseCfg;
+                }
             }
             catch { }
+            // A configuração salva pelo jogador tem prioridade e fica fora de Program Files.
+            try
+            {
+                if (File.Exists(UserConfigPath))
+                {
+                    var user = JsonSerializer.Deserialize<GoogleConfig>(File.ReadAllText(UserConfigPath), opts);
+                    if (user != null) Config = user;
+                }
+            }
+            catch { }
+        }
+
+        public static bool SaveUserConfig(string clientId, string secret, bool enabled, out string error)
+        {
+            error = "";
+            clientId = (clientId ?? "").Trim();
+            secret = (secret ?? "").Trim();
+            if (enabled && (clientId.Length == 0 || secret.Length == 0))
+            {
+                error = "Informe o Client ID e o Client Secret.";
+                return false;
+            }
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(UserConfigPath)!);
+                var cfg = new GoogleConfig { Enabled = enabled, ClientId = clientId, ClientSecret = secret };
+                File.WriteAllText(UserConfigPath, JsonSerializer.Serialize(cfg,
+                    new JsonSerializerOptions { WriteIndented = true }));
+                Config = cfg;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = "Não foi possível salvar: " + ex.Message;
+                return false;
+            }
         }
 
         public static bool IsConfigured =>

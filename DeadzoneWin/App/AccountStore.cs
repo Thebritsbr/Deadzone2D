@@ -186,7 +186,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Bem-vindo ao Deadzone 3.2",
+                        Title = "Bem-vindo ao Deadzone 3.3",
                         Body = "Novo lobby, contas locais com Gmail, perfil, Cofre, anúncios e a loja Dead Royal. " +
                                "Use CTRL + SHIFT + P na conta sr.idev para abrir o painel de administração.",
                         Author = "Lume Studio INC",
@@ -429,6 +429,32 @@ namespace Deadzone2D
                 return true; // código real foi enviado ao Gmail do usuário
             }
             code = generated; // modo de teste: mostra o código na tela
+            return true;
+        }
+
+        // Código enviado no login (a conta já existe, por isso não usa SendCode).
+        public static bool SendLoginCode(string gmail, out string code, out string error)
+        {
+            code = "";
+            error = "";
+            gmail = (gmail ?? "").Trim();
+            if (FindByGmail(gmail) == null && FindByNick(gmail) == null)
+            { error = "Conta não encontrada."; return false; }
+            string generated = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+            lock (Pending)
+                Pending[gmail] = new PendingCode
+                {
+                    Code = generated,
+                    Expires = DateTime.UtcNow.AddMinutes(5),
+                    Attempts = 0
+                };
+            if (MailService.IsConfigured)
+            {
+                if (!MailService.SendVerificationCode(gmail, generated, out error))
+                { lock (Pending) Pending.Remove(gmail); return false; }
+                return true;
+            }
+            code = generated;
             return true;
         }
 

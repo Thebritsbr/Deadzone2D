@@ -1,6 +1,6 @@
 {
-  "Version": "3.2",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.2.exe",
-  "Notes": "Deadzone2D 3.2 - Google sign-in configuration release.",
+  "Version": "3.3",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v3.3.exe",
+  "Notes": "Deadzone2D 3.3 - Google sign-in can be configured in Settings without administrator access.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

@@ -115,6 +115,7 @@ namespace Deadzone2D
         // ---------- Login / conta ----------
         private TextBox _tbUser = new();
         private TextBox _tbPass = new();
+        private TextBox _tbLoginCode = new();
 
         private Account? _account;
         private bool _accountInputsReady;
@@ -133,7 +134,7 @@ namespace Deadzone2D
         private float _annScroll, _shopScroll;
         private string _regIcon = "icon_01";
         private string _regRegion = "Brazil";
-        private string _profileError = "", _adminError = "", _regError = "", _regCodeHint = "";
+        private string _profileError = "", _adminError = "", _regError = "", _regCodeHint = "", _loginCodeHint = "";
         private readonly List<Account> _friendResults = new();
         private readonly List<string> _adminLog = new();
 
@@ -155,6 +156,8 @@ namespace Deadzone2D
         private TextBox _tbAnnBody = new();
         private TextBox _tbAnnFile = new();
         private TextBox _tbAnnAuthor = new();
+        private TextBox _tbGoogleId = new();
+        private TextBox _tbGoogleSecret = new();
 
         // ---------- Estado ----------
         private readonly System.Windows.Forms.Timer _timer;
@@ -539,7 +542,7 @@ namespace Deadzone2D
             _profileOpen = _notifOpen = _adminOpen = _addFriendOpen = _cfgOpen = _requestsOpen = false;
             _notifyUiOpen = _announceUiOpen = false;
             _adminAuthed = false;
-            _profileError = _adminError = _regError = "";
+            _profileError = _adminError = _regError = _loginCodeHint = "";
             if (_page < 2) _friendsOpen = false;
             if (_page != 4)
             {
@@ -836,6 +839,8 @@ namespace Deadzone2D
                     if (_tbPass.Text.Length == 0) { ShowToast("Digite sua senha."); return; }
                     var acc = AccountStore.Login(user, _tbPass.Text);
                     if (acc == null) { ShowToast("Gmail/nick ou senha inválidos."); return; }
+                    if (!AccountStore.VerifyCode(acc.Gmail, _tbLoginCode.Text, out var loginCodeErr))
+                    { ShowToast(loginCodeErr); return; }
                     _account = acc;
                     _players[0] = acc.Nick;
                     SaveLastUser(acc.Gmail);
@@ -844,9 +849,25 @@ namespace Deadzone2D
                     LoadFriendsFromAccount();
                     LoadEquippedFromAccount();
                     _tbPass.Text = "";
+                    _tbLoginCode.Text = "";
+                    _loginCodeHint = "";
                     ResetGroup();
                     ShowToast("Bem-vindo, " + acc.DisplayName + ".");
                     StartLoading("ENTRANDO NO JOGO", 1.8f, () => ShowPage("Lobby"));
+                    break;
+                }
+                case "loginSendCode":
+                {
+                    string user = _tbUser.Text.Trim();
+                    var acc = AccountStore.FindByGmail(user) ?? AccountStore.FindByNick(user);
+                    if (acc == null) { ShowToast("Conta não encontrada."); return; }
+                    if (!AccountStore.SendLoginCode(acc.Gmail, out var code, out var sendErr))
+                    { ShowToast(sendErr); return; }
+                    _loginCodeHint = MailService.IsConfigured
+                        ? "Código enviado para " + acc.Gmail + "."
+                        : "MODO LOCAL — código de teste: " + code;
+                    ShowToast(MailService.IsConfigured ? "Código enviado ao seu Gmail." : "Código local: " + code);
+                    BeginInvoke((Action)(() => { if (_page == 1) _tbLoginCode.Focus(); }));
                     break;
                 }
                 case "register":
@@ -866,6 +887,15 @@ namespace Deadzone2D
                 case "registerBack":
                     ShowPage("Login");
                     break;
+                case "googleSave":
+                {
+                    bool enabled = _tbGoogleId.Text.Trim().Length > 0 && _tbGoogleSecret.Text.Trim().Length > 0;
+                    if (!GoogleAuth.SaveUserConfig(_tbGoogleId.Text, _tbGoogleSecret.Text, enabled, out var gerr))
+                        ShowToast(gerr);
+                    else
+                        ShowToast(enabled ? "Google configurado neste PC." : "Configuração do Google removida.");
+                    break;
+                }
                 case "googleSignIn": TryGoogleSignIn(); break;
                 case "registerSendCode":
                 {
@@ -1872,33 +1902,39 @@ namespace Deadzone2D
             int cx = w / 2;
             int top = Math.Max(BarH + 20, (h - 600) / 2);
 
-            UiLogoMark(g, cx, top, 60);
-            Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 104, 8f, StringAlignment.Center);
-            Txt(g, "Use sua conta Google ou crie uma conta local neste PC.", FSmall, Dim,
-                new RectangleF(cx - 270, top + 134, 540, 20), StringAlignment.Center);
+            UiLogoMark(g, cx, top, 56);
+            Spaced(g, "ENTRAR", VTitle, Ink, cx, top + 96, 8f, StringAlignment.Center);
+            Txt(g, "Use sua conta Google ou confirme seu Gmail com o código enviado.", FSmall, Dim,
+                new RectangleF(cx - 280, top + 126, 560, 20), StringAlignment.Center);
 
-            var uf = new Rectangle(cx - 190, top + 168, 380, 58);
-            var pf = new Rectangle(cx - 190, top + 238, 380, 58);
+            var uf = new Rectangle(cx - 190, top + 150, 380, 50);
+            var pf = new Rectangle(cx - 190, top + 210, 380, 50);
             UiField(g, uf, "GMAIL (@GMAIL.COM)", _tbUser);
             UiField(g, pf, "SENHA", _tbPass);
 
+            UiField(g, new Rectangle(cx - 190, top + 270, 240, 46), "CÓDIGO DO GMAIL", _tbLoginCode);
+            Button(g, new Rectangle(cx - 190 + 252, top + 270, 128, 46), "loginSendCode", "ENVIAR CÓDIGO", false, FTiny, 1.5f);
+            if (!string.IsNullOrEmpty(_loginCodeHint))
+                Txt(g, _loginCodeHint, FTiny, MailService.IsConfigured ? Green : Amber,
+                    new RectangleF(cx - 190, top + 320, 380, 16));
+
             // botão redondo com seta
-            var ab = new Rectangle(cx - 30, top + 308, 60, 60);
+            var ab = new Rectangle(cx - 28, top + 340, 56, 56);
             Reg(ab, "login"); float hv = Hv("login");
             if (hv > 0.01f)
                 for (int i = 3; i >= 1; i--)
                     g.FillEllipse(Br(A(Red, (int)(26 * hv))), ab.X - i * 4, ab.Y - i * 4, ab.Width + i * 8, ab.Height + i * 8);
             g.FillEllipse(Br(Mix(Red, RedHi, hv)), ab);
             var ap = Pn(Color.White, 3f);
-            float ax = cx - 8 + hv * 3, ay = top + 338;
+            float ax = cx - 8 + hv * 3, ay = top + 368;
             g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
             g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
 
-            Button(g, new Rectangle(cx - 170, top + 384, 340, 42), "googleSignIn", "ENTRAR COM GOOGLE", false, FLabel, 2.5f);
-            Button(g, new Rectangle(cx - 170, top + 436, 340, 42), "register", "CRIAR CONTA LOCAL", false, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 408, 340, 40), "googleSignIn", "ENTRAR COM GOOGLE", false, FLabel, 2.5f);
+            Button(g, new Rectangle(cx - 170, top + 456, 340, 40), "register", "CRIAR CONTA LOCAL", false, FLabel, 2.5f);
             if (AccountStore.Accounts.Count > 0)
                 Txt(g, $"{AccountStore.Accounts.Count} conta(s) local(is) neste PC", FTiny, A(Dim, 170),
-                    new RectangleF(0, top + 490, w, 18), StringAlignment.Center);
+                    new RectangleF(0, top + 506, w, 18), StringAlignment.Center);
 
             Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
@@ -1963,7 +1999,7 @@ namespace Deadzone2D
             g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);
             Reg(new Rectangle(0, 0, w, h), "cfgBackdrop");
 
-            int pw = 560, ph = 500;
+            int pw = 560, ph = 620;
             var r = new Rectangle((w - pw) / 2, Math.Max(BarH + 20, (h - ph) / 2), pw, ph);
             Reg(r, "cfgPanel");   // clicar dentro do painel não fecha
             using (var p = Chamfer(r, 18, true, false, true, false))
@@ -2003,6 +2039,14 @@ namespace Deadzone2D
             Spaced(g, "CONTA", FLabel, Dim, rx, y + 14, 3f);
             Txt(g, _account?.Nick ?? "Sem conta", FMid, Ink, new RectangleF(rx, y + 26, 260, 24));
             Button(g, new Rectangle(rx + rw - 200, y + 10, 200, 36), "profileLogout", "LOGOUT", false, FLabel, 2.5f);
+            y += rowH;
+
+            Spaced(g, "GOOGLE OAuth 2.0", FLabel, Dim, rx, y + 4, 3f);
+            Button(g, new Rectangle(rx + rw - 160, y, 160, 30), "googleSave", "SALVAR GOOGLE", false, FTiny, 1.8f);
+            UiField(g, new Rectangle(rx, y + 32, 230, 44), "CLIENT ID", _tbGoogleId);
+            UiField(g, new Rectangle(rx + 238, y + 32, rw - 238, 44), "CLIENT SECRET", _tbGoogleSecret);
+            if (GoogleAuth.IsConfigured)
+                Spaced(g, "CONFIGURADO • LOGIN COM GOOGLE ATIVO", FTiny, Green, rx, y + 90, 2f);
 
             Button(g, new Rectangle(r.X + 40, r.Bottom - 62, 150, 42), "cfg", "FECHAR", true, FLabel, 3f);
         }
@@ -2027,12 +2071,14 @@ namespace Deadzone2D
         {
             bool isRoyale = _map.Mode == "DeadRoyale";
             bool isDeal = _map.Mode == "DealDuo";
-            int cx = w / 2;
+            int cx = 530 + (w - 48 - 530) / 2;
 
-            // o perfil do jogador não aparece mais no lobby: ele abre pelo ícone da conta no topo
+            // cartão de conta do jogador (visual do lobby clássico)
+            int profileH = Math.Min(430, h - BarH - 190);
+            if (profileH > 260) DrawProfileCard(g, new Rectangle(250, BarH + 24, 280, profileH));
 
             // saldo de Dead Coins no topo do lobby
-            DrawCoinsChip(g, new Rectangle(w - 48 - 238, BarH + 22, 238, 46), "nav:DeadRoyal");
+            DrawCoinsChip(g, new Rectangle(w - 48 - 238, BarH + 100, 238, 46), "nav:DeadRoyal");
 
             // seletor de mapa/modo (topo central)
             var mode = new Rectangle(cx - 230, BarH + 22, 460, 64);
@@ -2061,7 +2107,7 @@ namespace Deadzone2D
                 string[] labels = isRoyale ? new[] { "SOLO", "DUPLA", "TRIO", "SQUAD" } : new[] { "1V1", "2V2" };
                 int bw = 84, gap2 = 8;
                 int total = labels.Length * bw + (labels.Length - 1) * gap2;
-                int sx = (w - total) / 2, sy = mode.Bottom + 10;
+                int sx = cx - total / 2, sy = mode.Bottom + 10;
                 for (int i = 0; i < labels.Length; i++)
                 {
                     bool active = isRoyale ? _royaleSquad == i + 1 : _teamSize == i + 1;
