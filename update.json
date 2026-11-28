@@ -1,6 +1,6 @@
 {
-  "Version": "4.6.1",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.1.exe",
-  "Notes": "Deadzone2D 4.6.1 - real cross-play: PC and mobile share match state, shots and damage.",
+  "Version": "4.6.2",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.2.exe",
+  "Notes": "Deadzone2D 4.6.2 - normalized cross-play coordinates, no double damage and match result sync.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

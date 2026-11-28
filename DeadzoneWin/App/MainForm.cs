@@ -567,7 +567,8 @@ namespace Deadzone2D
                         _netSendTimer = 0.05f;
                         OnlineClient.Send("match:state", new
                         {
-                            x = p.X, y = p.Y, angle = p.Angle, weapon = p.WeaponId,
+                            x = p.X / Math.Max(1f, _g.Map.W), y = p.Y / Math.Max(1f, _g.Map.H),
+                            angle = p.Angle, weapon = p.WeaponId,
                             firing = _firing && !_inventoryOpen && !_paused && p.Alive
                         });
                     }
@@ -579,7 +580,8 @@ namespace Deadzone2D
                             _netShotTimer = 0.14f;
                             OnlineClient.Send("match:shot", new
                             {
-                                x = p.X, y = p.Y, angle = p.Angle, weapon = p.WeaponId,
+                                x = p.X / Math.Max(1f, _g.Map.W), y = p.Y / Math.Max(1f, _g.Map.H),
+                                angle = p.Angle, weapon = p.WeaponId,
                                 damage = p.Weapon.Damage
                             });
                         }
@@ -599,6 +601,7 @@ namespace Deadzone2D
             {
                 _spectate = 0;
                 _deathFade = 0f;
+                if (_online && OnlineClient.Connected) OnlineClient.Send("match:end", new { winner = "lose" });
             }
             if (alive) _spectate = -1;
             _wasPlayerAlive = alive;
@@ -932,6 +935,9 @@ namespace Deadzone2D
                     break;
                 }
                 case "queue": ShowToast("Looking for players... " + (data.TryGetProperty("count", out var c) ? c.GetInt32().ToString() : "")); break;
+                case "match:end":
+                    ShowToast(JsonString(data, "winner") == "win" ? "You lost the duel." : "You won the duel!");
+                    break;
                 case "match:shot":
                     if (_g == null) break;
                     _g.ApplyRemoteShot(
@@ -945,8 +951,8 @@ namespace Deadzone2D
                     if (_g == null) break;
                     _g.ApplyRemoteState(
                         JsonString(data, "id"),
-                        data.TryGetProperty("x", out var sx) ? (float)sx.GetDouble() : 0f,
-                        data.TryGetProperty("y", out var sy) ? (float)sy.GetDouble() : 0f,
+                        (data.TryGetProperty("x", out var sx) ? (float)sx.GetDouble() : 0f) * _g.Map.W,
+                        (data.TryGetProperty("y", out var sy) ? (float)sy.GetDouble() : 0f) * _g.Map.H,
                         data.TryGetProperty("angle", out var sa) ? (float)sa.GetDouble() : 0f,
                         JsonString(data, "weapon"),
                         data.TryGetProperty("firing", out var sf) && sf.GetBoolean());

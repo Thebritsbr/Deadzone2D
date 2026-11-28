@@ -343,13 +343,14 @@ namespace Deadzone2D
             f.Y = y;
             f.Angle = angle;
             if (!string.IsNullOrWhiteSpace(weapon) && Arsenal.Defs.ContainsKey(weapon)) f.WeaponId = weapon;
-            if (firing) Shoot(f, angle);
+            // Tiros são aplicados por match:shot; aqui só sincronizamos posição/mira.
         }
 
         // Tiro recebido de outro dispositivo: aplica dano se o jogador estiver na linha de tiro.
-        public void ApplyRemoteShot(float x, float y, float angle, float damage)
+        public void ApplyRemoteShot(float nx, float ny, float angle, float damage)
         {
             if (Phase != SessionPhase.Live || !Player.Alive) return;
+            float x = nx * Map.W, y = ny * Map.H;
             float dx = Player.X - x, dy = Player.Y - y;
             float dist = (float)Math.Sqrt(dx * dx + dy * dy);
             if (dist > 700f) return;

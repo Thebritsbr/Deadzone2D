@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.1', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.2', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -224,6 +224,13 @@ wss.on('connection', (ws, req) => {
           damage: Math.min(60, Number(msg.damage) || 20),
           weapon: msg.weapon || ''
         }, (_s, other) => other.matchId === st.matchId && other.id !== me.id);
+        break;
+      }
+      case 'match:end': {
+        const st = sockets.get(ws);
+        if (!st?.matchId) return;
+        broadcast('match:end', { winner: msg.winner === 'win' ? 'win' : 'lose' },
+          (_s, other) => other.matchId === st.matchId && other.id !== me.id);
         break;
       }
       case 'match:leave': {
