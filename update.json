@@ -1,6 +1,6 @@
 {
-  "Version": "4.5.4",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.5.4.exe",
-  "Notes": "Deadzone2D 4.5.4 - static props baked into world cache, tighter culling and platform picker on the site.",
+  "Version": "4.6.0",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.0.exe",
+  "Notes": "Deadzone2D 4.6.0 - Play With Computer / Play With Mobile matchmaking selection and mobile edition rebuild.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

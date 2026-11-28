@@ -182,6 +182,7 @@ namespace Deadzone2D
         private int _fpsValue, _fpsFrames;
         private float _fpsTimer;
         private bool _pwdChangeOpen;
+
         private string _pwdCodeHint = "";
         private bool _online;
         private string _onlineNick = "", _onlineId = "";
@@ -192,6 +193,7 @@ namespace Deadzone2D
         private readonly List<int> _matchTeams = new();
         private float _netSendTimer;
         private bool _queueing;
+        private bool _playWithMobile;
 
         private bool _chatOpen;
         private int _chatScope; // 0 = team, 1 = all
@@ -1277,7 +1279,7 @@ namespace Deadzone2D
                 case "matchFind":
                     if (!_online) { ShowToast("Sign in online first."); break; }
                     _queueing = !_queueing;
-                    if (_queueing) OnlineClient.Send("queue:join", new { mode = "1v1", teamSize = 1 });
+                    if (_queueing) OnlineClient.Send("queue:join", new { mode = _playWithMobile ? "mobile" : "computer", teamSize = 1 });
                     else OnlineClient.Send("queue:leave");
                     ShowToast(_queueing ? "Searching for a match..." : "Search cancelled.");
                     break;
@@ -1644,6 +1646,10 @@ namespace Deadzone2D
                     break;
                 case "cfgLang": _cfgLangEn = !_cfgLangEn; break;
                 case "cfgOpt": _cfgOpt = !_cfgOpt; break;
+                case "playWithToggle":
+                    _playWithMobile = !_playWithMobile;
+                    ShowToast(_playWithMobile ? "Playing with mobile players." : "Playing with computer players.");
+                    break;
                 case "fpsToggle":
                     _fpsVisible = !_fpsVisible;
                     ShowToast(_fpsVisible ? "FPS counter on." : "FPS counter off.");
@@ -2654,6 +2660,9 @@ namespace Deadzone2D
 
                 Button(g, new Rectangle(cx, y, 240, 42), "viewUpd", "CHECK UPDATE", false, FLabel, 2.5f);
                 Button(g, new Rectangle(cx + 252, y, 180, 42), "fpsToggle", _fpsVisible ? "FPS: ON" : "FPS: OFF", false, FLabel, 2.5f);
+                y += 52;
+                Button(g, new Rectangle(cx, y, cw, 42), "playWithToggle",
+                    _playWithMobile ? "PLAY WITH MOBILE" : "PLAY WITH COMPUTER", false, FLabel, 2.5f);
                 y += 56;
                 UiToggleRow(g, cx, y, cw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "OFF", "cfgOpt", _cfgOpt);
             }
