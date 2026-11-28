@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.3', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.4', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -73,6 +73,32 @@ app.post('/api/register', (req, res) => {
   sessions.set(token, acc.id);
   saveDb();
   res.json({ token, profile: publicProfile(acc) });
+});
+
+app.post('/api/google', async (req, res) => {
+  try {
+    const idToken = String(req.body.idToken || '');
+    if (!idToken) return res.status(400).json({ error: 'Missing Google token.' });
+    const vr = await fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken));
+    const info = await vr.json();
+    if (!vr.ok || !info.email || info.email_verified !== 'true')
+      return res.status(401).json({ error: 'Invalid Google account.' });
+    const email = String(info.email).toLowerCase();
+    let acc = db.accounts.find(a => a.email.toLowerCase() === email);
+    if (!acc) {
+      let nick = email.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 24) || 'Player';
+      while (db.accounts.some(a => a.nick.toLowerCase() === nick.toLowerCase())) nick += '1';
+      const salt = crypto.randomBytes(16).toString('hex');
+      acc = { id: newId(), email, nick, displayName: String(info.name || nick).slice(0, 20),
+        salt, passwordHash: hashPassword(crypto.randomBytes(24).toString('hex'), salt),
+        coins: 1500, level: 1, xp: 0, wins: 0, kills: 0, friends: [], requests: [], createdAt: Date.now() };
+      db.accounts.push(acc);
+      saveDb();
+    }
+    const token = crypto.randomBytes(24).toString('hex');
+    sessions.set(token, acc.id);
+    res.json({ token, profile: publicProfile(acc) });
+  } catch (e) { res.status(500).json({ error: 'Google sign-in failed.' }); }
 });
 
 app.post('/api/login', (req, res) => {

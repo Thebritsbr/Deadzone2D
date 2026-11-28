@@ -1,6 +1,6 @@
 {
-  "Version": "4.6.3",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.3.exe",
-  "Notes": "Deadzone2D 4.6.3 - all PC systems and screens on mobile: weapons, announcements, vault, Dead Royal shop, friends and notifications.",
+  "Version": "4.6.4",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.4.exe",
+  "Notes": "Deadzone2D 4.6.4 - fixed all mobile buttons and added real Google sign-in on Android.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }
