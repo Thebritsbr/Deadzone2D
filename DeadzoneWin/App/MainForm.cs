@@ -2203,7 +2203,7 @@ namespace Deadzone2D
             {
                 case 0: DrawLoading(g, w, h); break;
                 case 1: DrawLogin(g, w, h); break;
-                case 2: DrawLobby(g, w, h); break;
+                case 2: DrawLobbyV2(g, w, h); break;
                 case 3: DrawWeapons(g, w, h); break;
                 case 4: DrawGame(g, w, h); break;
                 case 5: DrawUpdatePage(g, w, h); break;

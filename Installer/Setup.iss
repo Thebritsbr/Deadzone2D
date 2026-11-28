@@ -4,7 +4,7 @@ AppName=Deadzone2D
 AppPublisher=Lume Studio INC
 SetupIconFile=..\DeadzoneWin\App\Assets\DeadzoneIcon.ico
 
-AppVersion=4.5.2
+AppVersion=4.5.3
 AppComments=Published 2026-11-26 03:46 - Deadzone2D
 AppCopyright=Lume Studio INC
 DefaultDirName={commonpf}\Deadzone
@@ -15,7 +15,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 LicenseFile=LICENSE.md
 OutputDir=..\dist
-OutputBaseFilename=DeadzoneSetup_v4.5.2
+OutputBaseFilename=DeadzoneSetup_v4.5.3
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
