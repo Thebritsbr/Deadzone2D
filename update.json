@@ -1,6 +1,6 @@
 {
-  "Version": "4.6.4",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.4.exe",
-  "Notes": "Deadzone2D 4.6.4 - fixed all mobile buttons and added real Google sign-in on Android.",
+  "Version": "4.6.5",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.6.5.exe",
+  "Notes": "Deadzone2D 4.6.5 - configurable Web OAuth client for Android Google sign-in.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

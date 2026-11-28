@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.4', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.5', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -75,6 +75,11 @@ app.post('/api/register', (req, res) => {
   res.json({ token, profile: publicProfile(acc) });
 });
 
+app.get('/api/config', (_req, res) => res.json({
+  googleClientId: process.env.GOOGLE_WEB_CLIENT_ID || '',
+  serverVersion: '4.6.5'
+}));
+
 app.post('/api/google', async (req, res) => {
   try {
     const idToken = String(req.body.idToken || '');
@@ -83,6 +88,9 @@ app.post('/api/google', async (req, res) => {
     const info = await vr.json();
     if (!vr.ok || !info.email || info.email_verified !== 'true')
       return res.status(401).json({ error: 'Invalid Google account.' });
+    const expected = process.env.GOOGLE_WEB_CLIENT_ID;
+    if (expected && info.aud !== expected)
+      return res.status(401).json({ error: 'Google token was issued for another client.' });
     const email = String(info.email).toLowerCase();
     let acc = db.accounts.find(a => a.email.toLowerCase() === email);
     if (!acc) {
