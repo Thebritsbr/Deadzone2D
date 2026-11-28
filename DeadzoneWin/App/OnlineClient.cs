@@ -42,13 +42,15 @@ namespace Deadzone2D
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? Config;
             }
             catch { }
+            // A URL do servidor público vem do Config/Online.json do próprio jogo.
+            // Só usa uma configuração local se o arquivo do app não trouxer uma URL.
             try
             {
-                if (File.Exists(ConfigPath))
+                if (string.IsNullOrWhiteSpace(Config.ServerUrl) && File.Exists(ConfigPath))
                 {
                     var user = JsonSerializer.Deserialize<OnlineConfig>(File.ReadAllText(ConfigPath),
                         new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (user != null) Config = user;
+                    if (user != null && !string.IsNullOrWhiteSpace(user.ServerUrl)) Config = user;
                 }
             }
             catch { }

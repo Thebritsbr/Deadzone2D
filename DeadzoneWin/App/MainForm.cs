@@ -276,6 +276,13 @@ namespace Deadzone2D
             {
                 try { BeginInvoke((Action)(() => HandleOnlineMessage(type, data))); } catch { }
             };
+            // Reconecta automaticamente ao servidor público quando já há sessão salva.
+            if (!string.IsNullOrWhiteSpace(OnlineClient.Token))
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    bool ok = await OnlineClient.Connect();
+                    if (ok) try { BeginInvoke((Action)(() => ShowToast("Reconnected to online server."))); } catch { }
+                });
             Loc.Load();
             _langSelected = Array.IndexOf(Loc.Languages, Loc.Language);
             if (_langSelected < 0) _langSelected = 0;
@@ -759,8 +766,14 @@ namespace Deadzone2D
                 var result = await OnlineClient.Login(email, password);
                 if (!result.Ok)
                 {
-                    try { BeginInvoke((Action)(() => ShowToast(result.Error))); } catch { }
-                    return;
+                    string nick = email.Split('@')[0];
+                    if (nick.Length < 3) nick = "Player";
+                    result = await OnlineClient.Register(email, password, nick);
+                    if (!result.Ok)
+                    {
+                        try { BeginInvoke((Action)(() => ShowToast(result.Error))); } catch { }
+                        return;
+                    }
                 }
                 bool connected = await OnlineClient.Connect();
                 try
