@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.3', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.4', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -141,7 +141,24 @@ wss.on('connection', (ws, req) => {
         break;
       }
       case 'friend:add': {
-        const target = findAccount(msg.value);
+        let target = findAccount(msg.value);
+        if (!target) {
+          // Permite adicionar uma conta local pelo Gmail: cria um perfil ligado ao e-mail.
+          const email = String(msg.value || '').trim().toLowerCase();
+          if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            let nick = email.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 24) || 'Player';
+            while (db.accounts.some(a => a.nick.toLowerCase() === nick.toLowerCase())) nick += '1';
+            const salt = crypto.randomBytes(16).toString('hex');
+            target = {
+              id: newId(), email, nick, displayName: nick.slice(0, 20),
+              salt, passwordHash: hashPassword(crypto.randomBytes(24).toString('hex'), salt),
+              coins: 1500, level: 1, xp: 0, wins: 0, kills: 0,
+              friends: [], requests: [], createdAt: Date.now()
+            };
+            db.accounts.push(target);
+            saveDb();
+          }
+        }
         if (!target || target.id === me.id) { send(ws, 'error', { message: 'Player not found.' }); return; }
         if (me.friends.includes(target.id)) { send(ws, 'error', { message: 'Already friends.' }); return; }
         if (target.requests.some(r => r.from === me.id)) { send(ws, 'error', { message: 'Request already sent.' }); return; }

@@ -292,6 +292,7 @@ namespace Deadzone2D
             RankStore.Load(_appDir);
             UpdateSettings.Load(_appDir);
             AppInfo.Load(_appDir);
+            UpdateService.LocalVersion = AppInfo.Versao;
             _guns = LoadGuns();
             InjectShopSkins();
             var data = GameData.Load(_appDir);
@@ -755,6 +756,19 @@ namespace Deadzone2D
         private static string JsonString(JsonElement e, string name) =>
             e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var v) ? v.GetString() ?? "" : "";
 
+        private void AutoOnline(string email, string password)
+        {
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@')) return;
+            _ = System.Threading.Tasks.Task.Run(async () =>
+            {
+                var result = await OnlineClient.Login(email, password);
+                if (!result.Ok) result = await OnlineClient.Register(email, password, email.Split('@')[0]);
+                if (!result.Ok) return;
+                bool ok = await OnlineClient.Connect();
+                if (ok) try { BeginInvoke((Action)(() => ShowToast("Online account ready."))); } catch { }
+            });
+        }
+
         private void TryOnlineLogin()
         {
             string email = _tbUser.Text.Trim();
@@ -926,6 +940,7 @@ namespace Deadzone2D
                         LoadFriendsFromAccount();
                         LoadEquippedFromAccount();
                         ResetGroup();
+                        AutoOnline(profile.Email, "G-" + profile.Id);
                         ShowToast("Bem-vindo, " + acc.DisplayName + ".");
                         StartLoading("SIGNING IN WITH GOOGLE", 1.8f, () => ShowPage("Lobby"));
                     }));
@@ -1165,6 +1180,7 @@ namespace Deadzone2D
                     _teamSize = 1;
                     LoadFriendsFromAccount();
                     LoadEquippedFromAccount();
+                    AutoOnline(acc.Gmail, _tbPass.Text);
                     _tbPass.Text = "";
                     _tbLoginCode.Text = "";
                     _loginCodeHint = "";
@@ -2418,7 +2434,7 @@ namespace Deadzone2D
 
             Spaced(g, "UPDATE AVAILABLE", FLabel, Red, card.X + 40, card.Y + 36, 4f);
             Txt(g, "NEW VERSION", VSub, Ink, new RectangleF(card.X + 40, card.Y + 52, card.Width - 80, 52));
-            Txt(g, "Deadzone " + UpdateService.LocalVersion + "  →  " + version, FMid, Dim,
+            Txt(g, UpdateService.LocalVersion + " > " + version + " (Latest)", FMid, Dim,
                 new RectangleF(card.X + 40, card.Y + 106, card.Width - 80, 24));
             if (!string.IsNullOrEmpty(info?.Notes))
                 g.DrawString(info!.Notes, FBody, Br(A(Ink, 200)), new RectangleF(card.X + 40, card.Y + 140, card.Width - 80, 56), SfWrap);
@@ -2433,16 +2449,16 @@ namespace Deadzone2D
                 g.FillRectangle(Br(Red), bar.X, bar.Y, (int)(bar.Width * prog), 4);
             }
             if (UpdateService.DownloadFailed)
-                Spaced(g, "FALHA NO DOWNLOAD — TENTE DE NOVO", FTiny, HpRed, card.X + 40, card.Y + 236, 3f);
+                Spaced(g, "DOWNLOAD FAILED - TRY AGAIN", FTiny, HpRed, card.X + 40, card.Y + 236, 3f);
             else if (UpdateService.InstallerStarted)
-                Spaced(g, "ABRINDO O INSTALADOR...", FTiny, Green, card.X + 40, card.Y + 236, 3f);
+                Spaced(g, "OPENING INSTALLER...", FTiny, Green, card.X + 40, card.Y + 236, 3f);
 
-            string installLabel = UpdateService.InstallerStarted ? "ABRINDO INSTALADOR"
-                : _updInstallRequested ? $"BAIXANDO {(int)(prog * 100)}%" : "ATUALIZAR AGORA";
+            string installLabel = UpdateService.InstallerStarted ? "OPENING INSTALLER"
+                : _updInstallRequested ? $"DOWNLOADING {(int)(prog * 100)}%" : "UPDATE NOW";
             int by = card.Bottom - 92;
             Button(g, new Rectangle(card.X + 40, by, 250, 56), "updateInstall", installLabel, true, VBtn, 3f);
             Button(g, new Rectangle(card.X + 306, by, 200, 56), "updateSoft", "NO REINSTALL", false, FLabel, 2.5f);
-            Button(g, new Rectangle(card.X + 522, by, 158, 56), "updateLater", "DEPOIS", false, FLabel, 2.5f);
+            Button(g, new Rectangle(card.X + 522, by, 158, 56), "updateLater", "LATER", false, FLabel, 2.5f);
 
             if (UpdateService.IgnoreVersion == UpdateService.Available?.Version)
                 Spaced(g, "THIS VERSION WILL BE IGNORED", FTiny, A(Dim, 200), card.X + 40, card.Bottom - 22, 2f);
