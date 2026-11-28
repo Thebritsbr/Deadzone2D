@@ -1,6 +1,6 @@
 {
-  "Version": "4.4",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.4.exe",
-  "Notes": "Deadzone2D 4.4 - online friends for all accounts and fixed update screen version label.",
+  "Version": "4.5.0",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.5.0.exe",
+  "Notes": "Deadzone2D 4.5.0 - performance improvements, fixed leaderboard, tabbed settings and real requirements data.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

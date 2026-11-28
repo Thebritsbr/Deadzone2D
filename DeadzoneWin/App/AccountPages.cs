@@ -30,7 +30,7 @@ namespace Deadzone2D
                 _tbDisplay, _tbDesc, _tbFriendSearch, _tbAdminUser, _tbAdminPass, _tbAdminCmd,
                 _tbNotifyMsg, _tbAnnTitle, _tbAnnBody, _tbAnnFile, _tbAnnAuthor,
                 _tbGiveTarget, _tbGiveQuery, _tbGiveCoins, _tbGiveLevel, _tbGiveWins, _tbGiveKills, _tbAdminGmail,
-                _tbChat, _tbServerUrl
+                _tbChat, _tbServerUrl, _tbNewPass, _tbNewPass2, _tbPwdCode
             };
             foreach (var tb in all)
             {
@@ -60,6 +60,9 @@ namespace Deadzone2D
             _tbAnnAuthor.MaxLength = 30;
             _tbChat.MaxLength = 160;
             _tbServerUrl.Text = OnlineClient.Config.ServerUrl;
+            _tbNewPass.UseSystemPasswordChar = true;
+            _tbNewPass2.UseSystemPasswordChar = true;
+            _tbPwdCode.MaxLength = 6;
             _tbAnnAuthor.Text = "sr.idev";
             _tbAdminUser.Text = "sr.idev";
 
@@ -89,6 +92,9 @@ namespace Deadzone2D
             ShowInput(_tbLoginCode, _page == 1);
             ShowInput(_tbChat, _chatOpen && (_page >= 2) && _page != 5 && _page != 6);
             ShowInput(_tbServerUrl, _cfgOpen && _page != 4);
+            ShowInput(_tbNewPass, _pwdChangeOpen && _page != 4);
+            ShowInput(_tbNewPass2, _pwdChangeOpen && _page != 4);
+            ShowInput(_tbPwdCode, _pwdChangeOpen && _page != 4);
             bool reg = _page == 6;
             ShowInput(_tbRegGmail, reg);
             ShowInput(_tbRegNick, reg);
@@ -1505,6 +1511,37 @@ namespace Deadzone2D
 
             UiField(g, new Rectangle(r.X + 10, r.Y + 180, r.Width - 20, 44), "MESSAGE (ENTER TO SEND)", _tbChat);
             Button(g, new Rectangle(r.Right - 100, r.Bottom - 46, 88, 32), "chatSend", "SEND", true, FTiny, 1.5f);
+        }
+
+        private void DrawSecurityPassword(Graphics g, int w, int h)
+        {
+            if (!_pwdChangeOpen) return;
+            g.FillRectangle(Br(A(Color.Black, 170)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "pwdBackdrop");
+            int pw = 560, ph = 430;
+            var r = new Rectangle((w - pw) / 2, (h - ph) / 2, pw, ph);
+            Reg(r, "pwdPanel");
+            using (var p = Chamfer(r, 16, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(Line, 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 18, r.Y, r.Width - 18, 3);
+            Spaced(g, "CHANGE PASSWORD", FLabel, Red, r.X + 28, r.Y + 26, 4f);
+            var close = new Rectangle(r.Right - 46, r.Y + 16, 28, 28);
+            Reg(close, "securityPwdClose");
+            var xp = Pn(Mix(Dim, Ink, Hv("securityPwdClose")), 1.8f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            UiField(g, new Rectangle(r.X + 28, r.Y + 82, pw - 56, 50), "NEW PASSWORD", _tbNewPass);
+            UiField(g, new Rectangle(r.X + 28, r.Y + 142, pw - 56, 50), "CONFIRM PASSWORD", _tbNewPass2);
+            UiField(g, new Rectangle(r.X + 28, r.Y + 202, pw - 190, 50), "GMAIL CODE", _tbPwdCode);
+            Button(g, new Rectangle(r.Right - 28 - 150, r.Y + 202, 150, 50), "securityPwdSend", "SEND CODE", false, FTiny, 1.5f);
+            if (!string.IsNullOrEmpty(_pwdCodeHint))
+                Txt(g, _pwdCodeHint, FTiny, MailService.IsConfigured ? Green : Amber,
+                    new RectangleF(r.X + 28, r.Y + 260, pw - 56, 18));
+            Button(g, new Rectangle(r.X + 28, r.Bottom - 66, 200, 44), "securityPwdSave", "SAVE PASSWORD", true, FLabel, 2.5f);
         }
 
         private void AdminLogin()

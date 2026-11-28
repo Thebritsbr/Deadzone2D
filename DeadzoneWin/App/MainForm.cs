@@ -172,6 +172,12 @@ namespace Deadzone2D
         private TextBox _tbAdminGmail = new();
         private TextBox _tbChat = new();
         private TextBox _tbServerUrl = new();
+        private TextBox _tbNewPass = new();
+        private TextBox _tbNewPass2 = new();
+        private TextBox _tbPwdCode = new();
+        private int _cfgSection;
+        private bool _pwdChangeOpen;
+        private string _pwdCodeHint = "";
         private bool _online;
         private string _onlineNick = "", _onlineId = "";
         private readonly List<(string Id, string Nick)> _onlineFriends = new();
@@ -253,6 +259,7 @@ namespace Deadzone2D
         private readonly Dictionary<int, SolidBrush> _br = new();
         private readonly Dictionary<(int, float), Pen> _pn = new();
         private readonly Dictionary<(Font, char), float> _cw = new();
+        private readonly Dictionary<(string, Font, float), float[]> _spacedCache = new();
         private readonly Dictionary<string, Image?> _imgs = new();
         private Bitmap? _bgCache;
 
@@ -318,7 +325,7 @@ namespace Deadzone2D
                 catch { }
             });
 
-            _timer = new System.Windows.Forms.Timer { Interval = 33 };
+            _timer = new System.Windows.Forms.Timer { Interval = 50 };
             _timer.Tick += (s, e) =>
             {
                 double now = _sw.Elapsed.TotalSeconds;
@@ -605,7 +612,7 @@ namespace Deadzone2D
             };
             _fade = 1f;
             _progress = 0f;
-            if (_timer != null) _timer.Interval = _page == 4 ? 16 : 33;
+            if (_timer != null) _timer.Interval = _page == 4 ? 33 : 50;
             _profileOpen = _notifOpen = _adminOpen = _addFriendOpen = _cfgOpen = _requestsOpen = false;
             _notifyUiOpen = _announceUiOpen = _giveOpen = _adminGmailOpen = _rankInfoOpen = false;
             _langConfirmOpen = false;
@@ -1071,6 +1078,11 @@ namespace Deadzone2D
                 _chatScope = id.EndsWith("1") ? 1 : 0;
                 return;
             }
+            if (id.StartsWith("cfgSection:", StringComparison.OrdinalIgnoreCase))
+            {
+                if (int.TryParse(id.Substring(11), out var sec) && sec >= 0 && sec <= 2) _cfgSection = sec;
+                return;
+            }
             if (id.StartsWith("lang:", StringComparison.OrdinalIgnoreCase))
             {
                 if (int.TryParse(id.Substring(5), out var li) && li >= 0 && li < Loc.Languages.Length) _langSelected = li;
@@ -1273,6 +1285,41 @@ namespace Deadzone2D
                     break;
                 case "chatClose": _chatOpen = false; break;
                 case "chatSend": SendChat(); break;
+                case "security2fa":
+                    if (_account == null) { ShowToast("Sign in first."); break; }
+                    _account.TwoFactor = !_account.TwoFactor;
+                    AccountStore.SaveAccounts();
+                    ShowToast(_account.TwoFactor ? "Two-factor authentication enabled." : "Two-factor authentication disabled.");
+                    break;
+                case "securityPassword":
+                    if (_account == null) { ShowToast("Sign in first."); break; }
+                    _pwdChangeOpen = true;
+                    _pwdCodeHint = "";
+                    _tbNewPass.Text = "";
+                    _tbNewPass2.Text = "";
+                    _tbPwdCode.Text = "";
+                    break;
+                case "securityPwdSend":
+                {
+                    if (_account == null) break;
+                    if (!AccountStore.SendCode(_account.Gmail, out var code, out var err)) { ShowToast(err); break; }
+                    _pwdCodeHint = MailService.IsConfigured
+                        ? "Code sent to " + _account.Gmail + "."
+                        : "LOCAL MODE - test code: " + code;
+                    ShowToast(MailService.IsConfigured ? "Code sent to your Gmail." : "Local code: " + code);
+                    break;
+                }
+                case "securityPwdSave":
+                {
+                    if (_account == null) break;
+                    if (_tbNewPass.Text != _tbNewPass2.Text) { ShowToast("Passwords do not match."); break; }
+                    if (!AccountStore.ChangePasswordWithCode(_account, _account.Gmail, _tbPwdCode.Text, _tbNewPass.Text, out var perr))
+                    { ShowToast(perr); break; }
+                    _pwdChangeOpen = false;
+                    ShowToast("Password changed.");
+                    break;
+                }
+                case "securityPwdClose": _pwdChangeOpen = false; break;
                 case "serverSave":
                     OnlineClient.SaveUrl(_tbServerUrl.Text);
                     ShowToast("Server URL saved: " + OnlineClient.Config.ServerUrl);
@@ -1909,9 +1956,16 @@ namespace Deadzone2D
         private float Spaced(Graphics g, string s, Font f, Color c, float x, float cy, float sp, StringAlignment al = StringAlignment.Near)
         {
             s = Loc.T(s);
+            var key = (s, f, sp);
+            if (!_spacedCache.TryGetValue(key, out var ws))
+            {
+                ws = new float[s.Length];
+                for (int i = 0; i < s.Length; i++) ws[i] = CharW(g, s[i], f);
+                _spacedCache[key] = ws;
+                if (_spacedCache.Count > 2000) _spacedCache.Clear();
+            }
             float total = 0;
-            var ws = new float[s.Length];
-            for (int i = 0; i < s.Length; i++) { ws[i] = CharW(g, s[i], f); total += ws[i] + sp; }
+            for (int i = 0; i < ws.Length; i++) total += ws[i] + sp;
             total = Math.Max(0, total - sp);
             float px = al == StringAlignment.Center ? x - total / 2f : al == StringAlignment.Far ? x - total : x;
             float py = cy - f.GetHeight(g) / 2f;
@@ -2078,10 +2132,10 @@ namespace Deadzone2D
             int w = ClientSize.Width, h = ClientSize.Height;
             if (w <= 0 || h <= 0) return;
             var g = e.Graphics;
-            g.SmoothingMode = SmoothingMode.AntiAlias;
-            g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-            g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-            g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+            g.SmoothingMode = SmoothingMode.HighSpeed;
+            g.PixelOffsetMode = PixelOffsetMode.Half;
+            g.InterpolationMode = InterpolationMode.Low;
+            g.TextRenderingHint = TextRenderingHint.SingleBitPerPixelGridFit;
 
             _hits.Clear();
             _off = Point.Empty;
@@ -2123,6 +2177,7 @@ namespace Deadzone2D
             if (_profileOpen) DrawProfilePanel(g, w, h);
             if (_rankInfoOpen) DrawRankInfo(g, w, h);
             if (_langConfirmOpen) DrawLangConfirm(g, w, h);
+            if (_pwdChangeOpen) DrawSecurityPassword(g, w, h);
             if (_addFriendOpen) DrawAddFriend(g, w, h);
             if (_adminOpen) DrawAdminPanel(g, w, h);
             if (_notifyUiOpen) DrawNotifyUi(g, w, h);
@@ -2472,6 +2527,90 @@ namespace Deadzone2D
 
         // ---------- Configurações (janela modal) ----------
         private void DrawConfigPanel(Graphics g, int w, int h)
+        {
+            if (!_cfgOpen) return;
+            g.FillRectangle(Br(A(Color.Black, 185)), 0, 0, w, h);
+            Reg(new Rectangle(0, 0, w, h), "cfgBackdrop");
+
+            int pw = Math.Min(920, w - 60), ph = Math.Min(620, h - 40);
+            var r = new Rectangle((w - pw) / 2, (h - ph) / 2, pw, ph); // sempre no centro
+            Reg(r, "cfgPanel");
+            using (var p = Chamfer(r, 16, true, false, true, false))
+            {
+                g.FillPath(Br(A(Panel, 252)), p);
+                g.DrawPath(Pn(A(Line, 220), 1f), p);
+            }
+            g.FillRectangle(Br(Red), r.X + 18, r.Y, r.Width - 18, 3);
+            Spaced(g, "SETTINGS", FLabel, Red, r.X + 28, r.Y + 24, 4f);
+            Txt(g, "CONFIGURATION", VSub, Ink, new RectangleF(r.X + 28, r.Y + 36, pw - 100, 44));
+            var close = new Rectangle(r.Right - 48, r.Y + 16, 30, 30);
+            Reg(close, "cfg");
+            var xp = Pn(Mix(Dim, Ink, Hv("cfg")), 1.8f);
+            g.DrawLine(xp, close.X + 8, close.Y + 8, close.Right - 8, close.Bottom - 8);
+            g.DrawLine(xp, close.Right - 8, close.Y + 8, close.X + 8, close.Bottom - 8);
+
+            // menu lateral
+            int sx = r.X + 24, sw = 210, sy = r.Y + 96;
+            string[] sections = { "ACCOUNT", "SECURITY", "OTHERS" };
+            for (int i = 0; i < sections.Length; i++)
+                Button(g, new Rectangle(sx, sy + i * 56, sw, 46), "cfgSection:" + i,
+                    sections[i], _cfgSection == i, FSmallB, 2.5f);
+
+            int cx = r.X + 258, cw = pw - 282, cy = r.Y + 96;
+            g.DrawLine(Pn(A(Line, 140), 1f), sx + sw + 12, r.Y + 90, sx + sw + 12, r.Bottom - 24);
+
+            if (_cfgSection == 0)
+            {
+                Spaced(g, "ACCOUNT INFORMATION", FLabel, Dim, cx, cy, 3f);
+                int y = cy + 26;
+                InfoLine(g, cx, y, cw, "NICK", _account?.Nick ?? "-"); y += 34;
+                InfoLine(g, cx, y, cw, "DISPLAY NAME", _account?.DisplayName ?? "-"); y += 34;
+                InfoLine(g, cx, y, cw, "GMAIL", _account?.Gmail ?? "-"); y += 34;
+                InfoLine(g, cx, y, cw, "USER ID", _account?.UserId ?? "-"); y += 34;
+                InfoLine(g, cx, y, cw, "LOGIN METHOD", _online ? "Google / Online" : "Local account"); y += 34;
+                InfoLine(g, cx, y, cw, "CREATED", _account == null ? "-" : AccountStore.CreationText(_account)); y += 34;
+                InfoLine(g, cx, y, cw, "ACCOUNT AGE", _account == null ? "-" : AccountStore.AgeText(_account.CreatedAt)); y += 34;
+                Button(g, new Rectangle(cx, r.Bottom - 82, 240, 44), "profileLogout", "LOGOUT", true, FLabel, 2.5f);
+            }
+            else if (_cfgSection == 1)
+            {
+                Spaced(g, "SECURITY SETTINGS", FLabel, Dim, cx, cy, 3f);
+                Button(g, new Rectangle(cx, cy + 24, cw, 52), "securityPassword", "CHANGE PASSWORD", false, FLabel, 2.5f);
+                Txt(g, "Requires a verification code sent to your Gmail.", FSmall, Dim,
+                    new RectangleF(cx, cy + 80, cw, 20));
+                g.DrawLine(Pn(A(Line, 140), 1f), cx, cy + 112, cx + cw, cy + 112);
+                Spaced(g, "TWO-FACTOR AUTHENTICATION", FLabel, Dim, cx, cy + 132, 3f);
+                Button(g, new Rectangle(cx, cy + 158, 240, 46), "security2fa",
+                    _account != null && _account.TwoFactor ? "ENABLED - TAP TO DISABLE" : "DISABLED - TAP TO ENABLE",
+                    _account != null && _account.TwoFactor, FTiny, 1.5f);
+                Txt(g, "When enabled, sign-in requires a Gmail code.", FSmall, Dim,
+                    new RectangleF(cx, cy + 216, cw, 20));
+            }
+            else
+            {
+                Spaced(g, "APPLICATION", FLabel, Dim, cx, cy, 3f);
+                int y = cy + 26;
+                InfoLine(g, cx, y, cw, "VERSION", "v" + AppInfo.Versao); y += 34;
+                InfoLine(g, cx, y, cw, "PUBLISHER", AppInfo.EmpresaFundadora + " INC"); y += 34;
+                InfoLine(g, cx, y, cw, "THEME", AppInfo.Tema); y += 34;
+                InfoLine(g, cx, y, cw, "PLATFORM", "Windows x64 / .NET 8"); y += 34;
+                InfoLine(g, cx, y, cw, "SERVER", OnlineClient.Config.ServerUrl); y += 34;
+
+                Spaced(g, "LANGUAGE", FLabel, Dim, cx, y, 3f);
+                string[] langs = { "en-US", "pt-BR", "es-ES" };
+                for (int i = 0; i < langs.Length; i++)
+                    SizeBtn(g, new Rectangle(cx + i * 106, y + 18, 100, 28), "lang:" + i, langs[i], _langSelected == i);
+                Button(g, new Rectangle(cx + 326, y + 18, cw - 326, 28), "langSave", "SAVE LANGUAGE", false, FTiny, 1.2f);
+                y += 62;
+
+                UiField(g, new Rectangle(cx, y, cw - 170, 42), "SERVER URL", _tbServerUrl);
+                Button(g, new Rectangle(cx + cw - 160, y + 2, 160, 36), "serverSave", "SAVE URL", false, FTiny, 1.5f);
+                y += 56;
+                UiToggleRow(g, cx, y, cw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "OFF", "cfgOpt", _cfgOpt);
+            }
+        }
+
+        private void DrawConfigPanelOld(Graphics g, int w, int h)
         {
             if (!_cfgOpen) return;
             g.FillRectangle(Br(A(Color.Black, 150)), 0, 0, w, h);

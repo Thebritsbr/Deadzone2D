@@ -10,36 +10,37 @@
 <header class="topbar"><div class="brand"><span class="logo">D</span> DEADZONE</div>
 <nav><a class="tablink" href="index.html">DOWNLOAD</a><a class="tablink active" href="requirements.html">REQUIREMENTS</a><a class="tablink" href="privacy.html">PRIVACY</a><a class="tablink" href="terms.html">TERMS</a><a class="tablink" href="releases.html">RELEASES</a></nav></header>
 <main>
-<p class="hint">Last updated: 2026-11-27 | Lume Studio INC | Deadzone2D v4.4</p>
+<p class="hint">Last updated: 2026-11-27 | Lume Studio INC | Deadzone2D v4.5.0</p>
 
 <h2 class="lead">System Requirements</h2>
-<p class="lead">Deadzone2D is a lightweight 2D top-down shooter built with C# WinForms and GDI+. It does not need a game engine or a dedicated graphics card.</p>
+<p class="lead">Deadzone2D is a lightweight 2D top-down shooter built with C# WinForms and GDI+. It does not use a game engine or a dedicated GPU. The installer is about 2.6 MB and the installed game folder is under 1 MB.</p>
 
-<div class="card"><div class="row"><span class="key">Installation requirements</span><span class="value">Windows PC</span></div>
-<p class="hint"><b>Operating system:</b> Windows 10 (64-bit, version 1903 or newer) or Windows 11.</p>
-<p class="hint"><b>Runtime:</b> .NET 8 Desktop Runtime (<span style="color:#f2c846">Microsoft.WindowsDesktop.App 8.0</span>). The installer does not bundle the runtime; install it from Microsoft if it is missing.</p>
-<p class="hint"><b>Architecture:</b> x64 (64-bit) recommended. The installer requires administrator privileges to write to Program Files.</p>
-<p class="hint"><b>Internet:</b> required only for version checks, downloading updates, Google sign-in and email verification. The game itself runs offline.</p></div>
-
-<div class="card"><div class="row"><span class="key">Minimum requirements</span><span class="value">Playable</span></div>
-<p class="hint"><b>Processor:</b> Dual-core 2.0 GHz (Intel Core i3 / AMD Ryzen 3 or equivalent).</p>
-<p class="hint"><b>Memory (RAM):</b> 4 GB.</p>
-<p class="hint"><b>Storage:</b> 500 MB of free disk space for the game and local account data.</p>
-<p class="hint"><b>Graphics:</b> Integrated graphics with DirectX 11 support (Intel HD Graphics 4000 / AMD Radeon HD 7000 or newer).</p>
-<p class="hint"><b>Display:</b> 1280 x 720 resolution, 16:9 aspect ratio.</p>
+<div class="card"><div class="row"><span class="key">Minimum (playable)</span><span class="value">Windows PC</span></div>
+<p class="hint"><b>OS:</b> Windows 10 64-bit (version 1903 or newer) or Windows 11.</p>
+<p class="hint"><b>Runtime:</b> .NET 8 Desktop Runtime (<span style="color:#f2c846">Microsoft.WindowsDesktop.App 8.0</span>). The installer does not bundle it; install it from Microsoft if it is missing.</p>
+<p class="hint"><b>CPU:</b> Dual-core 1.6 GHz (Intel Core i3 / AMD Ryzen 3 or equivalent).</p>
+<p class="hint"><b>RAM:</b> 2 GB.</p>
+<p class="hint"><b>Storage:</b> 100 MB of free disk space (game files are under 1 MB; the installer is ~2.6 MB).</p>
+<p class="hint"><b>Graphics:</b> Any display adapter that supports DirectX 11. Rendering is done by GDI+ on the CPU, so no dedicated video card is needed.</p>
+<p class="hint"><b>Display:</b> 1280 x 720, 16:9.</p>
 <p class="hint"><b>Input:</b> Keyboard and mouse.</p></div>
 
-<div class="card"><div class="row"><span class="key">Recommended requirements</span><span class="value">Smooth</span></div>
-<p class="hint"><b>Processor:</b> Quad-core 3.0 GHz (Intel Core i5 / AMD Ryzen 5 or better).</p>
-<p class="hint"><b>Memory (RAM):</b> 8 GB or more.</p>
-<p class="hint"><b>Storage:</b> 1 GB of free space on an SSD.</p>
-<p class="hint"><b>Graphics:</b> Dedicated GPU with 1 GB VRAM (GTX 1050 / RX 570 or newer). Not required — rendering is handled by GDI+.</p>
-<p class="hint"><b>Display:</b> 1920 x 1080 or higher.</p></div>
+<div class="card"><div class="row"><span class="key">Recommended</span><span class="value">Smooth 2D</span></div>
+<p class="hint"><b>CPU:</b> Quad-core 3.0 GHz (Intel Core i5 / AMD Ryzen 5 or better).</p>
+<p class="hint"><b>RAM:</b> 4 GB or more.</p>
+<p class="hint"><b>Storage:</b> 1 GB free on an SSD (leaves room for updates and local account data).</p>
+<p class="hint"><b>Display:</b> 1920 x 1080 or higher.</p>
+<p class="hint"><b>Network:</b> Broadband connection for online sign-in, friends, chat and matchmaking. Offline/local play needs no network.</p></div>
 
-<div class="card"><div class="row"><span class="key">Supported platforms</span><span class="value">x64</span></div>
-<p class="hint">Deadzone2D is built for <b>Windows x64</b>. The executable is named <span style="color:#f2c846">Deadzone2DApp.exe</span> and is installed by <span style="color:#f2c846">DeadzoneSetup_v3.7.exe</span>. The game stores local data in <span style="color:#f2c846">%LOCALAPPDATA%\Deadzone2D</span> so it survives updates.</p></div>
+<div class="card"><div class="row"><span class="key">Architecture</span><span class="value">x64</span></div>
+<p class="hint">The game is built for <b>Windows x64</b> with <b>.NET 8</b> and uses WinForms/GDI+. The executable is <span style="color:#f2c846">Deadzone2DApp.exe</span> and the installer is <span style="color:#f2c846">DeadzoneSetup_v4.5.0.exe</span>. Installation requires administrator rights to write to Program Files.</p>
+<p class="hint">Local data (accounts, chat, settings) is stored in <span style="color:#f2c846">%LOCALAPPDATA%\Deadzone2D</span> and survives updates.</p></div>
+
+<div class="card"><div class="row"><span class="key">Online server</span><span class="value">Node.js 20+</span></div>
+<p class="hint">The public server runs at <b>https://deadzone2d.onrender.com</b>. It is a Node.js 20+ service using Express and WebSocket. The game connects automatically; no API key or URL configuration is needed.</p>
+<p class="hint">For self-hosting, run <span style="color:#f2c846">npm install</span> and <span style="color:#f2c846">npm start</span>. The server listens on port 3000 by default (or the PORT environment variable) and stores data in <span style="color:#f2c846">data/server.json</span>. The included <span style="color:#f2c846">render.yaml</span> deploys a free Render web service.</p></div>
 
 <div class="card"><div class="row"><span class="key">Need help?</span><span class="value">Open an issue</span></div>
-<p class="hint">If the game fails to start, make sure the .NET 8 Desktop Runtime is installed and that you are running the x64 build on a 64-bit Windows system: <a style="color:#f2c846" href="https://github.com/Thebritsbr/Deadzone2D/issues">github.com/Thebritsbr/Deadzone2D/issues</a>.</p></div>
+<p class="hint">If the game fails to start, make sure .NET 8 Desktop Runtime is installed and that you are running the x64 build on 64-bit Windows: <a style="color:#f2c846" href="https://github.com/Thebritsbr/Deadzone2D/issues">github.com/Thebritsbr/Deadzone2D/issues</a>.</p></div>
 </main>
 </body></html>

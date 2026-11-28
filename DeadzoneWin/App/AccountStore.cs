@@ -48,6 +48,7 @@ namespace Deadzone2D
         public int Wins { get; set; }
         public int Kills { get; set; }
         public int Xp { get; set; }
+        public bool TwoFactor { get; set; }
     }
 
     public sealed class Announcement
@@ -195,7 +196,7 @@ namespace Deadzone2D
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Welcome to Deadzone 4.4",
+                        Title = "Welcome to Deadzone 4.5.0",
                         Body = "New lobby, real Google sign-in, player profile, Cofre, announcements and the Dead Royal store. " +
                                "Use CTRL + SHIFT + P on an admin account to open the admin panel.",
                         Author = "Lume Studio INC",
@@ -212,12 +213,12 @@ namespace Deadzone2D
                     });
                     dirty = true;
                 }
-                if (!Announcements.Any(a => a.Title == "Deadzone2D 4.4 Release"))
+                if (!Announcements.Any(a => a.Title == "Deadzone2D 4.5.0 Release"))
                 {
                     Announcements.Add(new Announcement
                     {
                         Category = "Updates",
-                        Title = "Deadzone2D 4.4 Release",
+                        Title = "Deadzone2D 4.5.0 Release",
                         Body = "Friend requests are now sent between accounts and must be accepted. " +
                                "Group invites also send a request. A rank/XP system and a new requirements page are available.",
                         Author = "Lume Studio INC",
@@ -584,6 +585,19 @@ namespace Deadzone2D
             }
             acc.DisplayName = newName;
             acc.DisplayNameChanges++;
+            SaveAccounts();
+            return true;
+        }
+
+        public static bool ChangePasswordWithCode(Account acc, string gmail, string code, string newPassword, out string error)
+        {
+            error = "";
+            if (!VerifyCode(gmail, code, out error)) return false;
+            if (newPassword == null || newPassword.Length < 6)
+            { error = "Password must be at least 6 characters."; return false; }
+            var (hash, salt) = HashPassword(newPassword);
+            acc.PasswordHash = hash;
+            acc.PasswordSalt = salt;
             SaveAccounts();
             return true;
         }

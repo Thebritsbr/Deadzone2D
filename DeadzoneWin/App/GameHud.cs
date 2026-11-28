@@ -407,8 +407,9 @@ namespace Deadzone2D
         {
             if (_g == null) return;
             var rank = _g.Fighters.OrderByDescending(f => f.Kills).ThenByDescending(f => f.DamageDealt).ThenBy(f => f.Deaths).ToList();
-            int rw = 560, rh = 64 + rank.Count * 28;
-            var r = new Rectangle((w - rw) / 2, (h - rh) / 2, rw, rh);
+            int shown = Math.Min(12, rank.Count);
+            int rw = 560, rh = 64 + shown * 28;
+            var r = new Rectangle((w - rw) / 2, Math.Max(96, (h - rh) / 2), rw, rh);
             FillRoundedRect(g, r, A(BgDeep, 240), 10);
             using (var p = RoundRect(r, 10)) g.DrawPath(Pn(Line, 1f), p);
             Spaced(g, "MATCH DETAILS — TAB", FTitle, Red, r.X + 24, r.Y + 22, 4f);
@@ -417,8 +418,9 @@ namespace Deadzone2D
             Spaced(g, "DAMAGE", FTiny, Dim, r.X + 430, r.Y + 52, 2f);
             Spaced(g, "DEATHS", FTiny, Dim, r.X + 510, r.Y + 52, 2f);
             int y = r.Y + 70;
-            foreach (var f in rank)
+            for (int idx = 0; idx < shown; idx++)
             {
+                var f = rank[idx];
                 var col = f.IsPlayer ? Red : f.Team == 0 ? Blue : HpRed;
                 Txt(g, f.Name, FSmallB, f.Alive ? col : A(Dim, 160), new RectangleF(r.X + 24, y, 300, 22));
                 Txt(g, f.Kills.ToString(), FSmallB, Ink, new RectangleF(r.X + 360, y, 50, 22), StringAlignment.Center);
