@@ -92,7 +92,7 @@ namespace Deadzone2D
             error = "";
             if (!IsConfigured)
             {
-                error = "Configure Config/Google.json com seu Client ID e Client Secret do Google.";
+                error = "Google sign-in is not available on this installation. Use Gmail and password.";
                 return false;
             }
 

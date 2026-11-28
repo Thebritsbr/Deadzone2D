@@ -70,12 +70,9 @@ namespace Deadzone2D
             int py = btn.Bottom + 12;
             string squadId = _squadOpen ? "squadLeave" : "squadCreate";
             string squadLabel = _squadOpen ? "(-) Leave Group" : "(+) Create Group";
-            if (_online)
-            {
-                Button(g, new Rectangle(cx - 180, py, 174, 38), squadId, squadLabel, false, FTiny, 1.8f);
-                Button(g, new Rectangle(cx + 6, py, 174, 38), "matchFind", _queueing ? "CANCEL SEARCH" : "FIND MATCH", true, FTiny, 1.8f);
-            }
-            else Button(g, new Rectangle(cx - 110, py, 220, 38), squadId, squadLabel, false, FTiny, 1.8f);
+            Button(g, new Rectangle(cx - 180, py, 174, 38), squadId, squadLabel, false, FTiny, 1.8f);
+            Button(g, new Rectangle(cx + 6, py, 174, 38), "matchFind",
+                _queueing ? "CANCEL SEARCH" : "FIND MATCH", true, FTiny, 1.8f);
 
             // ---------- grupo ou cartão do jogador ----------
             if (_squadOpen) DrawSquadRow(g, w, py + 38 + 8);
