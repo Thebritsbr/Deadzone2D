@@ -833,6 +833,26 @@ namespace Deadzone2D
             });
         }
 
+        // Perfil em memória: nada é gravado como "conta local" neste PC.
+        private void UseProfile(string userId, string gmail, string nick, string display, int coins, int level, int xp)
+        {
+            var acc = new Account
+            {
+                UserId = userId, Gmail = gmail, Nick = nick, DisplayName = display,
+                IconId = "icon_01", BannerId = "banner_01", Region = "Brazil",
+                CreatedAt = DateTime.UtcNow, DeadCoins = coins, Level = level, Xp = xp,
+                EmailVerified = true, GoogleId = userId
+            };
+            foreach (var icon in AccountStore.Icons) acc.OwnedIcons.Add(icon.Id);
+            foreach (var banner in AccountStore.Banners) acc.OwnedBanners.Add(banner.Id);
+            _account = acc;
+            _players[0] = acc.Nick;
+            SaveLastUser(gmail);
+            LoadFriendsFromAccount();
+            LoadEquippedFromAccount();
+            ResetGroup();
+        }
+
         private void TryOnlineLogin()
         {
             string email = _tbUser.Text.Trim();
@@ -862,6 +882,11 @@ namespace Deadzone2D
                         _online = true;
                         _onlineNick = JsonString(result.Profile, "nick");
                         _onlineId = JsonString(result.Profile, "id");
+                        UseProfile(_onlineId, JsonString(result.Profile, "email"), _onlineNick,
+                            JsonString(result.Profile, "displayName"),
+                            result.Profile.TryGetProperty("coins", out var oc) ? oc.GetInt32() : 1500,
+                            result.Profile.TryGetProperty("level", out var ol) ? ol.GetInt32() : 1,
+                            result.Profile.TryGetProperty("xp", out var ox) ? ox.GetInt32() : 0);
                         _players[0] = _onlineNick;
                         ShowToast("Online: " + _onlineNick);
                         StartLoading("ENTERING ONLINE LOBBY", 1.5f, () => ShowPage("Lobby"));
@@ -1008,15 +1033,10 @@ namespace Deadzone2D
                         if (!ok || profile == null) { ShowToast(error); return; }
                         var acc = AccountStore.LoginOrCreateWithGoogle(profile, out var accErr);
                         if (acc == null) { ShowToast(accErr); return; }
-                        _account = acc;
-                        _players[0] = acc.Nick;
-                        SaveLastUser(acc.Gmail);
                         _royaleSquad = 1;
                         _teamSize = 1;
-                        LoadFriendsFromAccount();
-                        LoadEquippedFromAccount();
-                        ResetGroup();
-                        AutoOnline(profile.Email, "G-" + profile.Id);
+                        UseProfile(acc.UserId, acc.Gmail, acc.Nick, acc.DisplayName,
+                            acc.DeadCoins, acc.Level, acc.Xp);
                         ShowToast("Bem-vindo, " + acc.DisplayName + ".");
                         StartLoading("SIGNING IN WITH GOOGLE", 1.8f, () => ShowPage("Lobby"));
                     }));
@@ -1137,8 +1157,13 @@ namespace Deadzone2D
                 string value = id.Substring(10);
                 if (_account != null)
                 {
-                    if (!AccountStore.AddRemoteContact(_account, value, out var rerr)) ShowToast(rerr);
-                    else { LoadFriendsFromAccount(); ShowToast("Contact added: " + value); }
+                    if (_online && OnlineClient.Connected)
+                    {
+                        OnlineClient.Send("friend:add", new { value });
+                        ShowToast("Friend request sent to " + value + ".");
+                    }
+                    else if (!AccountStore.AddRemoteContact(_account, value, out var rerr)) ShowToast(rerr);
+                    else { LoadFriendsFromAccount(); ShowToast("Contact saved locally: " + value); }
                 }
                 return;
             }
@@ -1303,6 +1328,12 @@ namespace Deadzone2D
                     break;
                 case "googleSignIn": TryGoogleSignIn(); break;
                 case "onlineLogin": TryOnlineLogin(); break;
+                case "guestLogin":
+                    UseProfile("DZ-GUEST", "guest@local", "GUEST", "Guest", 0, 1, 0);
+                    _online = false;
+                    ShowToast("Playing as guest.");
+                    StartLoading("ENTERING GAME", 1.2f, () => ShowPage("Lobby"));
+                    break;
                 case "matchFind":
                     if (!_online) { ShowToast("Sign in online first."); break; }
                     _queueing = !_queueing;
@@ -1794,7 +1825,7 @@ namespace Deadzone2D
 
             if (_page == 1)
             {
-                if (e.KeyCode == Keys.Enter) { Activate("login"); e.Handled = true; e.SuppressKeyPress = true; return; }
+                if (e.KeyCode == Keys.Enter) { Activate("googleSignIn"); e.Handled = true; e.SuppressKeyPress = true; return; }
                 if (e.KeyCode == Keys.Tab)
                 {
                     if (_tbUser.Focused) _tbPass.Focus(); else _tbUser.Focus();
@@ -2516,42 +2547,15 @@ namespace Deadzone2D
             int cx = w / 2;
             int top = Math.Max(BarH + 20, (h - 600) / 2);
 
-            UiLogoMark(g, cx, top, 56);
-            Spaced(g, "SIGN IN", VTitle, Ink, cx, top + 96, 8f, StringAlignment.Center);
-            Txt(g, "Use your Google account or confirm your Gmail with the code sent.", FSmall, Dim,
-                new RectangleF(cx - 280, top + 126, 560, 20), StringAlignment.Center);
+            UiLogoMark(g, cx, top, 72);
+            Spaced(g, "DEADZONE2D", VTitle, Ink, cx, top + 130, 8f, StringAlignment.Center);
+            Txt(g, "Choose how you want to play.", FSmall, Dim,
+                new RectangleF(cx - 280, top + 166, 560, 20), StringAlignment.Center);
 
-            var uf = new Rectangle(cx - 190, top + 150, 380, 50);
-            var pf = new Rectangle(cx - 190, top + 210, 380, 50);
-            UiField(g, uf, "GMAIL (@GMAIL.COM)", _tbUser);
-            UiField(g, pf, "PASSWORD", _tbPass);
-
-            UiField(g, new Rectangle(cx - 190, top + 270, 240, 46), "GMAIL CODE", _tbLoginCode);
-            Button(g, new Rectangle(cx - 190 + 252, top + 270, 128, 46), "loginSendCode", "SEND CODE", false, FTiny, 1.5f);
-            if (!string.IsNullOrEmpty(_loginCodeHint))
-                Txt(g, _loginCodeHint, FTiny, MailService.IsConfigured ? Green : Amber,
-                    new RectangleF(cx - 190, top + 320, 380, 16));
-
-            // botão redondo com seta
-            var ab = new Rectangle(cx - 28, top + 340, 56, 56);
-            Reg(ab, "login"); float hv = Hv("login");
-            if (hv > 0.01f)
-                for (int i = 3; i >= 1; i--)
-                    g.FillEllipse(Br(A(Red, (int)(26 * hv))), ab.X - i * 4, ab.Y - i * 4, ab.Width + i * 8, ab.Height + i * 8);
-            g.FillEllipse(Br(Mix(Red, RedHi, hv)), ab);
-            var ap = Pn(Color.White, 3f);
-            float ax = cx - 8 + hv * 3, ay = top + 368;
-            g.DrawLine(ap, ax - 8, ay, ax + 12, ay);
-            g.DrawLines(ap, new[] { new PointF(ax + 4, ay - 8), new PointF(ax + 12, ay), new PointF(ax + 4, ay + 8) });
-
-            Button(g, new Rectangle(cx - 170, top + 404, 340, 36), "googleSignIn", "SIGN IN WITH GOOGLE", false, FLabel, 2.2f);
-            Button(g, new Rectangle(cx - 170, top + 446, 340, 36), "onlineLogin", "SIGN IN ONLINE", true, FLabel, 2.5f);
-            Button(g, new Rectangle(cx - 170, top + 488, 340, 36), "register", "CREATE LOCAL ACCOUNT", false, FLabel, 2.2f);
-            if (AccountStore.Accounts.Count > 0)
-                Txt(g, $"{AccountStore.Accounts.Count} local account(s) on this PC", FTiny, A(Dim, 170),
-                    new RectangleF(0, top + 534, w, 18), StringAlignment.Center);
-
-            Txt(g, "Tab alterna os campos • Enter entra", FTiny, A(Dim, 150), new RectangleF(0, h - 64, w, 18), StringAlignment.Center);
+            Button(g, new Rectangle(cx - 180, top + 224, 360, 56), "googleSignIn", "SIGN IN WITH GOOGLE", true, FLabel, 3f);
+            Button(g, new Rectangle(cx - 180, top + 296, 360, 56), "guestLogin", "CONTINUE AS GUEST", false, FLabel, 3f);
+            Txt(g, "No local accounts. Google keeps your profile; Guest is temporary.", FTiny, A(Dim, 170),
+                new RectangleF(0, top + 372, w, 18), StringAlignment.Center);
             Txt(g, "v" + AppInfo.Versao, FSmall, A(Dim, 160), new RectangleF(32, h - 44, 120, 20));
         }
 

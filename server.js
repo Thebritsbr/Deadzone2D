@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.6', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.7', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -77,7 +77,7 @@ app.post('/api/register', (req, res) => {
 
 app.get('/api/config', (_req, res) => res.json({
   googleClientId: process.env.GOOGLE_WEB_CLIENT_ID || '',
-  serverVersion: '4.6.6'
+  serverVersion: '4.6.7'
 }));
 
 app.post('/api/google', async (req, res) => {
@@ -185,6 +185,19 @@ wss.on('connection', (ws, req) => {
             const salt = crypto.randomBytes(16).toString('hex');
             target = {
               id: newId(), email, nick, displayName: nick.slice(0, 20),
+              salt, passwordHash: hashPassword(crypto.randomBytes(24).toString('hex'), salt),
+              coins: 1500, level: 1, xp: 0, wins: 0, kills: 0,
+              friends: [], requests: [], createdAt: Date.now()
+            };
+            db.accounts.push(target);
+            saveDb();
+          } else {
+            // UserID ou Nick de uma conta local que ainda não entrou online.
+            const raw = String(msg.value || '').trim().slice(0, 24);
+            const salt = crypto.randomBytes(16).toString('hex');
+            target = {
+              id: raw.startsWith('DZ-') ? raw : newId(), email: raw + '@local.invalid',
+              nick: raw, displayName: raw.slice(0, 20),
               salt, passwordHash: hashPassword(crypto.randomBytes(24).toString('hex'), salt),
               coins: 1500, level: 1, xp: 0, wins: 0, kills: 0,
               friends: [], requests: [], createdAt: Date.now()
