@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.0', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.6.1', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();
@@ -213,6 +213,19 @@ wss.on('connection', (ws, req) => {
         }, (_s, other) => other.matchId === st.matchId && other.id !== me.id);
         break;
       }
+      case 'match:shot': {
+        const st = sockets.get(ws);
+        if (!st?.matchId) return;
+        broadcast('match:shot', {
+          id: me.id,
+          x: Number(msg.x) || 0,
+          y: Number(msg.y) || 0,
+          angle: Number(msg.angle) || 0,
+          damage: Math.min(60, Number(msg.damage) || 20),
+          weapon: msg.weapon || ''
+        }, (_s, other) => other.matchId === st.matchId && other.id !== me.id);
+        break;
+      }
       case 'match:leave': {
         const st = sockets.get(ws);
         if (st?.matchId) {
@@ -234,9 +247,30 @@ wss.on('connection', (ws, req) => {
   });
 });
 
-// Simple matchmaking tick: 1v1 needs 2, 2v2 needs 4, royale starts with 2+ after 10s.
+function startMatch(players, mode, now) {
+  const match = {
+    id: 'M' + Date.now().toString(36), mode,
+    players: players.map((p, i) => ({ id: p.id, nick: p.nick, team: i === 0 ? 0 : i === 1 ? 1 : i + 1, spawn: i })),
+    at: now
+  };
+  db.matches.push(match);
+  for (let i = 0; i < players.length; i++) {
+    const state = sockets.get(players[i].ws);
+    if (state) state.matchId = match.id;
+    send(players[i].ws, 'match:start', { match: { ...match, you: players[i].id } });
+  }
+  broadcast('queue', { count: queue.length });
+}
+
+// Cross-play: pareia um jogador de PC com um de mobile primeiro.
 setInterval(() => {
   const now = Date.now();
+  const pc = queue.find(q => q.mode === 'computer');
+  const mobile = queue.find(q => q.mode === 'mobile');
+  if (pc && mobile) {
+    queue = queue.filter(q => q !== pc && q !== mobile);
+    startMatch([pc, mobile], 'cross', now);
+  }
   const groups = {};
   for (const q of queue) (groups[q.mode] ||= []).push(q);
   for (const [mode, list] of Object.entries(groups)) {
@@ -245,14 +279,7 @@ setInterval(() => {
     if (!ready) continue;
     const players = list.splice(0, mode === '2v2' ? 4 : Math.min(list.length, 8));
     queue = queue.filter(q => !players.includes(q));
-    const match = { id: 'M' + Date.now().toString(36), mode, players: players.map((p, i) => ({ id: p.id, nick: p.nick, team: mode === '2v2' ? (i % 2) : i + 1, spawn: i })), at: now };
-    db.matches.push(match);
-    for (let i = 0; i < players.length; i++) {
-      const state = sockets.get(players[i].ws);
-      if (state) state.matchId = match.id;
-      send(players[i].ws, 'match:start', { match: { ...match, you: players[i].id } });
-    }
-    broadcast('queue', { count: queue.length });
+    startMatch(players, mode, now);
   }
 }, 1000);
 

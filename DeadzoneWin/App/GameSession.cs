@@ -346,6 +346,19 @@ namespace Deadzone2D
             if (firing) Shoot(f, angle);
         }
 
+        // Tiro recebido de outro dispositivo: aplica dano se o jogador estiver na linha de tiro.
+        public void ApplyRemoteShot(float x, float y, float angle, float damage)
+        {
+            if (Phase != SessionPhase.Live || !Player.Alive) return;
+            float dx = Player.X - x, dy = Player.Y - y;
+            float dist = (float)Math.Sqrt(dx * dx + dy * dy);
+            if (dist > 700f) return;
+            float aim = (float)Math.Atan2(dy, dx);
+            float diff = Math.Abs((float)Math.Atan2(Math.Sin(aim - angle), Math.Cos(aim - angle)));
+            if (diff > 0.18f) return;
+            DamageFighter(Player, -1, damage, angle);
+        }
+
         public void ApplyRemoteDamage(float amount, float angle)
         {
             if (Phase == SessionPhase.Live) DamageFighter(Player, -1, amount, angle);

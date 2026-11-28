@@ -191,7 +191,7 @@ namespace Deadzone2D
         private readonly List<string> _matchPlayers = new();
         private readonly List<string> _matchNetIds = new();
         private readonly List<int> _matchTeams = new();
-        private float _netSendTimer;
+        private float _netSendTimer, _netShotTimer;
         private bool _queueing;
         private bool _playWithMobile;
 
@@ -560,16 +560,29 @@ namespace Deadzone2D
                 _g.Update(dt, input);
                 if (_online && OnlineClient.Connected)
                 {
+                    var p = _g.Player;
                     _netSendTimer -= dt;
                     if (_netSendTimer <= 0f)
                     {
                         _netSendTimer = 0.05f;
-                        var p = _g.Player;
                         OnlineClient.Send("match:state", new
                         {
                             x = p.X, y = p.Y, angle = p.Angle, weapon = p.WeaponId,
                             firing = _firing && !_inventoryOpen && !_paused && p.Alive
                         });
+                    }
+                    if (_firing && !_inventoryOpen && !_paused && p.Alive && !_inventoryOpen)
+                    {
+                        _netShotTimer -= dt;
+                        if (_netShotTimer <= 0f)
+                        {
+                            _netShotTimer = 0.14f;
+                            OnlineClient.Send("match:shot", new
+                            {
+                                x = p.X, y = p.Y, angle = p.Angle, weapon = p.WeaponId,
+                                damage = p.Weapon.Damage
+                            });
+                        }
                     }
                 }
             }
@@ -919,6 +932,14 @@ namespace Deadzone2D
                     break;
                 }
                 case "queue": ShowToast("Looking for players... " + (data.TryGetProperty("count", out var c) ? c.GetInt32().ToString() : "")); break;
+                case "match:shot":
+                    if (_g == null) break;
+                    _g.ApplyRemoteShot(
+                        data.TryGetProperty("x", out var shx) ? (float)shx.GetDouble() : 0f,
+                        data.TryGetProperty("y", out var shy) ? (float)shy.GetDouble() : 0f,
+                        data.TryGetProperty("angle", out var sha) ? (float)sha.GetDouble() : 0f,
+                        data.TryGetProperty("damage", out var shd) ? (float)shd.GetDouble() : 20f);
+                    break;
                 case "match:state":
                 {
                     if (_g == null) break;
