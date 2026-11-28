@@ -24,6 +24,8 @@ namespace Deadzone2D
 
         private Bitmap? _groundTex;
         private string _groundTexKey = "";
+        private Bitmap? _worldCache;
+        private WorldMap? _worldCacheMap;
 
         private void EnsureGroundTexture(WorldMap map)
         {
@@ -66,6 +68,34 @@ namespace Deadzone2D
             _groundTexKey = key;
         }
 
+        // Pré-renderiza o cenário estático uma vez; cada frame só copia a área visível.
+        private void EnsureWorldCache(WorldMap map)
+        {
+            if (_worldCache != null && _worldCacheMap == map) return;
+            _worldCache?.Dispose();
+            var bmp = new Bitmap((int)map.W, (int)map.H);
+            using (var cg = Graphics.FromImage(bmp))
+            {
+                cg.SmoothingMode = SmoothingMode.HighSpeed;
+                cg.PixelOffsetMode = PixelOffsetMode.Half;
+                using (var tb = new TextureBrush(_groundTex!)) cg.FillRectangle(tb, new RectangleF(0, 0, map.W, map.H));
+                using (var b = NB(A(Color.Black, 90)))
+                {
+                    cg.FillRectangle(b, -14, -14, map.W + 28, 14);
+                    cg.FillRectangle(b, -14, map.H, map.W + 28, 14);
+                    cg.FillRectangle(b, -14, 0, 14, map.H);
+                    cg.FillRectangle(b, map.W, 0, 14, map.H);
+                }
+                var full = new RectangleF(0, 0, map.W, map.H);
+                DrawGroundDecals(cg, map, full);
+                DrawRoads(cg, map, full);
+                DrawHouseFloors(cg, map, full);
+                DrawWalls(cg, map, full);
+            }
+            _worldCache = bmp;
+            _worldCacheMap = map;
+        }
+
         private void DrawGame(Graphics g, int w, int h)
         {
             if (_g == null) return;
@@ -103,20 +133,15 @@ namespace Deadzone2D
             g.TranslateTransform(-camX, -camY);
 
             EnsureGroundTexture(map);
+            EnsureWorldCache(map);
             using (var b = NB(Color.FromArgb(11, 14, 16))) g.FillRectangle(b, view);
-            using (var tb = new TextureBrush(_groundTex!)) g.FillRectangle(tb, new RectangleF(0, 0, map.W, map.H));
-            // sombra de borda do mapa
-            using (var b = NB(A(Color.Black, 90)))
-            {
-                g.FillRectangle(b, -14, -14, map.W + 28, 14);
-                g.FillRectangle(b, -14, map.H, map.W + 28, 14);
-                g.FillRectangle(b, -14, 0, 14, map.H);
-                g.FillRectangle(b, map.W, 0, 14, map.H);
-            }
-            DrawGroundDecals(g, map, view);
-            DrawRoads(g, map, view);
-            DrawHouseFloors(g, map, view);
-            DrawWalls(g, map, view);
+            int sx = (int)Math.Max(0, Math.Floor(view.Left));
+            int sy = (int)Math.Max(0, Math.Floor(view.Top));
+            int sw = (int)Math.Min(map.W - sx, Math.Ceiling(view.Width));
+            int sh = (int)Math.Min(map.H - sy, Math.Ceiling(view.Height));
+            if (sw > 0 && sh > 0)
+                g.DrawImage(_worldCache!, new RectangleF(sx, sy, sw, sh),
+                    new Rectangle(sx, sy, sw, sh), GraphicsUnit.Pixel);
             DrawLoot(g, map, view);
             DrawProps(g, map, view);
             DrawCorpses(g, map, view);

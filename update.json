@@ -1,6 +1,6 @@
 {
-  "Version": "4.5.1",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.5.1.exe",
-  "Notes": "Deadzone2D 4.5.1 - deeper optimization, FPS counter, Windows notifications, hidden server URL and update notice.",
+  "Version": "4.5.2",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.5.2.exe",
+  "Notes": "Deadzone2D 4.5.2 - pre-rendered static world for much higher FPS.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }
