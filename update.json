@@ -1,6 +1,6 @@
 {
-  "Version": "4.5.3",
-  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.5.3.exe",
-  "Notes": "Deadzone2D 4.5.3 - reorganized lobby with centered buttons, player card and footer update notice.",
+  "Version": "4.5.4",
+  "PackageUrl": "https://thebritsbr.github.io/Deadzone2D/DeadzoneSetup_v4.5.4.exe",
+  "Notes": "Deadzone2D 4.5.4 - static props baked into world cache, tighter culling and platform picker on the site.",
   "Files": ["Deadzone2DApp.exe", "Deadzone2DApp.dll", "Deadzone2DApp.deps.json", "Deadzone2DApp.runtimeconfig.json"]
 }

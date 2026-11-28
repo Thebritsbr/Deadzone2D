@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Deadzone — Download & Updates</title>
 <link rel="stylesheet" href="styles.css">
+<style>
+.os-gate{min-height:62vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center}
+.os-buttons{display:flex;gap:18px;flex-wrap:wrap;justify-content:center}
+.os-btn{min-width:220px;padding:26px 32px;border:1px solid #ff4655;background:#0f1923;color:#ece8e1;cursor:pointer;text-align:left;transition:.15s}
+.os-btn:hover{background:#ff4655;color:#0f1923}
+.os-btn b{display:block;font-size:22px;letter-spacing:3px;margin-bottom:6px}
+.os-btn span{font-size:13px;opacity:.8}
+.hidden{display:none!important}
+</style>
 </head>
 <body>
 <header class="topbar">
@@ -21,11 +30,21 @@
   </nav>
 </header>
 
+<section id="osGate" class="os-gate">
+  <h2>CHOOSE YOUR PLATFORM</h2>
+  <p class="lead">Select your system to see the available downloads.</p>
+  <div class="os-buttons">
+    <button class="os-btn" data-os="windows"><b>WINDOWS</b><span>PC · .NET 8 · Online + Local</span></button>
+    <button class="os-btn" data-os="android"><b>ANDROID</b><span>Mobile version — coming soon</span></button>
+  </div>
+</section>
+
+<div id="siteContent" class="hidden">
 <section class="hero">
   <div class="glow"></div>
   <h1>DEADZONE</h1>
   <p class="tagline">A fast-paced top-down shooter. No engine. Pure action.</p>
-  <a class="cta" href="DeadzoneSetup_v4.5.3.exe">DOWNLOAD v4.5.3</a>
+  <a class="cta" href="DeadzoneSetup_v4.5.4.exe">DOWNLOAD v4.5.4</a>
   <p class="small">Windows · .NET 8 · Offline single-player</p>
 </section>
 
@@ -35,11 +54,11 @@
     <h2>Download Deadzone</h2>
     <p class="lead">Get the latest installer and jump into the action.</p>
     <div class="card">
-      <div class="row"><span class="key">Current version</span><span class="value" id="version">4.5.3</span></div>
-      <div class="row"><span class="key">File</span><span class="value">DeadzoneSetup_v4.5.3.exe</span></div>
+      <div class="row"><span class="key">Current version</span><span class="value" id="version">4.5.4</span></div>
+      <div class="row"><span class="key">File</span><span class="value">DeadzoneSetup_v4.5.4.exe</span></div>
       <div class="row"><span class="key">Platform</span><span class="value">Windows 10 / 11 (x64)</span></div>
       <div class="row"><span class="key">Requirements</span><span class="value">.NET 8 Desktop Runtime</span></div>
-      <a class="cta wide" href="DeadzoneSetup_v4.5.3.exe">DOWNLOAD INSTALLER</a>
+      <a class="cta wide" href="DeadzoneSetup_v4.5.4.exe">DOWNLOAD INSTALLER</a>
       <p class="hint">If SmartScreen warns, click "More info" → "Run anyway".</p>
     </div>
   </div>
@@ -66,7 +85,7 @@
   <div id="install" class="tab">
     <h2>How to install</h2>
     <ol class="steps">
-      <li>Download <b>DeadzoneSetup_v4.5.3.exe</b> above.</li>
+      <li>Download <b>DeadzoneSetup_v4.5.4.exe</b> above.</li>
       <li>Run the installer and choose the install folder.</li>
       <li>Launch Deadzone from the Start Menu or desktop shortcut.</li>
       <li>Sign in with your Gmail/local account or create a new one.</li>
@@ -74,9 +93,50 @@
     </ol>
     <p class="hint">Updates install automatically on game start — no manual reinstall needed.</p>
   </div>
+
+  <div id="android" class="tab">
+    <h2>Android version</h2>
+    <p class="lead">The Android build is not released yet.</p>
+    <div class="card">
+      <div class="row"><span class="key">Status</span><span class="value">In development</span></div>
+      <p class="hint">Deadzone2D is currently available for Windows PC. Follow the <a style="color:#f2c846" href="releases.html">Releases</a> page for future mobile builds.</p>
+    </div>
+  </div>
+
+  <p class="hint"><button class="cta" id="changeOs" style="cursor:pointer">CHANGE PLATFORM</button></p>
 </main>
+</div>
 
 <footer>Deadzone · Built with C# WinForms · <a href="update.json">update.json</a></footer>
+<script>
+(function () {
+  var gate = document.getElementById('osGate');
+  var content = document.getElementById('siteContent');
+  function show(platform) {
+    localStorage.setItem('dz-platform', platform);
+    gate.classList.add('hidden');
+    content.classList.remove('hidden');
+    document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.tablink').forEach(function (t) { t.classList.remove('active'); });
+    if (platform === 'android') {
+      document.getElementById('android').classList.add('active');
+    } else {
+      document.getElementById('download').classList.add('active');
+      document.querySelector('[data-tab="download"]').classList.add('active');
+    }
+  }
+  var saved = localStorage.getItem('dz-platform');
+  if (saved) show(saved); else gate.classList.remove('hidden');
+  document.querySelectorAll('[data-os]').forEach(function (b) {
+    b.addEventListener('click', function () { show(b.getAttribute('data-os')); });
+  });
+  document.getElementById('changeOs').addEventListener('click', function () {
+    localStorage.removeItem('dz-platform');
+    content.classList.add('hidden');
+    gate.classList.remove('hidden');
+  });
+})();
+</script>
 <script src="script.js"></script>
 </body>
 </html>

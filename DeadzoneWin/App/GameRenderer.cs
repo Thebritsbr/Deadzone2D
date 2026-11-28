@@ -91,6 +91,7 @@ namespace Deadzone2D
                 DrawRoads(cg, map, full);
                 DrawHouseFloors(cg, map, full);
                 DrawWalls(cg, map, full);
+                DrawProps(cg, map, full);
             }
             _worldCache = bmp;
             _worldCacheMap = map;
@@ -124,8 +125,8 @@ namespace Deadzone2D
             float shy = (float)(Math.Cos(_clock * 91.7) * shake * .7f);
             float camX = _camX + shx / zoom;
             float camY = _camY + shy / zoom;
-            var view = new RectangleF(camX - w / (2f * zoom) - 90, camY - h / (2f * zoom) - 90,
-                                      w / zoom + 180, h / zoom + 180);
+            var view = new RectangleF(camX - w / (2f * zoom) - 30, camY - h / (2f * zoom) - 30,
+                                      w / zoom + 60, h / zoom + 60);
 
             var state = g.Save();
             g.TranslateTransform(w / 2f, h / 2f);
@@ -143,7 +144,6 @@ namespace Deadzone2D
                 g.DrawImage(_worldCache!, new RectangleF(sx, sy, sw, sh),
                     new Rectangle(sx, sy, sw, sh), GraphicsUnit.Pixel);
             DrawLoot(g, map, view);
-            DrawProps(g, map, view);
             DrawCorpses(g, map, view);
             DrawFighters(g, map, view);
             DrawBullets(g, view);
@@ -415,8 +415,7 @@ namespace Deadzone2D
                          : item.Kind == "vest" ? Color.FromArgb(120, 180, 255)
                          : Color.FromArgb(255, 160, 90);
                 if (item.Kind == "shop") using (var b = NB(A(Color.FromArgb(255, 180, 60), 60))) g.FillEllipse(b, item.X - 26, y - 26, 52, 52);
-                using (var b = NB(A(glow, 30))) g.FillEllipse(b, item.X - 26, y - 26, 52, 52);
-                using (var b = NB(A(glow, 70))) g.FillEllipse(b, item.X - 12, y - 12, 24, 24);
+                else using (var b = NB(A(glow, 45))) g.FillEllipse(b, item.X - 20, y - 20, 40, 40);
                 switch (item.Kind)
                 {
                     case "coin":
