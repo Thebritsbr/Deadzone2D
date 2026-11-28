@@ -49,7 +49,7 @@ let queue = [];
 
 const app = express();
 app.use(express.json({ limit: '64kb' }));
-app.get('/health', (_req, res) => res.json({ ok: true, version: '4.5.0', players: sockets.size }));
+app.get('/health', (_req, res) => res.json({ ok: true, version: '4.5.1', players: sockets.size }));
 
 app.post('/api/register', (req, res) => {
   const email = String(req.body.email || '').trim().toLowerCase();

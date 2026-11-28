@@ -24,6 +24,15 @@ namespace Deadzone2D
             DrawHints(g, w, h);
             if (_g.Phase == SessionPhase.MatchOver && !_g.BannerMatch)
                 DrawHints(g, w, h);
+            if (_fpsVisible) DrawFps(g);
+        }
+
+        private void DrawFps(Graphics g)
+        {
+            var r = new Rectangle(12, ClientSize.Height - 42, 92, 30);
+            FillRoundedRect(g, r, A(BgDeep, 210), 6);
+            Txt(g, _fpsValue + " FPS", FSmallB, _fpsValue < 30 ? HpRed : Green,
+                new RectangleF(r.X + 8, r.Y, r.Width - 10, r.Height));
         }
 
         private void DrawHealthPanel(Graphics g)

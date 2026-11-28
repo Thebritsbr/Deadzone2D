@@ -176,6 +176,11 @@ namespace Deadzone2D
         private TextBox _tbNewPass2 = new();
         private TextBox _tbPwdCode = new();
         private int _cfgSection;
+        private NotifyIcon? _tray;
+        private string _updateNotice = "";
+        private bool _fpsVisible;
+        private int _fpsValue, _fpsFrames;
+        private float _fpsTimer;
         private bool _pwdChangeOpen;
         private string _pwdCodeHint = "";
         private bool _online;
@@ -266,6 +271,12 @@ namespace Deadzone2D
         public MainForm()
         {
             try { Icon = new Icon(Path.Combine(_appDir, "Assets", "DeadzoneIcon.ico")); } catch { }
+            try
+            {
+                _tray = new NotifyIcon { Icon = Icon, Text = "Deadzone2D", Visible = true };
+                _tray.DoubleClick += (s, e) => { Show(); WindowState = FormWindowState.Normal; Activate(); };
+            }
+            catch { }
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint |
                      ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
             FormBorderStyle = FormBorderStyle.None;
@@ -320,7 +331,13 @@ namespace Deadzone2D
                 try
                 {
                     var info = await UpdateService.CheckAsync();
-                    if (info != null) Invoke((Action)(() => { if (!IsDisposed) ShowPage("Update"); }));
+                    if (info != null) Invoke((Action)(() =>
+                    {
+                        if (IsDisposed) return;
+                        _updateNotice = "UPDATE AVAILABLE: v" + info.Version + " - press CHECK UPDATE in Settings.";
+                        ShowToast(_updateNotice);
+                        SystemNotify("Deadzone2D update", "Version " + info.Version + " is available.");
+                    }));
                 }
                 catch { }
             });
@@ -335,7 +352,7 @@ namespace Deadzone2D
                 if (WindowState != FormWindowState.Minimized) Invalidate();
             };
             _timer.Start();
-            FormClosed += (s, e) => _timer.Stop();
+            FormClosed += (s, e) => { _timer.Stop(); _tray?.Dispose(); };
             Shown += (s, e) => { if (WindowState == FormWindowState.Normal) ToggleMax(); };   // abre em tela cheia
         }
 
@@ -450,6 +467,17 @@ namespace Deadzone2D
         private void Step(float dt)
         {
             _clock += dt;
+            if (_page == 4)
+            {
+                _fpsFrames++;
+                _fpsTimer += dt;
+                if (_fpsTimer >= 0.5f)
+                {
+                    _fpsValue = (int)(_fpsFrames / _fpsTimer);
+                    _fpsFrames = 0;
+                    _fpsTimer = 0f;
+                }
+            }
             if (_langConfirmOpen && _langConfirmLeft > 0f) _langConfirmLeft = Math.Max(0f, _langConfirmLeft - dt);
             if (_loading)
             {
@@ -716,6 +744,17 @@ namespace Deadzone2D
             });
         }
 
+        private void SystemNotify(string title, string text)
+        {
+            try
+            {
+                if (_tray == null) return;
+                if (WindowState == FormWindowState.Minimized || !Focused)
+                    _tray.ShowBalloonTip(6000, title, text, ToolTipIcon.Info);
+            }
+            catch { }
+        }
+
         private void ShowToast(string msg)
         {
             if (string.IsNullOrWhiteSpace(msg)) return;
@@ -866,6 +905,7 @@ namespace Deadzone2D
                 case "friend:request":
                     _onlineRequests.Add((JsonString(data, "from"), JsonString(data, "nick")));
                     ShowToast("Friend request from " + JsonString(data, "nick"));
+                    SystemNotify("Deadzone2D friend request", JsonString(data, "nick") + " wants to be your friend.");
                     break;
                 case "friend:list":
                 {
@@ -1604,6 +1644,10 @@ namespace Deadzone2D
                     break;
                 case "cfgLang": _cfgLangEn = !_cfgLangEn; break;
                 case "cfgOpt": _cfgOpt = !_cfgOpt; break;
+                case "fpsToggle":
+                    _fpsVisible = !_fpsVisible;
+                    ShowToast(_fpsVisible ? "FPS counter on." : "FPS counter off.");
+                    break;
                 case "viewUpd":
                     if (UpdateService.Available != null) { _cfgOpen = false; ShowPage("Update"); }
                     else ShowToast("No updates available");
@@ -1970,6 +2014,11 @@ namespace Deadzone2D
             float px = al == StringAlignment.Center ? x - total / 2f : al == StringAlignment.Far ? x - total : x;
             float py = cy - f.GetHeight(g) / 2f;
             var br = Br(c);
+            if (sp <= 2f)
+            {
+                g.DrawString(s, f, br, px, py, SfL);
+                return total;
+            }
             for (int i = 0; i < s.Length; i++)
             {
                 g.DrawString(s[i].ToString(), f, br, px, py, StringFormat.GenericTypographic);
@@ -2603,8 +2652,8 @@ namespace Deadzone2D
                 Button(g, new Rectangle(cx + 326, y + 18, cw - 326, 28), "langSave", "SAVE LANGUAGE", false, FTiny, 1.2f);
                 y += 62;
 
-                UiField(g, new Rectangle(cx, y, cw - 170, 42), "SERVER URL", _tbServerUrl);
-                Button(g, new Rectangle(cx + cw - 160, y + 2, 160, 36), "serverSave", "SAVE URL", false, FTiny, 1.5f);
+                Button(g, new Rectangle(cx, y, 240, 42), "viewUpd", "CHECK UPDATE", false, FLabel, 2.5f);
+                Button(g, new Rectangle(cx + 252, y, 180, 42), "fpsToggle", _fpsVisible ? "FPS: ON" : "FPS: OFF", false, FLabel, 2.5f);
                 y += 56;
                 UiToggleRow(g, cx, y, cw, "PERFORMANCE MODE", _cfgOpt ? "ON" : "OFF", "cfgOpt", _cfgOpt);
             }
@@ -2751,6 +2800,18 @@ namespace Deadzone2D
                 Button(g, new Rectangle(cx + 100, btn.Bottom + 8, 184, 34), "matchFind",
                     _queueing ? "CANCEL SEARCH" : "FIND MATCH", true, FTiny, 1.8f);
             DrawSquadRow(g, w, btn.Bottom + 50);
+
+            if (!string.IsNullOrEmpty(_updateNotice))
+            {
+                var nr = new Rectangle(cx - 230, BarH + 96, 460, 40);
+                using (var np = Chamfer(nr, 8, true, false, true, false))
+                {
+                    g.FillPath(Br(A(Red, 35)), np);
+                    g.DrawPath(Pn(Red, 1.2f), np);
+                }
+                Txt(g, _updateNotice, FTiny, Ink, new RectangleF(nr.X + 12, nr.Y, nr.Width - 130, 40));
+                Button(g, new Rectangle(nr.Right - 122, nr.Y + 4, 114, 32), "viewUpd", "UPDATE", true, FTiny, 1.5f);
+            }
         }
 
         private void DrawPartyCard(Graphics g, Rectangle rect, int pi, bool center)

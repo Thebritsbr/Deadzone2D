@@ -91,7 +91,6 @@ namespace Deadzone2D
 
             ShowInput(_tbLoginCode, _page == 1);
             ShowInput(_tbChat, _chatOpen && (_page >= 2) && _page != 5 && _page != 6);
-            ShowInput(_tbServerUrl, _cfgOpen && _page != 4);
             ShowInput(_tbNewPass, _pwdChangeOpen && _page != 4);
             ShowInput(_tbNewPass2, _pwdChangeOpen && _page != 4);
             ShowInput(_tbPwdCode, _pwdChangeOpen && _page != 4);
